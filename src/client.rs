@@ -1,6 +1,8 @@
 use std::io::prelude::*;
 use std::net::TcpStream;
 
+use nalgebra::Point2;
+
 use ggez;
 use ggez::event;
 use ggez::graphics;
@@ -36,7 +38,7 @@ impl MainState {
         let s = MainState {
             server_stream: stream,
             my_id,
-            player: player::Player::new(my_id),
+            player: player::Player::new(my_id, Point2::new(0., 0.)),
         };
         Ok(s)
     }
@@ -93,6 +95,17 @@ impl MainState {
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        let messages = self.server_stream.fetch_bytes();
+        // TODO: Use a real loop
+        while let Some(message) = self.server_stream.next() {
+            match message {
+                ServerMessage::Ping => {}
+                ServerMessage::AssignId(_) => {panic!("Got new ID after intialisatioin")}
+                ServerMessage::GameState(state) => {
+                    // TODO: Handle GameState
+                }
+            }
+        }
         self.update_player_position(ctx);
         Ok(())
     }

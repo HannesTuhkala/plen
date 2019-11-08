@@ -4,7 +4,7 @@ use ggez::graphics;
 use ggez;
 use crate::constants;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Bullet {
     pub id: u64,
     pub position: na::Point2<f32>,

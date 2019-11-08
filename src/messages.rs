@@ -20,7 +20,7 @@ impl<T> MessageReader<T> {
         }
     }
     pub fn fetch_bytes(&mut self) -> io::Result<()> {
-        let mut buffer = [0; 64];
+        let mut buffer = [1; 64];
         loop {
             let amount = self.stream.read(&mut buffer)?;
             if amount == 0 {
@@ -66,14 +66,14 @@ impl_message_reader!(ClientMessage);
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
     Ping,
     AssignId(u64),
-    NewPosition(f32, f32),
+    GameState(crate::gamestate::GameState)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
     Ping,
     Shoot,

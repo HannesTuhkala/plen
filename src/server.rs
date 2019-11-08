@@ -5,6 +5,7 @@ use std::net::TcpStream;
 use std::net::TcpListener;
 use std::collections::HashMap;
 use serde_json;
+use nalgebra::Point2;
 
 mod messages;
 mod player;
@@ -31,13 +32,15 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:30000")
         .unwrap();
 
+    let mut state = gamestate::GameState::new();
+    state.add_player(player::Player::new(1337, Point2::new(10., 10.)));
+
     listener.set_nonblocking(true).unwrap();
 
     println!("Listening on 127.0.0.1:30000");
 
     let mut players = vec::Vec::<Player>::new();
     let mut next_id: u64 = 0;
-    let mut i = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
@@ -45,7 +48,7 @@ fn main() {
                     println!("Got new connection {}", next_id);
                     send_server_message(&ServerMessage::AssignId(next_id), &mut stream);
                     connections.push((next_id, stream));
-                    let mut player = Player::new(next_id);
+                    let mut player = Player::new(next_id, Point2::new(10., 10.));
                     players.push(player);
                     next_id += 1;
                 }
@@ -58,15 +61,11 @@ fn main() {
             }
         }
 
-        i += 1;
-
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         for (id, ref mut client) in connections.iter_mut() {
-            send_server_message(&ServerMessage::Ping, client);
+            send_server_message(&ServerMessage::GameState(state.clone()), client);
         }
-
-        println!("Loop {}", i);
     }
 }
 

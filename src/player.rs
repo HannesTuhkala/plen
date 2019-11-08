@@ -8,7 +8,7 @@ use crate::constants;
 use crate::bullet;
 use rand::Rng;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Player {
     pub id: u64,
     pub position: na::Point2<f32>,
@@ -17,11 +17,10 @@ pub struct Player {
 
 
 impl Player {
-    
-    pub fn new(id: u64) -> Player {
+    pub fn new(id: u64, position: na::Point2<f32>) -> Player {
         Player {
             id: id,
-            position: na::Point2::new(0.0, 0.0),
+            position,
             velocity: na::Vector2::new(0.0, 0.0),
         }
     }
@@ -52,6 +51,6 @@ impl Player {
                 angle.cos() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT,
                 angle.sin() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT),
         }
-    }   
+    }
 }
 
