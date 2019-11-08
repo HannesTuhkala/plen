@@ -1,5 +1,7 @@
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::env;
+use std::path;
 
 use ggez;
 use ggez::event;
@@ -82,7 +84,15 @@ fn get_input(ctx: &ggez::Context) -> Option<Direction> {
     }
 }
 
-pub fn main() -> ggez::GameResult { 
+pub fn main() -> ggez::GameResult {
+    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+        let mut path = path::PathBuf::from(manifest_dir);
+        path.push("resources");
+        path
+    } else {
+        path::PathBuf::from("./resources")
+    };
+
     let mut stream = TcpStream::connect("127.0.0.1:30000")?;
     stream.write("hello".as_bytes())?;
 
@@ -91,8 +101,11 @@ pub fn main() -> ggez::GameResult {
     let msg = String::from_utf8_lossy(&buffer[..]);
     println!("received msg: {}", msg);
 
-    let cb = ggez::ContextBuilder::new("super_simple", "ggez");
-    let (ctx, event_loop) = &mut cb.build()?;
+    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
+        .window_setup(ggez::conf::WindowSetup::default().title("Flying broccoli"))
+        .add_resource_path(resource_dir)
+        .build()?;
+
     let state = &mut MainState::new(0.0, 0.0, stream)?;
     event::run(ctx, event_loop, state)
 }
