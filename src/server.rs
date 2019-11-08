@@ -37,6 +37,7 @@ fn main() {
 
     let mut players = vec::Vec::<Player>::new();
     let mut next_id: u64 = 0;
+    let mut i = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
@@ -57,9 +58,15 @@ fn main() {
             }
         }
 
+        i += 1;
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
         for (id, ref mut client) in connections.iter_mut() {
             send_server_message(&ServerMessage::Ping, client);
         }
+
+        println!("Loop {}", i);
     }
 }
 
