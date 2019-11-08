@@ -75,5 +75,6 @@ pub enum ServerMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ClientMessage {
-    Ping
+    Ping,
+    Shoot,
 }
