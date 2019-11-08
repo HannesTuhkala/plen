@@ -23,13 +23,13 @@ mod messages;
 use messages::{MessageReader, ServerMessage};
 
 struct MainState {
-    my_id: usize,
+    my_id: u64,
     server_stream: MessageReader<ServerMessage>,
     player: player::Player
 }
 
 impl MainState {
-    fn new(my_id: usize, stream: MessageReader<ServerMessage>)
+    fn new(my_id: u64, stream: MessageReader<ServerMessage>)
         -> ggez::GameResult<MainState>
     {
         let s = MainState {
