@@ -6,6 +6,9 @@ use ggez::event;
 use ggez::graphics;
 use ggez::nalgebra as na;
 
+mod player;
+mod constants;
+
 struct MainState {
     pos_x: f32,
     pos_y: f32,

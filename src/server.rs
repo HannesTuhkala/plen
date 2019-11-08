@@ -1,4 +1,5 @@
 use std::io;
+use std::vec;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
@@ -6,7 +7,11 @@ use std::collections::HashMap;
 use serde_json;
 
 mod messages;
+mod player;
+mod constants;
+
 use messages::Message;
+use player::Player;
 
 
 fn main() {
@@ -19,13 +24,16 @@ fn main() {
 
     println!("Listening on 127.0.0.1:30000");
 
-    let mut next_id = 0;
+    let mut players = vec::Vec::<Player>::new();
+    let mut next_id: usize = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
                 Ok(stream) => {
                     println!("Got new connection {}", next_id);
                     connections.push((next_id, stream));
+                    let mut player = Player::new(next_id);
+                    players.push(player);
                     next_id += 1;
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
