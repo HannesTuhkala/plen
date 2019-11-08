@@ -12,11 +12,12 @@ mod bullet;
 mod gamestate;
 mod constants;
 
-enum Direction {
+enum Action {
     Up,
     Down,
     Left,
-    Right
+    Right,
+    //TO BE IMPLEMENTED: Shoot,
 }
 
 mod messages;
@@ -40,15 +41,15 @@ impl MainState {
         Ok(s)
     }
 
-    fn get_input(ctx: &ggez::Context) -> Option<Direction> {
-        if keyboard::is_key_pressed(ctx, event::KeyCode::Up) {
-            Some(Direction::Up)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::Down) {
-            Some(Direction::Down)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::Left) {
-            Some(Direction::Left)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::Right) {
-            Some(Direction::Right)
+    fn get_input(ctx: &ggez::Context) -> Option<Action> {
+        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
+            Some(Action::Up)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
+            Some(Action::Down)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
+            Some(Action::Left)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
+            Some(Action::Right)
         } else {
             None
         }
@@ -77,10 +78,10 @@ impl MainState {
         let mut dx = 0.;
         let mut dy = 0.;
         match MainState::get_input(ctx) {
-            Some(Direction::Up) => dy -= constants::DEFAULT_ACCELERATION,
-            Some(Direction::Down) => dy += constants::DEFAULT_ACCELERATION,
-            Some(Direction::Left) => dx -= constants::DEFAULT_ACCELERATION,
-            Some(Direction::Right) => dx += constants::DEFAULT_ACCELERATION,
+            Some(Action::Up) => dy -= constants::DEFAULT_ACCELERATION,
+            Some(Action::Down) => dy += constants::DEFAULT_ACCELERATION,
+            Some(Action::Left) => dx -= constants::DEFAULT_ACCELERATION,
+            Some(Action::Right) => dx += constants::DEFAULT_ACCELERATION,
             None => ()
         };
 
