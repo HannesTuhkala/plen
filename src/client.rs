@@ -19,20 +19,23 @@ enum Direction {
     Right
 }
 
+mod messages;
+use messages::{MessageReader, ServerMessage};
+
 struct MainState {
-    pos_x: f32,
-    pos_y: f32,
-    server_stream: TcpStream,
+    my_id: usize,
+    server_stream: MessageReader<ServerMessage>,
     player: player::Player
 }
 
 impl MainState {
-    fn new(x: f32, y: f32, stream: TcpStream) -> ggez::GameResult<MainState> {
+    fn new(my_id: usize, stream: MessageReader<ServerMessage>)
+        -> ggez::GameResult<MainState>
+    {
         let s = MainState {
-            pos_x: 0.0,
-            pos_y: 0.0,
             server_stream: stream,
-            player: player::Player::new(0),
+            my_id,
+            player: player::Player::new(my_id),
         };
         Ok(s)
     }
@@ -103,15 +106,28 @@ impl event::EventHandler for MainState {
 
 pub fn main() -> ggez::GameResult { 
     let mut stream = TcpStream::connect("127.0.0.1:30000")?;
-    stream.write("hello".as_bytes())?;
+    println!("Connected to server");
 
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer)?;
-    let msg = String::from_utf8_lossy(&buffer[..]);
-    println!("received msg: {}", msg);
+    stream.set_nonblocking(true)?;
+    let mut reader = MessageReader::new(stream);
+
+
+    let msg = loop {
+        reader.fetch_bytes();
+        if let Some(msg) = reader.next() {
+            break msg;
+        }
+    };
+
+    let my_id = if let ServerMessage::AssignId(id) = msg {
+        println!("Received the id {}", id);
+        id
+    } else {
+        panic!("Expected to get an id from server")
+    };
 
     let cb = ggez::ContextBuilder::new("super_simple", "ggez");
     let (ctx, event_loop) = &mut cb.build()?;
-    let state = &mut MainState::new(0.0, 0.0, stream)?;
+    let state = &mut MainState::new(my_id, reader)?;
     event::run(ctx, event_loop, state)
 }
