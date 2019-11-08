@@ -1,2 +1,11 @@
+### Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### Rust
+
 /target
 **/*.rs.bk
