@@ -69,7 +69,7 @@ impl_message_reader!(ClientMessage);
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ServerMessage {
     Ping,
-    AssignId(usize),
+    AssignId(u64),
     NewPosition(f32, f32),
 }
 
