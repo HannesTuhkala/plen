@@ -7,6 +7,8 @@ use ggez::graphics;
 use ggez::nalgebra as na;
 
 mod player;
+mod bullet;
+mod gamestate;
 mod constants;
 
 struct MainState {
