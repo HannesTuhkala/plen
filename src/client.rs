@@ -8,6 +8,8 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 mod player;
+mod bullet;
+mod gamestate;
 mod constants;
 
 enum Direction {

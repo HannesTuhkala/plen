@@ -8,6 +8,8 @@ use serde_json;
 
 mod messages;
 mod player;
+mod bullet;
+mod gamestate;
 mod constants;
 
 use messages::Message;
