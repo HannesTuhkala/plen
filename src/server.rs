@@ -27,7 +27,7 @@ fn main() {
     println!("Listening on 127.0.0.1:30000");
 
     let mut players = vec::Vec::<Player>::new();
-    let mut next_id: usize = 0;
+    let mut next_id: u64 = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
