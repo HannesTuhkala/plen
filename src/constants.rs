@@ -1,1 +1,1 @@
-const PLANE_SIZE: u32 = 10;
+pub const PLANE_SIZE: u32 = 10;
