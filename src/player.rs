@@ -129,11 +129,14 @@ impl Player {
     }
 
     pub fn damage_player(&mut self, damage: i16) {
-        if self.health <= damage {
+        self.health -= damage;
+
+        if self.health <= 0 {
             self.health = 0;
         }
-
-        self.health -= damage;
+        if self.health > self.max_health() {
+            self.health = self.max_health()
+        }
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
@@ -166,7 +169,6 @@ impl Player {
         }
         
         if (kind == PowerUpKind::Health) {
-            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
             self.damage_player(-constants::POWERUP_HEALTH_BOOST);
         }
 
@@ -211,5 +213,9 @@ impl Player {
         dx += speed * (self.rotation - std::f32::consts::PI/2.).cos();
         dy += speed * (self.rotation - std::f32::consts::PI/2.).sin();
         na::Vector2::new(dx, dy) * speed_boost
+    }
+
+    pub fn max_health(&self) -> i16 {
+        self.planetype.health()
     }
 }
