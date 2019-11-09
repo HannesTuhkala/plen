@@ -12,21 +12,32 @@ pub struct Bullet {
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
     pub traveled_distance: f32,
+    pub damage: u8,
+    pub lifetime: f32,
 }
 
 impl Bullet {
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>) -> Bullet {
+    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: u8)
+        -> Bullet
+    {
         let mut rng = rand::thread_rng();
         Bullet {
             id: rng.gen_range(0, u64::max_value()),
             position: position,
             velocity: velocity,
             traveled_distance: 0.,
+            damage,
+            lifetime: 0.,
         }
     }
 
     pub fn update(&mut self, delta_time: f32) {
         self.position = math::wrap_around(self.position + self.velocity * delta_time);
         self.traveled_distance += self.velocity.norm() * delta_time;
+        self.lifetime += delta_time;
+    }
+
+    pub fn is_armed(&mut self) -> bool {
+        self.lifetime > constants::BULLET_ARM_TIME
     }
 }

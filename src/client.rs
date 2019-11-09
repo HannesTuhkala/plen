@@ -287,7 +287,9 @@ pub fn main() -> ggez::GameResult {
         path::PathBuf::from("./resources")
     };
 
-    let stream = TcpStream::connect("127.0.0.1:30000")?;
+    let host = std::env::var("SERVER")
+        .unwrap_or(String::from("localhost:4444"));
+    let stream = TcpStream::connect(host)?;
     println!("Connected to server");
 
     stream.set_nonblocking(true)?;

@@ -25,10 +25,30 @@ use powerups::PowerUpKind;
 fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     -> io::Result<()>
 {
-    let data = serde_json::to_string(msg)
+    let mut data = serde_json::to_string(msg)
         .expect("Failed to encode message");
-    stream.write_all(data.as_bytes())?;
-    stream.write_all(&[0])
+    data.push(0 as char);
+    let bytes = data.as_bytes();
+    let mut start = 0;
+    loop {
+        match stream.write(&bytes[start..data.len()]) {
+            Ok(n) => {
+                if n < data.len() - start {
+                    start = start + n;
+                }
+                else {
+                    break Ok(())
+                }
+            }
+            Err(e) => {
+                 match e.kind() {
+                     io::ErrorKind::WouldBlock => continue,
+                     io::ErrorKind::Interrupted => continue,
+                     _ => return Err(e)
+                 }
+            }
+        }
+    }
 }
 
 struct Server {
@@ -41,12 +61,12 @@ struct Server {
 
 impl Server {
     pub fn new() -> Self {
-        let listener = TcpListener::bind("127.0.0.1:30000")
+        let listener = TcpListener::bind("0.0.0.0:4444")
             .unwrap();
 
         listener.set_nonblocking(true).unwrap();
 
-        println!("Listening on 127.0.0.1:30000");
+        println!("Listening on 0.0.0.0:4444");
 
         Self {
             listener,
@@ -119,7 +139,7 @@ impl Server {
                         Ok(_) => {},
                         Err(e) => {
                             match e.kind() {
-                                io::ErrorKind::ConnectionReset => {
+                                io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
                                     println!("Player {} disconnected", id);
                                     clients_to_delete.push(*id);
                                     break;

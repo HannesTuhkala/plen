@@ -104,7 +104,6 @@ pub struct Player {
     pub speed: f32,
     pub health: u8,
     pub position: na::Point2<f32>,
-    pub velocity: na::Vector2<f32>,
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
     pub planetype: PlaneType,
@@ -124,7 +123,6 @@ impl Player {
             speed: 0.,
             health: plane_type.health(),
             position: na::Point2::new(100.0, 100.0),
-            velocity: na::Vector2::new(0.0, 0.0),
             powerups: vec!(),
             cooldown: 0.,
             planetype: plane_type,
@@ -136,28 +134,12 @@ impl Player {
     pub fn update(&mut self, x_input: f32, y_input: f32, delta_time: f32) {
         self.cooldown = (self.cooldown - delta_time).max(0.);
 
-        let mut dx = 0.;
-        let mut dy = 0.;
-
+        let velocity = self.final_velocity();
 
         self.speed += y_input * self.planetype.acceleration() * delta_time;
-        let has_speed_boost = self.powerups.iter()
-            .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if(has_speed_boost) {1.8} else {1.};
-
-        if self.speed > constants::MAX_SPEED {
-            self.speed = constants::MAX_SPEED;
-        }
-        if self.speed < constants::MIN_SPEED {
-            self.speed = constants::MIN_SPEED;
-        }
-
-        dx += self.speed * (self.rotation - std::f32::consts::PI/2.).cos();
-        dy += self.speed * (self.rotation - std::f32::consts::PI/2.).sin();
-        self.velocity = na::Vector2::new(dx, dy);
 
         self.position = math::wrap_around(
-            self.position + self.velocity * delta_time * speed_boost
+            self.position + velocity * delta_time
         );
 
         let angular_acceleration = x_input * self.planetype.agility()/10.;
@@ -168,14 +150,18 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = (self.rotation + self.angular_velocity);
+        self.rotation = (self.rotation + self.angular_velocity * delta_time);
 
         self.manage_powerups(delta_time);
     }
 
-    pub fn update_player_health(&mut self, damage: u8) {
+    pub fn update_player_health(&mut self, damage: u8, should_heal: bool) {
         if self.health <= damage {
             self.health = 0;
+        }
+
+        if (should_heal) {
+            self.health = self.health + damage;
         } else {
             self.health = self.health - damage;
         }
@@ -187,11 +173,15 @@ impl Player {
         if self.cooldown <= 0. {
             self.cooldown = constants::PLAYER_COOLDOWN;
             Some(bullet::Bullet::new(
-                self.position,
-                self.velocity + na::Vector2::new(
+                self.position + na::Vector2::new(
+                    dir.cos() * constants::BULLET_START,
+                    dir.sin() * constants::BULLET_START,
+                ),
+                self.final_velocity() + na::Vector2::new(
                     dir.cos() * constants::BULLET_VELOCITY,
                     dir.sin() * constants::BULLET_VELOCITY,
                 ),
+                self.planetype.firepower(),
             ))
         } else {
             None
@@ -202,12 +192,18 @@ impl Player {
         // Only allow one weapon at a time
         if kind.is_weapon() {
             self.powerups.retain(|p| !p.kind.is_weapon())
-        }
-        else {
+        } else {
             self.powerups.retain(|p| p.kind != kind)
         }
-        // Remove duplicates, only allow one weapon
-        self.powerups.push(AppliedPowerup::new(kind))
+        
+        if (kind == PowerUpKind::Health) {
+            self.update_player_health(constants::POWERUP_HEALTH_BOOST, true);
+        }
+
+        if (!kind.is_instant()) {
+            // Remove duplicates, only allow one weapon
+            self.powerups.push(AppliedPowerup::new(kind))
+        }
     }
 
     pub fn manage_powerups(&mut self, delta: f32) {
@@ -224,5 +220,26 @@ impl Player {
                 p.duration_left
                     .map(|left| left > 0.)
                     .unwrap_or(true)})
+    }
+
+    pub fn final_velocity(&self) -> na::Vector2<f32> {
+        let mut dx = 0.;
+        let mut dy = 0.;
+
+        let has_speed_boost = self.powerups.iter()
+            .any(|b| b.kind == PowerUpKind::Afterburner);
+        let speed_boost = if(has_speed_boost) {1.8} else {1.};
+
+        let mut speed = self.speed;
+        if speed > constants::MAX_SPEED {
+            speed = constants::MAX_SPEED;
+        }
+        if speed < constants::MIN_SPEED {
+            speed = constants::MIN_SPEED;
+        }
+
+        dx += speed * (self.rotation - std::f32::consts::PI/2.).cos();
+        dy += speed * (self.rotation - std::f32::consts::PI/2.).sin();
+        na::Vector2::new(dx, dy) * speed_boost
     }
 }
