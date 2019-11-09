@@ -114,6 +114,7 @@ impl Server {
         std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
         self.last_time = Instant::now();
 
+        self.state.update();
         self.accept_new_connections();
         self.update_clients(delta_time)
     }
