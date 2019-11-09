@@ -19,7 +19,7 @@ pub struct Player {
 
 
 impl Player {
-    
+
     pub fn new(id: u64) -> Player {
         Player {
             id: id,
@@ -32,8 +32,6 @@ impl Player {
 
     pub fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let image = graphics::Image::new(ctx, "/cessna.png")?;
-        let speed = format!("{}", self.speed);
-        println!("Speed: {}", speed);
         graphics::draw(ctx, &image, graphics::DrawParam::default()
                        .dest(self.position)
                        .rotation(self.rotation)
@@ -51,6 +49,5 @@ impl Player {
                 angle.cos() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT,
                 angle.sin() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT),
         }
-    }   
+    }
 }
-
