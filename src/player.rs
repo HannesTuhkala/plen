@@ -160,7 +160,10 @@ impl Player {
         if self.cooldown <= 0. {
             self.cooldown = constants::PLAYER_COOLDOWN;
             Some(bullet::Bullet::new(
-                self.position,
+                self.position + na::Vector2::new(
+                    dir.cos() * constants::BULLET_START,
+                    dir.sin() * constants::BULLET_START,
+                ),
                 self.velocity + na::Vector2::new(
                     dir.cos() * constants::BULLET_VELOCITY,
                     dir.sin() * constants::BULLET_VELOCITY,
