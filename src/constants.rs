@@ -31,3 +31,11 @@ pub const POWERUP_AMOUNT: u32 = 5;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;
 
 pub const MINI_MAP_SIZE: f32 = 300.;
+
+pub const PLANE_SELECTION_POS: (f32, f32) = (100., 450.);
+pub const PLANE_SELECTION_SIZE: f32 = 200.;
+
+pub const COLOR_SELECTION_POS: (f32, f32) = (400., 450.);
+pub const COLOR_SELECTION_SIZE: f32 = 200.;
+
+pub const PARTICLE_SPAWN_RATE: f32 = 0.05;
