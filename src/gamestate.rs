@@ -69,7 +69,7 @@ impl GameState {
             let x = random::<f32>() * constants::WORLD_SIZE as f32;
             let y = random::<f32>() * constants::WORLD_SIZE as f32;
             self.powerups.push(
-                PowerUp::new(PowerUpKind::Missile, na::Point2::new(x, y))
+                PowerUp::new(random::<PowerUpKind>(), na::Point2::new(x, y))
             )
         }
     }
