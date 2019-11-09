@@ -15,6 +15,7 @@ pub struct Assets {
     pub bullet: Image,
     pub yeehaw_1: Image,
     pub yeehaw_2: Image,
+    pub smoke: Image,
 }
 
 impl Assets {
@@ -29,19 +30,21 @@ impl Assets {
         });
     
         Assets {
-            cessna: Image::new(ctx, "/cessna.png").
-                expect("Could not find cessna image!"),
-            background: Image::new(ctx, "/background.png").
-                expect("Could not find background image!"),
-            miniplane: Image::new(ctx, "/miniplane.png").
-                expect("Could not find miniplane image!"),
+            cessna: Image::new(ctx, "/cessna.png")
+                .expect("Could not find cessna image!"),
+            background: Image::new(ctx, "/background.png")
+                .expect("Could not find background image!"),
+            miniplane: Image::new(ctx, "/miniplane.png")
+                .expect("Could not find miniplane image!"),
             powerups,
-            bullet: Image::new(ctx, "/bullet.png").
-                expect("Could not find bullet image!"),
-            yeehaw_1: Image::new(ctx, "/yeehaw.png").
-                expect("Could not find secret 1!"),
-            yeehaw_2: Image::new(ctx, "/yeehawman.png").
-                expect("Could not find secret 2!"),
+            bullet: Image::new(ctx, "/bullet.png")
+                .expect("Could not find bullet image!"),
+            yeehaw_1: Image::new(ctx, "/yeehaw.png")
+                .expect("Could not find secret 1!"),
+            yeehaw_2: Image::new(ctx, "/yeehawman.png")
+                .expect("Could not find secret 2!"),
+            smoke: Image::new(ctx, "/smoke.png")
+                .expect("Could not find smoke image"),
         }
     }
 }

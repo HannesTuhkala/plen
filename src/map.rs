@@ -8,21 +8,73 @@ use ggez::graphics;
 use ggez::graphics::spritebatch;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
+use rand::prelude::*;
 
 use crate::assets::Assets;
 use crate::powerups::PowerUpKind;
 
 use std::collections::HashMap;
 
+#[derive(Clone)]
+pub struct SmokeParticle {
+    alive: bool,
+    alpha: f32,
+    position: na::Point2<f32>,
+}
+
+impl SmokeParticle {
+    fn new() -> Self {
+        Self {
+            alive: false,
+            alpha: 0.,
+            position: na::Point2::new(0., 0.),
+        }
+    }
+}
+
 pub struct Map {
-    scan_angle: f32
+    scan_angle: f32,
+    smoke_particles: Vec<SmokeParticle>,
+    smoke_timer: f32,
 }
 
 impl Map {
-
     pub fn new() -> Map {
         Map {
-            scan_angle: 0.
+            scan_angle: 0.,
+            smoke_particles: vec![SmokeParticle::new(); 200],
+            smoke_timer: 0.
+        }
+    }
+
+    pub fn update_particles(&mut self, delta_time: f32, game_state: &GameState) {
+        self.smoke_timer -= delta_time;
+        if self.smoke_timer <= 0. {
+            let mut rng = rand::thread_rng();
+            self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
+            for player in &game_state.players {
+                let random_offset = na::Vector2::new(
+                    (rng.gen::<f32>() - 0.5) * 5.,
+                    (rng.gen::<f32>() - 0.5) * 5.,
+                );
+                for smoke_particle in &mut self.smoke_particles {
+                    if !smoke_particle.alive {
+                        smoke_particle.alive = true;
+                        smoke_particle.alpha = 1.0;
+                        smoke_particle.position = player.position + random_offset;
+                        break;
+                    }
+                }
+            }
+        }
+
+        for smoke_particle in &mut self.smoke_particles {
+            if smoke_particle.alive {
+                smoke_particle.alpha -= delta_time;
+                if smoke_particle.alpha <= 0. {
+                    smoke_particle.alive = false;
+                }
+            }
         }
     }
 
@@ -43,7 +95,6 @@ impl Map {
         let mut miniplane_sb = spritebatch::SpriteBatch::new(
             assets.miniplane.clone()
         );
-        
 
         let mut powerup_sbs = assets.powerups.iter()
             .map(|(k, v)| {
@@ -59,6 +110,10 @@ impl Map {
             assets.yeehaw_1.clone()
         );
 
+        let mut smoke_sb = spritebatch::SpriteBatch::new(
+            assets.smoke.clone()
+        );
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 let offset = na::Vector2::new(
@@ -66,22 +121,23 @@ impl Map {
                     tile_y * constants::WORLD_SIZE,
                 );
 
-                Map::place_world_at(
+                self.place_world_at(
                     game_state,
                     &mut background_sb,
                     &mut plane_sb,
                     &mut powerup_sbs,
                     &mut bullet_sb,
-                    &mut yeehaw_sb,
+                    &mut smoke_sb,
                     camera_position,
                     offset
                 );
             }
         }
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs, &mut yeehaw_sb);
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
+        graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &plane_sb, (na::Point2::new(0., 0.),)).unwrap();
 
         for sb in powerup_sbs.values() {
@@ -136,12 +192,13 @@ impl Map {
     }
 
     fn place_world_at(
+        &self,
         game_state: &GameState,
         background_sb: &mut spritebatch::SpriteBatch,
         plane_sb: &mut spritebatch::SpriteBatch,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
         bullet_sb: &mut spritebatch::SpriteBatch,
-        yeehaw_sb: &mut spritebatch::SpriteBatch,
+        smoke_sb: &mut spritebatch::SpriteBatch,
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>
     ) {
@@ -186,23 +243,31 @@ impl Map {
             powerup_sbs.get_mut(&powerup.kind)
                 .expect("No powerup asset for this kind")
                 .add(graphics::DrawParam::default()
-                 .dest(position)
-                 .offset(na::Point2::new(0.5, 0.5)));
+                     .dest(position)
+                     .offset(na::Point2::new(0.5, 0.5)));
         }
 
-        let position = na::Point2::new(
-            constants::WINDOW_SIZE - 530.,
-            -constants::WINDOW_SIZE/2.);
-        yeehaw_sb.add(
-            graphics::DrawParam::default()
-                .dest(position)
-                .scale(na::Vector2::new(0.4, 0.4)));
+        for smoke_particle in &self.smoke_particles {
+            let position = na::Point2::new(
+                smoke_particle.position.x - camera_position.x,
+                smoke_particle.position.y - camera_position.y,
+            ) + offset;
+            if smoke_particle.alive {
+                smoke_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .offset(na::Point2::new(0.5, 0.5))
+                        .color(graphics::Color::new(1.0, 1.0, 1.0, smoke_particle.alpha))
+                        .scale(na::Vector2::new(0.2, 0.2)));
+            }
+        }
     }
 
     fn draw_ui(
         my_id: u64,
         game_state: &GameState,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
+        yeehaw_sb: &mut spritebatch::SpriteBatch,
     ) {
         let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
         let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
@@ -219,6 +284,14 @@ impl Map {
                     x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
                 }
             });
+
+        let position = na::Point2::new(
+            constants::WINDOW_SIZE - 530.,
+            -constants::WINDOW_SIZE/2.);
+        yeehaw_sb.add(
+            graphics::DrawParam::default()
+                .dest(position)
+                .scale(na::Vector2::new(0.4, 0.4)));
     }
 
     fn draw_mini_map(
