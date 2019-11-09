@@ -192,6 +192,11 @@ impl Server {
                         bullet = player.shoot();
                     }
 
+                    let result = send_server_message(
+                        &ServerMessage::GameState(self.state.clone()),
+                        &mut client.stream
+                    );
+                    remove_player_on_disconnect!(result);
                     break;
                 }
             }
@@ -199,12 +204,6 @@ impl Server {
             if let Some(bullet) = bullet {
                 self.state.add_bullet(bullet);
             }
-
-            let result = send_server_message(
-                &ServerMessage::GameState(self.state.clone()),
-                &mut client.stream
-            );
-            remove_player_on_disconnect!(result);
         }
 
         let dead_players: Vec<_> = self.state.players.iter()
