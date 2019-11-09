@@ -32,6 +32,16 @@ impl PowerUpKind {
             PowerUpKind::Invincibility => false,
         }
     }
+
+    pub fn is_instant(&self) -> bool {
+        match self {
+            PowerUpKind::Missile => false,
+            PowerUpKind::Laser => false,
+            PowerUpKind::Afterburner => false,
+            PowerUpKind::Health => true,
+            PowerUpKind::Invincibility => false,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

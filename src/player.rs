@@ -161,14 +161,19 @@ impl Player {
         // Only allow one weapon at a time
         if kind.is_weapon() {
             self.powerups.retain(|p| !p.kind.is_weapon())
-        } else if (kind == PowerUpKind::Health) {
-            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
         } else {
             self.powerups.retain(|p| p.kind != kind)
         }
+        
+        if (kind == PowerUpKind::Health) {
+            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
+            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
+        }
 
-        // Remove duplicates, only allow one weapon
-        self.powerups.push(AppliedPowerup::new(kind))
+        if (!kind.is_instant()) {
+            // Remove duplicates, only allow one weapon
+            self.powerups.push(AppliedPowerup::new(kind))
+        }
     }
 
     pub fn manage_powerups(&mut self, delta: f32) {
