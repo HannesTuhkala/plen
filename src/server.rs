@@ -109,7 +109,21 @@ fn main() {
 
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in connections.iter_mut() {
-            client.fetch_bytes().unwrap();
+            match client.fetch_bytes() {
+                Ok(_) => {},
+                Err(e) => {
+                match e.kind() {
+                    io::ErrorKind::ConnectionReset => {
+                        println!("Player {} disconnected", id);
+                        clients_to_delete.push(*id);
+                        break;
+                    }
+                    e => {
+                        panic!("Unhandled network issue: {:?}", e)
+                    }
+                }
+                }
+            };
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
@@ -142,6 +156,7 @@ fn main() {
                     io::ErrorKind::ConnectionReset => {
                         println!("Player {} disconnected", id);
                         clients_to_delete.push(*id);
+                        break;
                     }
                     e => {
                         panic!("Unhandled network issue: {:?}", e)
