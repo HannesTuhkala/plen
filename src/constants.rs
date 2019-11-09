@@ -13,12 +13,12 @@ pub const DEFAULT_HEALTH: u8 = 150;
 pub const DEFAULT_AGILITY: f32 = 1.;
 pub const ANGULAR_FADE: f32 = 0.9;
 
-pub const BULLET_VELOCITY: f32 = 1000.0;
+pub const BULLET_VELOCITY: f32 = 350.0;
 pub const BULLET_DAMAGE: u8 = 10;
 pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.8;
-pub const BULLET_START: f32 = 30;
-pub const PLAYER_COOLDOWN: f32 = 0.5;
-pub const BULLET_ARM_TIME: f32 = 0.03;
+pub const BULLET_START: f32 = 30.;
+pub const PLAYER_COOLDOWN: f32 = 0.2;
+pub const BULLET_ARM_TIME: f32 = 0.06;
 
 pub const WINDOW_SIZE: f32 = 700.;
 
