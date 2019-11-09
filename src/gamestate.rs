@@ -2,7 +2,7 @@ use serde_derive::{Serialize, Deserialize};
 use rand::prelude::*;
 use nalgebra as na;
 
-use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS};
+use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
 use crate::bullet::Bullet;
 use crate::powerups::{PowerUpKind, PowerUp};
@@ -40,6 +40,13 @@ impl GameState {
         None
     }
 
+    fn update_player_health(player: &mut Player, damage: u8) {
+        if player.health <= damage {
+            player.health = 0;
+        } else {
+            player.health = player.health - damage;
+        }
+    }
 
     pub fn add_bullet(&mut self, bullet: Bullet) {
         self.bullets.push(bullet)
@@ -73,4 +80,15 @@ impl GameState {
             )
         }
     }
+
+//    pub fn handle_bullets(&mut self) {
+//        let hit_radius = PLANE_SIZE * BULLER_RADIUS;
+//        for player in &mut self.players {
+//            for bullet in &mut self.bullets {
+//                if (bullet.position - player.position).norm() < hit_radius as f32 {
+//                    player.health()
+//                }
+//            }
+//        }
+//    }
 }

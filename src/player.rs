@@ -188,5 +188,4 @@ impl Player {
                     .map(|left| left > 0.)
                     .unwrap_or(true)})
     }
-
 }

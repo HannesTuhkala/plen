@@ -31,15 +31,6 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     stream.write_all(&[0])
 }
 
-fn update_player_health(player: &mut Player, damage: u8) {
-    if player.health <= damage {
-        // TODO: kill player
-        player.health = 0;
-    } else {
-        player.health = player.health - damage;
-    }
-}
-
 struct Server {
     listener: TcpListener,
     connections: Vec<(u64, MessageReader<ClientMessage>)>,
