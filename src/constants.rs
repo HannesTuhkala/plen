@@ -9,3 +9,8 @@ pub const DEFAULT_AGILITY: f32 = 0.03;
 
 pub const BULLET_VELOCITY_FACTOR: f32 = 1.1;
 pub const BULLET_VELOCITY_CONSTANT: f32 = 10.0;
+
+pub const SCANCODE_W: u32 = 17;
+pub const SCANCODE_A: u32 = 30;
+pub const SCANCODE_S: u32 = 31;
+pub const SCANCODE_D: u32 = 32;
