@@ -59,7 +59,11 @@ macro_rules! impl_message_reader {
                 let as_str = String::from_utf8_lossy(&msg_bytes);
 
                 Some(
-                    serde_json::from_str(&as_str).expect("Failed to decode message")
+                    serde_json::from_str(&as_str)
+                        .map_err(|e| {
+                            println!("Current message: {}", as_str);
+                        })
+                        .expect("Failed to decode message")
                 )
             }
         }
