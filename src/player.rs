@@ -112,6 +112,10 @@ impl Player {
         let mut dx = 0.;
         let mut dy = 0.;
 
+        let has_speed_boost = self.powerups.iter()
+            .any(|b| b.kind == PowerUpKind::Afterburner);
+        let speed_boost = if(has_speed_boost) {1.8} else {1.};
+
         self.speed += y_input * constants::DEFAULT_ACCELERATION * delta_time;
         if self.speed > constants::MAX_SPEED {
             self.speed = constants::MAX_SPEED;

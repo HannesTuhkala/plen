@@ -19,7 +19,7 @@ use std::time::Instant;
 
 use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
-
+use powerups::PowerUpKind;
 
 
 fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
