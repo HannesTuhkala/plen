@@ -9,6 +9,7 @@ use nalgebra::Point2;
 use nalgebra as na;
 
 mod messages;
+mod assets;
 mod player;
 mod bullet;
 mod gamestate;

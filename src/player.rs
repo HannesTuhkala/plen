@@ -6,6 +6,7 @@ use ggez::graphics;
 use ggez;
 use crate::constants;
 use crate::bullet;
+use crate::assets::Assets;
 use rand::Rng;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -29,11 +30,13 @@ impl Player {
         }
     }
 
-    pub fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        let image = graphics::Image::new(ctx, "/cessna.png")?;
-        graphics::draw(ctx, &image, graphics::DrawParam::default()
-                       .dest(self.position)
-                       .rotation(self.rotation)
+    pub fn draw(&self, ctx: &mut ggez::Context,
+                position: na::Point2<f32>,
+                rotation: f32,
+                assets: &Assets) -> ggez::GameResult {
+        graphics::draw(ctx, &assets.cessna, graphics::DrawParam::default()
+                       .dest(position)
+                       .rotation(rotation)
                        .offset(na::Point2::new(0.5, 0.5)))?;
         Ok(())
     }

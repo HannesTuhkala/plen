@@ -11,7 +11,10 @@ use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
+use assets::Assets;
+
 mod player;
+mod assets;
 mod map;
 mod bullet;
 mod gamestate;
@@ -41,16 +44,20 @@ struct MainState {
     my_id: u64,
     server_reader: MessageReader<ServerMessage>,
     game_state: gamestate::GameState,
+    map: map::Map,
+    assets: Assets,
 }
 
 impl MainState {
-    fn new(my_id: u64, stream: MessageReader<ServerMessage>)
+    fn new(my_id: u64, stream: MessageReader<ServerMessage>, assets: Assets)
         -> ggez::GameResult<MainState>
     {
         let s = MainState {
             server_reader: stream,
             my_id,
-            game_state: gamestate::GameState::new()
+            game_state: gamestate::GameState::new(),
+            map: map::Map::new(),
+            assets: assets
         };
         Ok(s)
     }
@@ -92,9 +99,7 @@ impl event::EventHandler for MainState {
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        for player in &mut self.game_state.players {
-            player.draw(ctx)?;
-        }
+        self.map.draw(ctx, self.my_id, &self.game_state, &self.assets);
         graphics::present(ctx)?;
         Ok(())
     }
@@ -138,6 +143,7 @@ pub fn main() -> ggez::GameResult {
         .add_resource_path(resource_dir)
         .build()?;
 
-    let state = &mut MainState::new(my_id, reader)?;
+    let assets = Assets::new(ctx);
+    let state = &mut MainState::new(my_id, reader, assets)?;
     event::run(ctx, event_loop, state)
 }
