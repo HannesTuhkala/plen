@@ -1,4 +1,4 @@
-pub const PLANE_SIZE: u32 = 10;
+pub const PLANE_SIZE: u32 = 20;
 pub const BULLET_RADIUS: u32 = 1;
 pub const POWERUP_RADIUS: u32 = 20;
 
@@ -10,13 +10,14 @@ pub const MIN_SPEED: f32 = 50.;
 pub const DEFAULT_ACCELERATION: f32 = 200.;
 pub const DEFAULT_HEALTH: u8 = 150;
 
-pub const DEFAULT_AGILITY: f32 = 0.04;
+pub const DEFAULT_AGILITY: f32 = 1.;
 pub const ANGULAR_FADE: f32 = 0.9;
 
 pub const BULLET_VELOCITY: f32 = 1000.0;
 pub const BULLET_DAMAGE: u8 = 10;
 pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.8;
-pub const PLAYER_COOLDOWN: f32 = 0.1;
+pub const PLAYER_COOLDOWN: f32 = 0.5;
+pub const BULLET_ARM_TIME: f32 = 0.03;
 
 pub const WINDOW_SIZE: f32 = 800.;
 

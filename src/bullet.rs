@@ -13,6 +13,7 @@ pub struct Bullet {
     pub velocity: na::Vector2<f32>,
     pub traveled_distance: f32,
     pub damage: u8,
+    pub lifetime: f32,
 }
 
 impl Bullet {
@@ -26,11 +27,17 @@ impl Bullet {
             velocity: velocity,
             traveled_distance: 0.,
             damage,
+            lifetime: 0.,
         }
     }
 
     pub fn update(&mut self, delta_time: f32) {
         self.position = math::wrap_around(self.position + self.velocity * delta_time);
         self.traveled_distance += self.velocity.norm() * delta_time;
+        self.lifetime += delta_time;
+    }
+
+    pub fn is_armed(&mut self) -> bool {
+        self.lifetime > constants::BULLET_ARM_TIME
     }
 }

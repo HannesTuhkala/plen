@@ -141,7 +141,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = (self.rotation + self.angular_velocity);
+        self.rotation = (self.rotation + self.angular_velocity * delta_time);
 
         self.manage_powerups(delta_time);
     }

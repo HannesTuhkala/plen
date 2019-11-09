@@ -81,8 +81,9 @@ impl GameState {
 
         for player in &mut self.players {
             for bullet in &mut self.bullets {
-                if (bullet.position - player.position).norm() < hit_radius as f32 {
-                    player.update_player_health(10);
+                let distance = (bullet.position - player.position).norm();
+                if distance < hit_radius as f32 && bullet.is_armed() {
+                    player.update_player_health(bullet.damage);
                     bullets_to_remove.push(bullet.id);
                 }
             }
