@@ -1,21 +1,21 @@
-use std::io;
-use std::vec;
-use std::io::prelude::*;
-use std::net::TcpStream;
-use std::net::TcpListener;
-use std::collections::HashMap;
-use serde_json;
-use nalgebra::Point2;
-use nalgebra as na;
-use std::time::Instant;
-
 mod messages;
 mod assets;
 mod player;
 mod bullet;
 mod gamestate;
 mod constants;
+mod math;
 mod powerups;
+
+use std::io;
+use std::vec;
+use std::io::prelude::*;
+use std::net::TcpStream;
+use std::net::TcpListener;
+use serde_json;
+use nalgebra::Point2;
+use nalgebra as na;
+use std::time::Instant;
 
 use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
@@ -29,26 +29,6 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
         .expect("Failed to encode message");
     stream.write_all(data.as_bytes())?;
     stream.write_all(&[0])
-}
-
-// TODO: Use modulo maybe?
-fn wrap_around(pos: Point2<f32>) -> Point2<f32> {
-    let mut new_x = pos.x;
-    let mut new_y = pos.y;
-
-    if pos.x > constants::WORLD_SIZE {
-        new_x = 0.;
-    } else if pos.x < 0. {
-        new_x = constants::WORLD_SIZE;
-    }
-
-    if pos.y > constants::WORLD_SIZE {
-        new_y = 0.;
-    } else if pos.y < 0. {
-        new_y = constants::WORLD_SIZE;
-    }
-
-    Point2::new(new_x, new_y)
 }
 
 fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta: f32) {
@@ -68,8 +48,9 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
     player.velocity = na::Vector2::new(dx, dy) * delta;
 
-    player.position = wrap_around(
-        player.position + player.velocity);
+    player.position = math::wrap_around(
+        player.position + player.velocity
+    );
 
     let angular_acceleration = x_input * constants::DEFAULT_AGILITY/10.;
     player.angular_velocity += angular_acceleration;
@@ -130,10 +111,13 @@ impl Server {
                 Ok(mut stream) => {
                     stream.set_nonblocking(true).unwrap();
                     println!("Got new connection {}", self.next_id);
-                    send_server_message(
+                    if let Err(_) = send_server_message(
                         &ServerMessage::AssignId(self.next_id),
                         &mut stream
-                    );
+                    ) {
+                        println!("Could not send assign id message");
+                        continue;
+                    }
                     self.connections.push((
                         self.next_id,
                         MessageReader::<ClientMessage>::new(stream)
@@ -153,6 +137,10 @@ impl Server {
     }
 
     fn update_clients(mut self, delta_time: f32) -> Self {
+        for bullet in &mut self.state.bullets {
+            bullet.update();
+        }
+
         // Send data to clients
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in self.connections.iter_mut() {
@@ -173,19 +161,19 @@ impl Server {
                             }
                         }
                     };
-
                 }
             }
             remove_player_on_disconnect!(client.fetch_bytes());
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
+            let mut shoot = false;
 
             // TODO: Use a real loop
             while let Some(message) = client.next() {
                 match message {
                     ClientMessage::Ping => {},
-                    ClientMessage::Shoot => {},
+                    ClientMessage::Shoot => { shoot = true },
                     ClientMessage::Input(input_x, input_y) => {
                         player_input_x = input_x;
                         player_input_y = input_y;
@@ -193,6 +181,7 @@ impl Server {
                 }
             }
 
+            let mut bullet = None;
             for mut player in &mut self.state.players {
                 if player.id == *id {
                     update_player_position(
@@ -201,7 +190,15 @@ impl Server {
                         player_input_y,
                         delta_time,
                     );
+
+                    if shoot {
+                        bullet = Some(player.shoot());
+                    }
                 }
+            }
+
+            if let Some(bullet) = bullet {
+                self.state.add_bullet(bullet);
             }
 
             let result = send_server_message(

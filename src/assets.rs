@@ -11,14 +11,16 @@ pub struct Assets {
     pub cessna: Image,
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
+    pub bullet: Image,
 }
 
 impl Assets {
     pub fn new(ctx: &mut ggez::Context) -> Assets {
         let powerups = HashMap::from_iter(vec!{
-            ( PowerUpKind::Missile, Image::new(ctx, "/generic_powerup.png")
-                .expect("Could not load generic powerup image")
-            )
+            ( PowerUpKind::Missile, Image::new(ctx, "/powerups/afterburner.png")
+                .expect("Could not load generic powerup image")),
+            ( PowerUpKind::Afterburner, Image::new(ctx, "/powerups/missile.png")
+                .expect("could not load missile powerup asset")),
         });
         Assets {
             cessna: Image::new(ctx, "/cessna.png").
@@ -26,6 +28,8 @@ impl Assets {
             background: Image::new(ctx, "/background.png").
                 expect("Could not find background image!"),
             powerups,
+            bullet: Image::new(ctx, "/bullet.png").
+                expect("Could not find bullet image!"),
         }
     }
 }

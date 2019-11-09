@@ -38,15 +38,17 @@ impl Player {
         }
     }
 
-    pub fn shoot(&self, angle: f32) -> bullet::Bullet {
+    pub fn shoot(&self) -> bullet::Bullet {
         let mut rng = rand::thread_rng();
+        let dir = self.rotation - std::f32::consts::PI / 2.;
 
         bullet::Bullet {
             id: rng.gen_range(0, u64::max_value()),
             position: self.position,
-            velocity: na::Point2::new(
-                angle.cos() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT,
-                angle.sin() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT),
+            velocity: self.velocity + na::Vector2::new(
+                dir.cos() * constants::BULLET_VELOCITY,
+                dir.sin() * constants::BULLET_VELOCITY,
+            ),
         }
     }
 
