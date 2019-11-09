@@ -30,7 +30,7 @@ impl PlaneType {
 
     pub fn agility(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT_PLANE => constants::DEFAULT_AGILITY * 3.,
+            PlaneType::SUKA_BLYAT_PLANE => constants::DEFAULT_AGILITY * 23.,
             PlaneType::HOWDY_COWBOY_PLANE => constants::DEFAULT_AGILITY * 4.,
             PlaneType::EL_POLLO_ROMERO_PLANE => constants::DEFAULT_AGILITY * 2.,
             PlaneType::ACHTUNG_BLITZ_PLANE => constants::DEFAULT_AGILITY * 5.,
