@@ -21,7 +21,7 @@ pub enum PlaneType {
 impl PlaneType {
     pub fn speed(&self) -> f64 {
         match self {
-            PlaneType::SUKA_BLYAT_PLANE => 1.4,
+            PlaneType::SUKA_BLYAT_PLANE => 5.4,
             PlaneType::HOWDY_COWBOY_PLANE => 1.2,
             PlaneType::EL_POLLO_ROMERO_PLANE => 1.1,
             PlaneType::ACHTUNG_BLITZ_PLANE => 1.3,
