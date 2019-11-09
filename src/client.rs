@@ -1,3 +1,12 @@
+mod player;
+mod assets;
+mod map;
+mod bullet;
+mod gamestate;
+mod constants;
+mod messages;
+mod math;
+
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::env;
@@ -11,14 +20,6 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 use assets::Assets;
-
-mod player;
-mod assets;
-mod map;
-mod bullet;
-mod gamestate;
-mod constants;
-mod messages;
 use messages::{MessageReader, ClientMessage, ServerMessage};
 
 struct KeyStates {
@@ -182,15 +183,22 @@ pub fn main() -> ggez::GameResult {
                         input: KeyboardInput {
                             scancode,
                             state: key_state,
+                            virtual_keycode: Some(keycode),
                             ..
                         },
                         ..
-                    } => match scancode {
-                        constants::SCANCODE_W => { state.key_states.forward = key_state },
-                        constants::SCANCODE_S => { state.key_states.back = key_state },
-                        constants::SCANCODE_A => { state.key_states.left = key_state },
-                        constants::SCANCODE_D => { state.key_states.right = key_state },
-                        _ => {} // Handle other key events here
+                    } => {
+                        match scancode {
+                            constants::SCANCODE_W => { state.key_states.forward = key_state },
+                            constants::SCANCODE_S => { state.key_states.back = key_state },
+                            constants::SCANCODE_A => { state.key_states.left = key_state },
+                            constants::SCANCODE_D => { state.key_states.right = key_state },
+                            _ => {} // Handle other key events here
+                        }
+
+                        if keycode == keyboard::KeyCode::Space {
+                            send_client_message(&ClientMessage::Shoot, &mut state.server_reader.stream);
+                        }
                     }
 
                     // Add other window event handling here

@@ -55,5 +55,9 @@ impl Map {
                 player.draw(ctx, position, player.rotation, assets).unwrap();
             }
         }
+
+        for bullet in &game_state.bullets {
+            bullet.draw(ctx).unwrap();
+        }
     }
 }

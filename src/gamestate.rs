@@ -1,4 +1,3 @@
-use std::vec;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::player::Player;
@@ -29,5 +28,9 @@ impl GameState {
             }
         }
         None
+    }
+
+    pub fn add_bullet(&mut self, bullet: Bullet) {
+        self.bullets.push(bullet)
     }
 }
