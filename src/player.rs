@@ -128,7 +128,7 @@ impl Player {
         self.velocity = na::Vector2::new(dx, dy);
 
         self.position = math::wrap_around(
-            self.position + self.velocity * delta_time
+            self.position + self.velocity * delta_time * speed_boost
         );
 
         let angular_acceleration = x_input * self.planetype.agility()/10.;
