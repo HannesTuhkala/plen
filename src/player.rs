@@ -112,6 +112,8 @@ impl Player {
         let mut dx = 0.;
         let mut dy = 0.;
 
+
+        self.speed += y_input * self.planetype.acceleration() * delta_time;
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if(has_speed_boost) {1.8} else {1.};
