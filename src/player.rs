@@ -127,14 +127,13 @@ impl Player {
                     .map(|left| left - delta)
             });
 
-                // Check if the time is up and this should be removed
+        // Check if the time is up and this should be removed
         self.powerups
             .retain(|p| {
                 p.duration_left
                     .map(|left| left > 0.)
                     .unwrap_or(true)
             })
-
     }
 
     pub fn update(&mut self, delta: f32) {
