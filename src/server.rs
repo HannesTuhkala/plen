@@ -112,16 +112,16 @@ fn main() {
             match client.fetch_bytes() {
                 Ok(_) => {},
                 Err(e) => {
-                match e.kind() {
-                    io::ErrorKind::ConnectionReset => {
-                        println!("Player {} disconnected", id);
-                        clients_to_delete.push(*id);
-                        break;
+                    match e.kind() {
+                        io::ErrorKind::ConnectionReset => {
+                            println!("Player {} disconnected", id);
+                            clients_to_delete.push(*id);
+                            break;
+                        }
+                        e => {
+                            panic!("Unhandled network issue: {:?}", e)
+                        }
                     }
-                    e => {
-                        panic!("Unhandled network issue: {:?}", e)
-                    }
-                }
                 }
             };
 
