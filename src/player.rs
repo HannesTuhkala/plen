@@ -30,16 +30,16 @@ impl Player {
         }
     }
 
-    pub fn draw(&self, ctx: &mut ggez::Context,
-                position: na::Point2<f32>,
-                rotation: f32,
-                assets: &Assets) -> ggez::GameResult {
-        graphics::draw(ctx, &assets.cessna, graphics::DrawParam::default()
-                       .dest(position)
-                       .rotation(rotation)
-                       .offset(na::Point2::new(0.5, 0.5)))?;
-        Ok(())
-    }
+    //pub fn draw(&self, ctx: &mut ggez::Context,
+    //            position: na::Point2<f32>,
+    //            rotation: f32,
+    //            assets: &Assets) -> ggez::GameResult {
+    //    graphics::draw(ctx, &assets.cessna, graphics::DrawParam::default()
+    //                   .dest(position)
+    //                   .rotation(rotation)
+    //                   .offset(na::Point2::new(0.5, 0.5)))?;
+    //    Ok(())
+    //}
 
     pub fn shoot(&self, angle: f32) -> bullet::Bullet {
         let mut rng = rand::thread_rng();
