@@ -12,16 +12,20 @@ pub struct Bullet {
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
     pub traveled_distance: f32,
+    pub damage: u8,
 }
 
 impl Bullet {
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>) -> Bullet {
+    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: u8)
+        -> Bullet
+    {
         let mut rng = rand::thread_rng();
         Bullet {
             id: rng.gen_range(0, u64::max_value()),
             position: position,
             velocity: velocity,
             traveled_distance: 0.,
+            damage,
         }
     }
 

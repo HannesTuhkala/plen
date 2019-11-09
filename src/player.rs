@@ -165,6 +165,7 @@ impl Player {
                     dir.cos() * constants::BULLET_VELOCITY,
                     dir.sin() * constants::BULLET_VELOCITY,
                 ),
+                self.planetype.firepower(),
             ))
         } else {
             None
