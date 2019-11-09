@@ -38,12 +38,12 @@ impl PlaneType {
         }
     }
 
-    pub fn firepower(&self) -> u8 {
+    pub fn firepower(&self) -> i16 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::BULLET_DAMAGE * 5 as u8,
-            PlaneType::HOWDY_COWBOY => constants::BULLET_DAMAGE * 2. as u8,
-            PlaneType::EL_POLLO_ROMERO => constants::BULLET_DAMAGE * 2. as u8,
-            PlaneType::ACHTUNG_BLITZ => constants::BULLET_DAMAGE * 4. as u8,
+            PlaneType::SUKA_BLYAT => constants::BULLET_DAMAGE * 5 as i16,
+            PlaneType::HOWDY_COWBOY => constants::BULLET_DAMAGE * 2. as i16,
+            PlaneType::EL_POLLO_ROMERO => constants::BULLET_DAMAGE * 2. as i16,
+            PlaneType::ACHTUNG_BLITZ => constants::BULLET_DAMAGE * 4. as i16,
         }
     }
 
@@ -56,12 +56,12 @@ impl PlaneType {
         }
     }
 
-    pub fn health(&self) -> u8 {
+    pub fn health(&self) -> i16 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_HEALTH * 1.1 as u8,
-            PlaneType::HOWDY_COWBOY => constants::DEFAULT_HEALTH * 1.3 as u8,
-            PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_HEALTH * 1.2 as u8,
-            PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_HEALTH * 1.2 as u8,
+            PlaneType::SUKA_BLYAT => constants::DEFAULT_HEALTH * 1.1 as i16,
+            PlaneType::HOWDY_COWBOY => constants::DEFAULT_HEALTH * 1.3 as i16,
+            PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_HEALTH * 1.2 as i16,
+            PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_HEALTH * 1.2 as i16,
         }
     }
 
@@ -81,7 +81,7 @@ pub struct Player {
     pub rotation: f32,
     pub angular_velocity: f32,
     pub speed: f32,
-    pub health: u8,
+    pub health: i16,
     pub position: na::Point2<f32>,
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
@@ -128,16 +128,12 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
-    pub fn update_player_health(&mut self, damage: u8, should_heal: bool) {
+    pub fn damage_player(&mut self, damage: i16) {
         if self.health <= damage {
             self.health = 0;
         }
 
-        if (should_heal) {
-            self.health = self.health + damage;
-        } else {
-            self.health = self.health - damage;
-        }
+        self.health -= damage;
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
@@ -170,6 +166,7 @@ impl Player {
         }
         
         if (kind == PowerUpKind::Health) {
+            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
             self.update_player_health(constants::POWERUP_HEALTH_BOOST, true);
         }
 
