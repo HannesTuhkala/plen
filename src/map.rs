@@ -94,7 +94,7 @@ impl Map {
                                &my_player, assets);
         }
 
-        graphics::draw(ctx, &yeehaw_sb, (na::Point2::new(0. , 0.),)).unwrap();
+        graphics::draw(ctx, &yeehaw_sb, (na::Point2::new(0., 0.),)).unwrap();
     }
 
     fn place_world_at(
@@ -151,7 +151,7 @@ impl Map {
         }
 
         let position = na::Point2::new(
-            constants::WINDOW_SIZE - 400.,
+            constants::WINDOW_SIZE - 600.,
             -constants::WINDOW_SIZE/2.);
         yeehaw_sb.add(
             graphics::DrawParam::default()
