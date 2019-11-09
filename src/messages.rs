@@ -73,14 +73,11 @@ impl_message_reader!(ClientMessage);
 
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
-    Ping,
     AssignId(u64),
     GameState(crate::gamestate::GameState)
 }
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
-    Ping,
-    Shoot,
-    Input(f32, f32),
+    Input { x_input: f32, y_input: f32, shooting: bool },
 }

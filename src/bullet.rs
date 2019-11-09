@@ -25,8 +25,8 @@ impl Bullet {
         }
     }
 
-    pub fn update(&mut self) {
-        self.position = math::wrap_around(self.position + self.velocity);
-        self.traveled_distance += self.velocity.norm();
+    pub fn update(&mut self, delta_time: f32) {
+        self.position = math::wrap_around(self.position + self.velocity * delta_time);
+        self.traveled_distance += self.velocity.norm() * delta_time;
     }
 }

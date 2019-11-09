@@ -28,6 +28,7 @@ struct KeyStates {
     back: ElementState,
     left: ElementState,
     right: ElementState,
+    shooting: ElementState,
 }
 
 impl KeyStates {
@@ -37,6 +38,7 @@ impl KeyStates {
             back: ElementState::Released,
             left: ElementState::Released,
             right: ElementState::Released,
+            shooting: ElementState::Released,
         }
     }
 }
@@ -83,7 +85,6 @@ impl event::EventHandler for MainState {
         // TODO: Use a real loop
         while let Some(message) = self.server_reader.next() {
             match message {
-                ServerMessage::Ping => {}
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
                     self.game_state = state
@@ -107,7 +108,9 @@ impl event::EventHandler for MainState {
             x_input += 1.0;
         }
 
-        send_client_message(&ClientMessage::Input(x_input, y_input), &mut self.server_reader.stream);
+        let shooting = self.key_states.shooting == ElementState::Pressed;
+        let input_message = ClientMessage::Input{ x_input, y_input, shooting };
+        send_client_message(&input_message, &mut self.server_reader.stream);
         Ok(())
     }
 
@@ -191,7 +194,7 @@ pub fn main() -> ggez::GameResult {
                         input: KeyboardInput {
                             scancode,
                             state: key_state,
-                            virtual_keycode: Some(keycode),
+                            virtual_keycode: keycode,
                             ..
                         },
                         ..
@@ -204,13 +207,8 @@ pub fn main() -> ggez::GameResult {
                             _ => {} // Handle other key events here
                         }
 
-                        if keycode == keyboard::KeyCode::Space &&
-                            key_state == ElementState::Pressed
-                        {
-                            send_client_message(
-                                &ClientMessage::Shoot,
-                                &mut state.server_reader.stream
-                            );
+                        if keycode == Some(keyboard::KeyCode::Space) {
+                            state.key_states.shooting = key_state;
                         }
                     }
 

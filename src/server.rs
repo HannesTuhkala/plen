@@ -31,38 +31,6 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     stream.write_all(&[0])
 }
 
-fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta: f32) {
-    let mut dx = 0.;
-    let mut dy = 0.;
-
-    player.speed += y_input * constants::DEFAULT_ACCELERATION * delta;
-    if player.speed > constants::MAX_SPEED {
-        player.speed = constants::MAX_SPEED;
-    }
-    if player.speed < constants::MIN_SPEED {
-        player.speed = constants::MIN_SPEED;
-    }
-
-
-    dx += player.speed * (player.rotation - std::f32::consts::PI/2.).cos();
-    dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
-    player.velocity = na::Vector2::new(dx, dy) * delta;
-
-    player.position = math::wrap_around(
-        player.position + player.velocity
-    );
-
-    let angular_acceleration = x_input * constants::DEFAULT_AGILITY/10.;
-    player.angular_velocity += angular_acceleration;
-    player.angular_velocity *= constants::ANGULAR_FADE;
-    if player.angular_velocity > constants::DEFAULT_AGILITY {
-        player.angular_velocity = constants::DEFAULT_AGILITY;
-    } else if player.angular_velocity < -constants::DEFAULT_AGILITY {
-        player.angular_velocity = -constants::DEFAULT_AGILITY;
-    }
-    player.rotation = player.rotation + player.angular_velocity;
-}
-
 fn update_player_health(player: &mut Player, damage: u8) {
     if player.health <= damage {
         // TODO: kill player
@@ -109,7 +77,7 @@ impl Server {
         self.update_clients(delta_time);
 
         for bullet in &mut self.state.bullets {
-            bullet.update();
+            bullet.update(delta_time);
         }
 
         self.state.bullets.retain(
@@ -176,37 +144,33 @@ impl Server {
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
-            let mut shoot = false;
+            let mut player_shooting = false;
 
             // TODO: Use a real loop
             while let Some(message) = client.next() {
                 match message {
-                    ClientMessage::Ping => {},
-                    ClientMessage::Shoot => { shoot = true },
-                    ClientMessage::Input(input_x, input_y) => {
-                        player_input_x = input_x;
-                        player_input_y = input_y;
+                    ClientMessage::Input{ x_input, y_input, shooting } => {
+                        player_input_x = x_input;
+                        player_input_y = y_input;
+                        player_shooting = shooting
                     }
                 }
             }
 
             let mut bullet = None;
-            for mut player in &mut self.state.players {
+            for player in &mut self.state.players {
                 if player.id == *id {
-                    update_player_position(
-                        &mut player,
+                    player.update(
                         player_input_x,
                         player_input_y,
                         delta_time,
                     );
 
-                    if shoot {
-                        bullet = Some(player.shoot());
-                        update_player_health(
-                            &mut player,
-                            constants::BULLET_DAMAGE,
-                        );
+                    if player_shooting {
+                        bullet = player.shoot();
                     }
+
+                    break;
                 }
             }
 
