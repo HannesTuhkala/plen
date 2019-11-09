@@ -247,6 +247,7 @@ impl Map {
                      .offset(na::Point2::new(0.5, 0.5)));
         }
 
+
         for smoke_particle in &self.smoke_particles {
             let position = na::Point2::new(
                 smoke_particle.position.x - camera_position.x,
@@ -286,12 +287,12 @@ impl Map {
             });
 
         let position = na::Point2::new(
-            constants::WINDOW_SIZE - 530.,
+            constants::WINDOW_SIZE - 480.,
             -constants::WINDOW_SIZE/2.);
         yeehaw_sb.add(
             graphics::DrawParam::default()
                 .dest(position)
-                .scale(na::Vector2::new(0.4, 0.4)));
+                .scale(na::Vector2::new(0.3, 0.3)));
     }
 
     fn draw_mini_map(
