@@ -16,7 +16,7 @@ pub enum PlaneType {
     SukaBlyat,
     HowdyCowboy,
     ElPolloRomero,
-    AchtungBlitz,
+    AchtungBlitzKrieg,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -46,7 +46,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => 5.4,
             PlaneType::HowdyCowboy => 1.2,
             PlaneType::ElPolloRomero => 1.1,
-            PlaneType::AchtungBlitz => 1.3,
+            PlaneType::AchtungBlitzKrieg => 1.3,
         }
     }
 
@@ -55,7 +55,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
             PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 2.,
-            PlaneType::AchtungBlitz => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 5.,
         }
     }
 
@@ -64,7 +64,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => constants::BULLET_DAMAGE * 5 as i16,
             PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 2. as i16,
             PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 2. as i16,
-            PlaneType::AchtungBlitz => constants::BULLET_DAMAGE * 4. as i16,
+            PlaneType::AchtungBlitzKrieg => constants::BULLET_DAMAGE * 4. as i16,
         }
     }
 
@@ -73,7 +73,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => constants::DEFAULT_ACCELERATION * 1.1,
             PlaneType::HowdyCowboy => constants::DEFAULT_ACCELERATION * 1.5,
             PlaneType::ElPolloRomero => constants::DEFAULT_ACCELERATION * 1.2,
-            PlaneType::AchtungBlitz => constants::DEFAULT_ACCELERATION * 1.3,
+            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_ACCELERATION * 1.3,
         }
     }
 
@@ -82,7 +82,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => constants::DEFAULT_HEALTH * 1.1 as i16,
             PlaneType::HowdyCowboy => constants::DEFAULT_HEALTH * 1.3 as i16,
             PlaneType::ElPolloRomero => constants::DEFAULT_HEALTH * 1.2 as i16,
-            PlaneType::AchtungBlitz => constants::DEFAULT_HEALTH * 1.2 as i16,
+            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_HEALTH * 1.2 as i16,
         }
     }
 
@@ -91,7 +91,7 @@ impl PlaneType {
             PlaneType::SukaBlyat => 0.9,
             PlaneType::HowdyCowboy => 0.7,
             PlaneType::ElPolloRomero => 0.8,
-            PlaneType::AchtungBlitz => 0.9,
+            PlaneType::AchtungBlitzKrieg => 0.9,
         }
     }
 }
@@ -123,7 +123,7 @@ impl Player {
             speed: 0.,
             health: plane_type.health(),
             position: na::Point2::new(100.0, 100.0),
-            powerups: vec!(),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Invincibility)),
             cooldown: 0.,
             planetype: plane_type,
             color: color,
@@ -156,6 +156,10 @@ impl Player {
     }
 
     pub fn damage_player(&mut self, damage: i16) {
+        if self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility) {
+            return;
+        }
+
         self.health -= damage;
 
         if self.health <= 0 {

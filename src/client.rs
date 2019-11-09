@@ -28,7 +28,7 @@ const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::SukaBlyat,
     player::PlaneType::HowdyCowboy,
     player::PlaneType::ElPolloRomero,
-    player::PlaneType::AchtungBlitz,
+    player::PlaneType::AchtungBlitzKrieg,
 ];
 
 
@@ -171,8 +171,8 @@ impl<'a> MenuState<'a> {
             player::PlaneType::ElPolloRomero => {
                 (&assets.cessna, "El Pollo Romero")
             },
-            player::PlaneType::AchtungBlitz => {
-                (&assets.cessna, "Achtung Blitz")
+            player::PlaneType::AchtungBlitzKrieg => {
+                (&assets.cessna, "Achtung BlitzKrieg")
             },
         };
         let (px, py) = constants::PLANE_SELECTION_POS;
