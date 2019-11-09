@@ -12,27 +12,38 @@ mod bullet;
 mod gamestate;
 mod constants;
 
-use messages::Message;
+use messages::{ServerMessage};
 use player::Player;
 
+
+fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream) {
+    let data = serde_json::to_string(msg)
+        .expect("Failed to encode message");
+    stream.write(data.as_bytes())
+        .expect("Failed to send message to client");
+    stream.write(&[0])
+        .expect("Failed to send message to client");
+}
 
 fn main() {
     let mut connections = vec!();
 
-    let mut listener = TcpListener::bind("127.0.0.1:30000")
+    let listener = TcpListener::bind("127.0.0.1:30000")
         .unwrap();
 
-    listener.set_nonblocking(true);
+    listener.set_nonblocking(true).unwrap();
 
     println!("Listening on 127.0.0.1:30000");
 
     let mut players = vec::Vec::<Player>::new();
-    let mut next_id: usize = 0;
+    let mut next_id: u64 = 0;
+    let mut i = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
-                Ok(stream) => {
+                Ok(mut stream) => {
                     println!("Got new connection {}", next_id);
+                    send_server_message(&ServerMessage::AssignId(next_id), &mut stream);
                     connections.push((next_id, stream));
                     let mut player = Player::new(next_id);
                     players.push(player);
@@ -47,10 +58,15 @@ fn main() {
             }
         }
 
+        i += 1;
+
+        std::thread::sleep(std::time::Duration::from_millis(10));
+
         for (id, ref mut client) in connections.iter_mut() {
-            client.write(serde_json::to_string(&Message::Ping).expect("Failed to encode message").as_bytes())
-                .expect("Failed to send message to client");
+            send_server_message(&ServerMessage::Ping, client);
         }
+
+        println!("Loop {}", i);
     }
 }
 

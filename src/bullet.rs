@@ -6,17 +6,17 @@ use crate::constants;
 
 #[derive(Serialize, Deserialize)]
 pub struct Bullet {
-    pub id: usize,
+    pub id: u64,
     pub position: na::Point2<f32>,
     pub velocity: na::Point2<f32>,
 }
 
 impl Bullet {
-    pub fn new(id: usize) -> Bullet {
+    pub fn new(id: u64, position: na::Point2<f32>, velocity: na::Point2<f32>) -> Bullet {
         Bullet {
             id: id,
-            position: na::Point2::new(0.0, 0.0),
-            velocity: na::Point2::new(0.0, 0.0),
+            position: position,
+            velocity: velocity,
         }
     }
 

@@ -14,35 +14,102 @@ mod bullet;
 mod gamestate;
 mod constants;
 
-enum Direction {
+enum Action {
     Up,
     Down,
     Left,
-    Right
+    Right,
+    //TO BE IMPLEMENTED: Shoot,
 }
 
+mod messages;
+use messages::{MessageReader, ServerMessage};
+
 struct MainState {
-    pos_x: f32,
-    pos_y: f32,
-    server_stream: TcpStream,
+    my_id: u64,
+    server_stream: MessageReader<ServerMessage>,
     player: player::Player
 }
 
 impl MainState {
-    fn new(x: f32, y: f32, stream: TcpStream) -> ggez::GameResult<MainState> {
+    fn new(my_id: u64, stream: MessageReader<ServerMessage>)
+        -> ggez::GameResult<MainState>
+    {
         let s = MainState {
-            pos_x: 0.0,
-            pos_y: 0.0,
             server_stream: stream,
-            player: player::Player::new(0),
+            my_id,
+            player: player::Player::new(my_id),
         };
         Ok(s)
+    }
+
+    fn get_input(ctx: &ggez::Context) -> Option<Action> {
+        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
+            Some(Action::Up)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
+            Some(Action::Down)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
+            Some(Action::Left)
+        } else if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
+            Some(Action::Right)
+        } else {
+            None
+        }
+    }
+
+    fn wrap_around(pos: na::Point2<f32>) -> na::Point2<f32> {
+        let mut new_x = pos.x;
+        let mut new_y = pos.y;
+
+        if pos.x > constants::WORLD_SIZE {
+            new_x = 0.;
+        } else if pos.x < 0. {
+            new_x = constants::WORLD_SIZE;
+        }
+
+        if pos.y > constants::WORLD_SIZE {
+            new_y = 0.;
+        } else if pos.y < 0. {
+            new_y = constants::WORLD_SIZE;
+        }
+
+        na::Point2::new(new_x, new_y)
+    }
+
+    fn update_player_position(&mut self, ctx: &mut ggez::Context) {
+        let mut dx = 0.;
+        let mut dy = 0.;
+        let mut rotation: f32 = self.player.rotation;
+        //let cos = format!("{:.2}", (rotation - std::f32::consts::PI/2.).cos());
+        //let sin = format!("{:.2}", (rotation + std::f32::consts::PI/2.).sin());
+        //println!("cos: {}, sin: {}", cos, sin);
+        match MainState::get_input(ctx) {
+            Some(Action::Up) => 
+            {
+                dx += constants::DEFAULT_ACCELERATION * (rotation - std::f32::consts::PI/2.).cos();
+                dy += constants::DEFAULT_ACCELERATION * (rotation + std::f32::consts::PI/2.).sin();
+            },
+            Some(Action::Down) =>
+            {
+                dx -= constants::DEFAULT_ACCELERATION * rotation.cos();
+                dy -= constants::DEFAULT_ACCELERATION * rotation.sin();
+            },
+            Some(Action::Left) => rotation = 0.01,
+            Some(Action::Right) => rotation = 0.01,
+            None => ()
+        };
+
+        self.player.velocity += na::Vector2::new(dx, dy);
+        self.player.position = MainState::wrap_around(
+            self.player.position + self.player.velocity);
+
+        self.player.rotation = self.player.rotation + rotation;
     }
 }
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        update_player_position(ctx, &mut self.player);
+        self.update_player_position(ctx);
         Ok(())
     }
 
@@ -54,37 +121,7 @@ impl event::EventHandler for MainState {
     }
 }
 
-fn update_player_position(ctx: &mut ggez::Context,
-                          player: &mut player::Player) {
-    let mut dx = 0.;
-    let mut dy = 0.;
-    match get_input(ctx) {
-        Some(Direction::Up) => dy -= 1.,
-        Some(Direction::Down) => dy += 1.,
-        Some(Direction::Left) => dx -= 1.,
-        Some(Direction::Right) => dx += 1.,
-        None => ()
-    };
-    
-    player.velocity += na::Vector2::new(dx, dy);
-    player.position += player.velocity;
-}
-
-fn get_input(ctx: &ggez::Context) -> Option<Direction> {
-    if keyboard::is_key_pressed(ctx, event::KeyCode::Up) {
-        Some(Direction::Up)
-    } else if keyboard::is_key_pressed(ctx, event::KeyCode::Down) {
-        Some(Direction::Down)
-    } else if keyboard::is_key_pressed(ctx, event::KeyCode::Left) {
-        Some(Direction::Left)
-    } else if keyboard::is_key_pressed(ctx, event::KeyCode::Right) {
-        Some(Direction::Right)
-    } else {
-        None
-    }
-}
-
-pub fn main() -> ggez::GameResult {
+pub fn main() -> ggez::GameResult { 
     let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("resources");
@@ -94,18 +131,31 @@ pub fn main() -> ggez::GameResult {
     };
 
     let mut stream = TcpStream::connect("127.0.0.1:30000")?;
-    stream.write("hello".as_bytes())?;
+    println!("Connected to server");
 
-    let mut buffer = [0; 512];
-    stream.read(&mut buffer)?;
-    let msg = String::from_utf8_lossy(&buffer[..]);
-    println!("received msg: {}", msg);
+    stream.set_nonblocking(true)?;
+    let mut reader = MessageReader::new(stream);
+
+
+    let msg = loop {
+        reader.fetch_bytes();
+        if let Some(msg) = reader.next() {
+            break msg;
+        }
+    };
+
+    let my_id = if let ServerMessage::AssignId(id) = msg {
+        println!("Received the id {}", id);
+        id
+    } else {
+        panic!("Expected to get an id from server")
+    };
 
     let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
         .window_setup(ggez::conf::WindowSetup::default().title("Flying broccoli"))
         .add_resource_path(resource_dir)
         .build()?;
 
-    let state = &mut MainState::new(0.0, 0.0, stream)?;
+    let state = &mut MainState::new(my_id, reader)?;
     event::run(ctx, event_loop, state)
 }
