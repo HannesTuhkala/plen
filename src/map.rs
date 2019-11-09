@@ -42,28 +42,28 @@ impl Map {
                     tile_x * constants::WORLD_SIZE,
                     tile_y * constants::WORLD_SIZE,
                 );
-                Map::place_world_at(ctx,
-                                    game_state,
+                Map::place_world_at(game_state,
                                     &mut background_sb,
                                     &mut plane_sb,
                                     camera_position,
-                                    my_id,
                                     offset);
             }
         }
 
-        graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),))
+        graphics::draw(ctx, &background_sb,
+                       graphics::DrawParam::default()
+                       .dest(na::Point2::new(0., 0.)))
             .unwrap();
-        graphics::draw(ctx, &plane_sb, (na::Point2::new(0., 0.),))
+        graphics::draw(ctx, &plane_sb,
+                       graphics::DrawParam::default()
+                       .dest(na::Point2::new(0., 0.)))
             .unwrap();
     }
 
-    fn place_world_at(ctx: &mut ggez::Context,
-                      game_state: &GameState,
+    fn place_world_at(game_state: &GameState,
                       background_sb: &mut spritebatch::SpriteBatch,
                       plane_sb: &mut spritebatch::SpriteBatch,
                       camera_position: na::Point2<f32>,
-                      my_id: u64,
                       offset: na::Vector2<f32>) {
         let background_position = na::Point2::new(
             -camera_position.x,
