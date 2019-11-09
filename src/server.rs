@@ -97,8 +97,6 @@ impl Server {
                         self.next_id,
                         MessageReader::<ClientMessage>::new(stream)
                     ));
-                    let player = Player::new(self.next_id, Point2::new(10., 10.));
-                    self.state.add_player(player);
                     self.next_id += 1;
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -147,6 +145,16 @@ impl Server {
                         player_input_x = x_input;
                         player_input_y = y_input;
                         player_shooting = shooting
+                    },
+                    ClientMessage::JoinGame{ name, plane, color } => {
+                        let player = Player::new(
+                            *id,
+                            Point2::new(10., 10.),
+                            plane,
+                            color,
+                            name
+                        );
+                        self.state.add_player(player);
                     }
                 }
             }

@@ -5,6 +5,8 @@ use std::collections::VecDeque;
 use std::iter::Iterator;
 use std::marker::PhantomData;
 
+use crate::player;
+
 pub struct MessageReader<T> {
     pub stream: TcpStream,
     byte_queue: VecDeque<u8>,
@@ -80,4 +82,5 @@ pub enum ServerMessage {
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
     Input { x_input: f32, y_input: f32, shooting: bool },
+    JoinGame { name: String, plane: player::PlaneType, color: player::Color }
 }

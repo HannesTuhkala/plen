@@ -13,64 +13,85 @@ use crate::powerups::{PowerUpKind, AppliedPowerup};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaneType {
-    SUKA_BLYAT,
-    HOWDY_COWBOY,
-    EL_POLLO_ROMERO,
-    ACHTUNG_BLITZ,
+    SukaBlyat,
+    HowdyCowboy,
+    ElPolloRomero,
+    AchtungBlitz,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum Color {
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Purple,
+}
+
+impl Color {
+    pub fn rgba(&self) -> (f32, f32, f32, f32) {
+        match self {
+            Color::Red => (1., 0., 0., 1.),
+            Color::Green => (0., 1., 0., 1.),
+            Color::Blue => (0., 0., 1., 1.),
+            Color::Yellow => (1., 1., 0., 1.),
+            Color::Purple => (1., 0., 1., 1.),
+        }
+    }
 }
 
 impl PlaneType {
     pub fn speed(&self) -> f64 {
         match self {
-            PlaneType::SUKA_BLYAT => 5.4,
-            PlaneType::HOWDY_COWBOY => 1.2,
-            PlaneType::EL_POLLO_ROMERO => 1.1,
-            PlaneType::ACHTUNG_BLITZ => 1.3,
+            PlaneType::SukaBlyat => 5.4,
+            PlaneType::HowdyCowboy => 1.2,
+            PlaneType::ElPolloRomero => 1.1,
+            PlaneType::AchtungBlitz => 1.3,
         }
     }
 
     pub fn agility(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_AGILITY * 5.,
-            PlaneType::HOWDY_COWBOY => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_AGILITY * 2.,
-            PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 2.,
+            PlaneType::AchtungBlitz => constants::DEFAULT_AGILITY * 5.,
         }
     }
 
     pub fn firepower(&self) -> u8 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::BULLET_DAMAGE * 5 as u8,
-            PlaneType::HOWDY_COWBOY => constants::BULLET_DAMAGE * 2. as u8,
-            PlaneType::EL_POLLO_ROMERO => constants::BULLET_DAMAGE * 2. as u8,
-            PlaneType::ACHTUNG_BLITZ => constants::BULLET_DAMAGE * 4. as u8,
+            PlaneType::SukaBlyat => constants::BULLET_DAMAGE * 5 as u8,
+            PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 2. as u8,
+            PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 2. as u8,
+            PlaneType::AchtungBlitz => constants::BULLET_DAMAGE * 4. as u8,
         }
     }
 
     pub fn acceleration(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_ACCELERATION * 1.1,
-            PlaneType::HOWDY_COWBOY => constants::DEFAULT_ACCELERATION * 1.5,
-            PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_ACCELERATION * 1.2,
-            PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_ACCELERATION * 1.3,
+            PlaneType::SukaBlyat => constants::DEFAULT_ACCELERATION * 1.1,
+            PlaneType::HowdyCowboy => constants::DEFAULT_ACCELERATION * 1.5,
+            PlaneType::ElPolloRomero => constants::DEFAULT_ACCELERATION * 1.2,
+            PlaneType::AchtungBlitz => constants::DEFAULT_ACCELERATION * 1.3,
         }
     }
 
     pub fn health(&self) -> u8 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_HEALTH * 1.1 as u8,
-            PlaneType::HOWDY_COWBOY => constants::DEFAULT_HEALTH * 1.3 as u8,
-            PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_HEALTH * 1.2 as u8,
-            PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_HEALTH * 1.2 as u8,
+            PlaneType::SukaBlyat => constants::DEFAULT_HEALTH * 1.1 as u8,
+            PlaneType::HowdyCowboy => constants::DEFAULT_HEALTH * 1.3 as u8,
+            PlaneType::ElPolloRomero => constants::DEFAULT_HEALTH * 1.2 as u8,
+            PlaneType::AchtungBlitz => constants::DEFAULT_HEALTH * 1.2 as u8,
         }
     }
 
     pub fn resilience(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT => 0.9,
-            PlaneType::HOWDY_COWBOY => 0.7,
-            PlaneType::EL_POLLO_ROMERO => 0.8,
-            PlaneType::ACHTUNG_BLITZ => 0.9,
+            PlaneType::SukaBlyat => 0.9,
+            PlaneType::HowdyCowboy => 0.7,
+            PlaneType::ElPolloRomero => 0.8,
+            PlaneType::AchtungBlitz => 0.9,
         }
     }
 }
@@ -87,22 +108,28 @@ pub struct Player {
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
     pub planetype: PlaneType,
+    pub color: Color,
+    pub name: String
 }
 
 
 impl Player {
-    pub fn new(id: u64, position: na::Point2<f32>) -> Player {
+    pub fn new(id: u64, position: na::Point2<f32>,
+               plane_type: PlaneType, color: Color,
+               name: String) -> Player {
         Player {
             id: id,
             rotation: 0.,
             angular_velocity: 0.,
             speed: 0.,
-            health: PlaneType::SUKA_BLYAT.health(),
+            health: plane_type.health(),
             position: na::Point2::new(100.0, 100.0),
             velocity: na::Vector2::new(0.0, 0.0),
             powerups: vec!(),
             cooldown: 0.,
-            planetype: PlaneType::SUKA_BLYAT,
+            planetype: plane_type,
+            color: color,
+            name: name
         }
     }
 
