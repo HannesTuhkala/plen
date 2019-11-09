@@ -2,7 +2,7 @@ use nalgebra as na;
 
 use serde_derive::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub enum PowerUpKind {
     Missile,
     Afterburner,

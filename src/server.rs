@@ -43,7 +43,6 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
         player.speed = constants::MIN_SPEED;
     }
 
-    let rotation = x_input * constants::DEFAULT_AGILITY;
 
     dx += player.speed * (player.rotation - std::f32::consts::PI/2.).cos();
     dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
@@ -53,7 +52,15 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
         player.position + player.velocity
     );
 
-    player.rotation = player.rotation + rotation;
+    let angular_acceleration = x_input * constants::DEFAULT_AGILITY/10.;
+    player.angular_velocity += angular_acceleration;
+    player.angular_velocity *= constants::ANGULAR_FADE;
+    if player.angular_velocity > constants::DEFAULT_AGILITY {
+        player.angular_velocity = constants::DEFAULT_AGILITY;
+    } else if player.angular_velocity < -constants::DEFAULT_AGILITY {
+        player.angular_velocity = -constants::DEFAULT_AGILITY;
+    }
+    player.rotation = player.rotation + player.angular_velocity;
 }
 
 struct Server {
@@ -88,6 +95,7 @@ impl Server {
         std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
         self.last_time = Instant::now();
 
+        self.state.update();
         self.accept_new_connections();
         self.update_clients(delta_time)
     }
