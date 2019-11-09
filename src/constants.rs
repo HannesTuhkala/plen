@@ -1,6 +1,6 @@
 pub const PLANE_SIZE: u32 = 10;
 pub const BULLET_RADIUS: u32 = 1;
-pub const POWERUP_RADIUS: u32 = 10;
+pub const POWERUP_RADIUS: u32 = 20;
 
 // currently hardcoded to the background image size
 pub const WORLD_SIZE: f32 = 3000.;
