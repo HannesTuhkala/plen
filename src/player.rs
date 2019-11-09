@@ -167,7 +167,7 @@ impl Player {
         
         if (kind == PowerUpKind::Health) {
             self.damage_player(-constants::POWERUP_HEALTH_BOOST);
-            self.update_player_health(constants::POWERUP_HEALTH_BOOST, true);
+            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
         }
 
         if (!kind.is_instant()) {
