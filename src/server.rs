@@ -72,38 +72,60 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     player.rotation = player.rotation + rotation;
 }
 
-fn main() {
-    let mut connections = vec!();
+struct Server {
+    listener: TcpListener,
+    connections: Vec<(u64, MessageReader<ClientMessage>)>,
+    state: gamestate::GameState,
+    next_id: u64,
+    last_time: Instant,
+}
 
-    let listener = TcpListener::bind("127.0.0.1:30000")
-        .unwrap();
+impl Server {
+    pub fn new() -> Self {
+        let listener = TcpListener::bind("127.0.0.1:30000")
+            .unwrap();
 
-    let mut state = gamestate::GameState::new();
+        listener.set_nonblocking(true).unwrap();
 
-    listener.set_nonblocking(true).unwrap();
+        println!("Listening on 127.0.0.1:30000");
 
-    println!("Listening on 127.0.0.1:30000");
+        Self {
+            listener,
+            connections: vec!(),
+            next_id: 0,
+            last_time: Instant::now(),
+            state: gamestate::GameState::new()
+        }
+    }
 
-    let mut next_id: u64 = 0;
-    let mut last_time = Instant::now();
-    loop {
+    pub fn update(mut self) -> Self {
+        let elapsed = self.last_time.elapsed();
+        let delta_time = 1./100.;
+        std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
+        self.last_time = Instant::now();
+
+        self.accept_new_connections();
+        self.update_clients(delta_time)
+    }
+
+    fn accept_new_connections(&mut self) {
         // Read data from clients
-        for stream in listener.incoming() {
+        for stream in self.listener.incoming() {
             match stream {
                 Ok(mut stream) => {
                     stream.set_nonblocking(true).unwrap();
-                    println!("Got new connection {}", next_id);
+                    println!("Got new connection {}", self.next_id);
                     send_server_message(
-                        &ServerMessage::AssignId(next_id),
+                        &ServerMessage::AssignId(self.next_id),
                         &mut stream
                     );
-                    connections.push((
-                        next_id,
+                    self.connections.push((
+                        self.next_id,
                         MessageReader::<ClientMessage>::new(stream)
                     ));
-                    let player = Player::new(next_id, Point2::new(10., 10.));
-                    state.add_player(player);
-                    next_id += 1;
+                    let player = Player::new(self.next_id, Point2::new(10., 10.));
+                    self.state.add_player(player);
+                    self.next_id += 1;
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
                     // wait until network socket is ready, typically implemented
@@ -113,15 +135,12 @@ fn main() {
                 e => {e.expect("Socket listener error");}
             }
         }
+    }
 
-        let elapsed = last_time.elapsed();
-        let delta_time = 1./100.;
-        std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
-        last_time = Instant::now();
-
+    fn update_clients(mut self, delta_time: f32) -> Self {
         // Send data to clients
         let mut clients_to_delete = vec!();
-        for (id, ref mut client) in connections.iter_mut() {
+        for (id, ref mut client) in self.connections.iter_mut() {
             match client.fetch_bytes() {
                 Ok(_) => {},
                 Err(e) => {
@@ -153,7 +172,7 @@ fn main() {
                 }
             }
 
-            for mut player in &mut state.players {
+            for mut player in &mut self.state.players {
                 if player.id == *id {
                     update_player_position(
                         &mut player,
@@ -165,7 +184,7 @@ fn main() {
             }
 
             let result = send_server_message(
-                &ServerMessage::GameState(state.clone()),
+                &ServerMessage::GameState(self.state.clone()),
                 &mut client.stream
             );
 
@@ -182,12 +201,20 @@ fn main() {
                 }
             }
         }
-        state.players = state.players.into_iter()
+        self.state.players = self.state.players.into_iter()
             .filter(|player| !clients_to_delete.contains(&player.id))
             .collect();
-        connections = connections.into_iter()
+        self.connections = self.connections.into_iter()
             .filter(|(id, _)| !clients_to_delete.contains(id))
             .collect();
+        self
+    }
+}
+
+fn main() {
+    let mut server = Server::new();
+    loop {
+        server = server.update();
     }
 }
 
