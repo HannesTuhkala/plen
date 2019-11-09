@@ -60,7 +60,10 @@ impl Server {
     pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
         let delta_time = 1./100.;
-        std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
+        let dt_duration = std::time::Duration::from_millis(10);
+        if elapsed < dt_duration {
+            std::thread::sleep(dt_duration - elapsed);
+        }
         self.last_time = Instant::now();
 
         self.state.update(delta_time);
