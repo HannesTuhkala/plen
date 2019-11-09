@@ -28,6 +28,7 @@ impl Map {
 
     pub fn draw(
         &self,
+        my_id: u64,
         ctx: &mut ggez::Context,
         camera_position: na::Point2<f32>,
         game_state: &GameState,
@@ -68,6 +69,8 @@ impl Map {
                 );
             }
         }
+
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &plane_sb, (na::Point2::new(0., 0.),)).unwrap();
@@ -124,10 +127,33 @@ impl Map {
                 powerup.position.x - camera_position.x,
                 powerup.position.y - camera_position.y,
             ) + offset;
-            powerup_sbs.get_mut(&powerup.kind).expect("No powerup asset for this kind")
+            powerup_sbs.get_mut(&powerup.kind)
+                .expect("No powerup asset for this kind")
                 .add(graphics::DrawParam::default()
                  .dest(position)
                  .offset(na::Point2::new(0.5, 0.5)));
         }
+    }
+
+    fn draw_ui(
+        my_id: u64,
+        game_state: &GameState,
+        powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
+    ) {
+        let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
+        let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
+
+        game_state.get_player_by_id(my_id)
+            .map(|p| {
+                for powerup in p.powerups.iter() {
+                    powerup_sbs.get_mut(&powerup.kind)
+                        .expect("Missing powerup graphics")
+                        .add(graphics::DrawParam::default()
+                            .dest(na::Point2::new(x_pos, y_pos))
+                            .offset(na::Point2::new(0.5, 0.5))
+                        );
+                    x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
+                }
+            });
     }
 }

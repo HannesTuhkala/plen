@@ -23,7 +23,7 @@ impl GameState {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, delta: f32) {
         self.handle_powerups();
     }
 
