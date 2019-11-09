@@ -31,7 +31,7 @@ impl PlaneType {
 
     pub fn agility(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_AGILITY * 23.,
+            PlaneType::SUKA_BLYAT => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HOWDY_COWBOY => constants::DEFAULT_AGILITY * 4.,
             PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_AGILITY * 2.,
             PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_AGILITY * 5.,
@@ -139,7 +139,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = self.rotation + self.angular_velocity;
+        self.rotation = (self.rotation + self.angular_velocity);
 
         self.manage_powerups(delta_time);
     }
