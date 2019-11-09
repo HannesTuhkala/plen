@@ -41,12 +41,12 @@ struct Server {
 
 impl Server {
     pub fn new() -> Self {
-        let listener = TcpListener::bind("127.0.0.1:30000")
+        let listener = TcpListener::bind("0.0.0.0:4444")
             .unwrap();
 
         listener.set_nonblocking(true).unwrap();
 
-        println!("Listening on 127.0.0.1:30000");
+        println!("Listening on 0.0.0.0:4444");
 
         Self {
             listener,
