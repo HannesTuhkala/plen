@@ -7,7 +7,6 @@ use ggez;
 use crate::constants;
 use crate::bullet;
 use crate::assets::Assets;
-use rand::Rng;
 
 use crate::powerups::PowerUpKind;
 
@@ -54,6 +53,7 @@ pub struct Player {
     pub rotation: f32,
     pub angular_velocity: f32,
     pub speed: f32,
+    pub health: u8,
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
     pub powerups: Vec<PowerUpKind>,
@@ -68,6 +68,7 @@ impl Player {
             rotation: 0.,
             angular_velocity: 0.,
             speed: 0.,
+            health: 100,
             position: na::Point2::new(100.0, 100.0),
             velocity: na::Vector2::new(0.0, 0.0),
             powerups: vec!(),
@@ -76,17 +77,15 @@ impl Player {
     }
 
     pub fn shoot(&self) -> bullet::Bullet {
-        let mut rng = rand::thread_rng();
         let dir = self.rotation - std::f32::consts::PI / 2.;
 
-        bullet::Bullet {
-            id: rng.gen_range(0, u64::max_value()),
-            position: self.position,
-            velocity: self.velocity + na::Vector2::new(
+        bullet::Bullet::new(
+            self.position,
+            self.velocity + na::Vector2::new(
                 dir.cos() * constants::BULLET_VELOCITY,
                 dir.sin() * constants::BULLET_VELOCITY,
             ),
-        }
+        )
     }
 
     pub fn apply_powerup(&mut self, kind: PowerUpKind) {

@@ -63,6 +63,15 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     player.rotation = player.rotation + player.angular_velocity;
 }
 
+fn update_player_health(player: &mut Player, damage: u8) {
+    if player.health <= damage {
+        // TODO: kill player
+        player.health = 0;
+    } else {
+        player.health = player.health - damage;
+    }
+}
+
 struct Server {
     listener: TcpListener,
     connections: Vec<(u64, MessageReader<ClientMessage>)>,
@@ -133,8 +142,13 @@ impl Server {
     }
 
     fn update_clients(mut self, delta_time: f32) -> Self {
+        let mut bullets_to_delete = vec!();
         for bullet in &mut self.state.bullets {
             bullet.update();
+
+            if bullet.traveled_distance > constants::BULLET_MAX_TRAVEL {
+                bullets_to_delete.push(bullet.id);
+            }
         }
 
         // Send data to clients
@@ -189,6 +203,10 @@ impl Server {
 
                     if shoot {
                         bullet = Some(player.shoot());
+                        update_player_health(
+                            &mut player,
+                            constants::BULLET_DAMAGE,
+                        );
                     }
                 }
             }
@@ -203,12 +221,23 @@ impl Server {
             );
             remove_player_on_disconnect!(result);
         }
+
+        let mut dead_players: Vec<_> = self.state.players.iter()
+            .filter(|player| player.health == 0).map(|player| player.id)
+            .collect();
+
         self.state.players = self.state.players.into_iter()
-            .filter(|player| !clients_to_delete.contains(&player.id))
+            .filter(|player| !clients_to_delete.contains(&player.id) &&
+                    !dead_players.contains(&player.id))
             .collect();
         self.connections = self.connections.into_iter()
             .filter(|(id, _)| !clients_to_delete.contains(id))
             .collect();
+
+        self.state.bullets = self.state.bullets.into_iter()
+            .filter(|bullet| !bullets_to_delete.contains(&bullet.id))
+            .collect();
+
         self
     }
 }
