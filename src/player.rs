@@ -12,6 +12,7 @@ use rand::Rng;
 pub struct Player {
     pub id: u64,
     pub rotation: f32,
+    pub speed: f32,
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
 }
@@ -23,6 +24,7 @@ impl Player {
         Player {
             id: id,
             rotation: 0.,
+            speed: 0.,
             position: na::Point2::new(100.0, 100.0),
             velocity: na::Vector2::new(0.0, 0.0),
         }
@@ -30,8 +32,8 @@ impl Player {
 
     pub fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let image = graphics::Image::new(ctx, "/cessna.png")?;
-        let rot = format!("{}", self.rotation);
-        println!("rot: {}", rot);
+        let speed = format!("{}", self.speed);
+        println!("Speed: {}", speed);
         graphics::draw(ctx, &image, graphics::DrawParam::default()
                        .dest(self.position)
                        .rotation(self.rotation)

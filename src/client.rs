@@ -79,27 +79,34 @@ impl MainState {
     fn update_player_position(&mut self, ctx: &mut ggez::Context) {
         let mut dx = 0.;
         let mut dy = 0.;
-        let mut rotation: f32 = self.player.rotation;
-        //let cos = format!("{:.2}", (rotation - std::f32::consts::PI/2.).cos());
-        //let sin = format!("{:.2}", (rotation + std::f32::consts::PI/2.).sin());
-        //println!("cos: {}, sin: {}", cos, sin);
+        let mut rotation: f32 = 0.;
+
         match MainState::get_input(ctx) {
-            Some(Action::Up) => 
+            Some(Action::Up) =>
             {
-                dx += constants::DEFAULT_ACCELERATION * (rotation - std::f32::consts::PI/2.).cos();
-                dy += constants::DEFAULT_ACCELERATION * (rotation + std::f32::consts::PI/2.).sin();
+                if self.player.speed < constants::MAX_SPEED {
+                    self.player.speed += 0.2;
+                } else {
+                    self.player.speed = constants::MAX_SPEED;
+                }
             },
             Some(Action::Down) =>
             {
-                dx -= constants::DEFAULT_ACCELERATION * rotation.cos();
-                dy -= constants::DEFAULT_ACCELERATION * rotation.sin();
+                if self.player.speed > 0. {
+                    self.player.speed -= 0.2;
+                } else {
+                    self.player.speed = 0.;
+                }
             },
-            Some(Action::Left) => rotation = 0.01,
-            Some(Action::Right) => rotation = 0.01,
+            Some(Action::Left) => rotation = -0.03,
+            Some(Action::Right) => rotation = 0.03,
             None => ()
         };
 
-        self.player.velocity += na::Vector2::new(dx, dy);
+        dx += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).cos();
+        dy += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).sin();
+        self.player.velocity = na::Vector2::new(dx, dy);
+
         self.player.position = MainState::wrap_around(
             self.player.position + self.player.velocity);
 
@@ -121,7 +128,7 @@ impl event::EventHandler for MainState {
     }
 }
 
-pub fn main() -> ggez::GameResult { 
+pub fn main() -> ggez::GameResult {
     let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
         let mut path = path::PathBuf::from(manifest_dir);
         path.push("resources");
