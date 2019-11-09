@@ -64,7 +64,12 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
 }
 
 fn update_player_health(player: &mut Player, damage: u8) {
-    player.health = player.health + damage;
+    if player.health <= damage {
+        // TODO: kill player
+        player.health = 0;
+    } else {
+        player.health = player.health - damage;
+    }
 }
 
 struct Server {
@@ -193,6 +198,10 @@ impl Server {
 
                     if shoot {
                         bullet = Some(player.shoot());
+                        update_player_health(
+                            &mut player,
+                            constants::BULLET_DAMAGE,
+                        );
                     }
                 }
             }
@@ -207,8 +216,14 @@ impl Server {
             );
             remove_player_on_disconnect!(result);
         }
+
+        let mut dead_players: Vec<_> = self.state.players.iter()
+            .filter(|player| player.health == 0).map(|player| player.id)
+            .collect();
+
         self.state.players = self.state.players.into_iter()
-            .filter(|player| !clients_to_delete.contains(&player.id))
+            .filter(|player| !clients_to_delete.contains(&player.id) &&
+                    !dead_players.contains(&player.id))
             .collect();
         self.connections = self.connections.into_iter()
             .filter(|(id, _)| !clients_to_delete.contains(id))
