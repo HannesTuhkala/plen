@@ -55,6 +55,10 @@ impl Map {
             assets.bullet.clone()
         );
 
+        let mut secret1_sb = spritebatch::SpriteBatch::new(
+            assets.secret_1.clone()
+        );
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 let offset = na::Vector2::new(
@@ -68,6 +72,7 @@ impl Map {
                     &mut plane_sb,
                     &mut powerup_sbs,
                     &mut bullet_sb,
+                    &mut secret1_sb,
                     camera_position,
                     offset
                 );
@@ -88,6 +93,8 @@ impl Map {
             Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, my_id,
                                &my_player, assets);
         }
+
+        graphics::draw(ctx, &secret1_sb, (na::Point2::new(0. , 0.),)).unwrap();
     }
 
     fn place_world_at(
@@ -96,6 +103,7 @@ impl Map {
         plane_sb: &mut spritebatch::SpriteBatch,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
         bullet_sb: &mut spritebatch::SpriteBatch,
+        secret1_sb: &mut spritebatch::SpriteBatch,
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>
     ) {
@@ -141,6 +149,13 @@ impl Map {
                  .dest(position)
                  .offset(na::Point2::new(0.5, 0.5)));
         }
+
+        let position = na::Point2::new(
+            constants::WINDOW_SIZE - 400., 0.);
+        secret1_sb.add(
+            graphics::DrawParam::default()
+                .dest(position)
+                .offset(na::Point2::new(0.5, 0.5)));
     }
 
     fn draw_ui(

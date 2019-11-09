@@ -13,6 +13,8 @@ pub struct Assets {
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
     pub bullet: Image,
+    pub secret_1: Image,
+    pub secret_2: Image,
 }
 
 impl Assets {
@@ -25,6 +27,7 @@ impl Assets {
             (PowerUpKind::Laser, Image::new(ctx, "/powerups/laser.png")
                 .expect("could not load missile powerup asset")),
         });
+    
         Assets {
             cessna: Image::new(ctx, "/cessna.png").
                 expect("Could not find cessna image!"),
@@ -35,6 +38,10 @@ impl Assets {
             powerups,
             bullet: Image::new(ctx, "/bullet.png").
                 expect("Could not find bullet image!"),
+            secret_1: Image::new(ctx, "/yeehaw.png").
+                expect("Could not find secret 1!"),
+            secret_2: Image::new(ctx, "/yeehawman.png").
+                expect("Could not find secret 2!"),
         }
     }
 }
