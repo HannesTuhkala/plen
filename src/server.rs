@@ -35,7 +35,7 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     let mut dx = 0.;
     let mut dy = 0.;
 
-    player.speed += y_input * constants::DEFAULT_ACCELERATION * delta;
+    player.speed += y_input * player.planetype.acceleration() * delta;
     if player.speed > constants::MAX_SPEED {
         player.speed = constants::MAX_SPEED;
     }
@@ -52,13 +52,13 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
         player.position + player.velocity
     );
 
-    let angular_acceleration = x_input * constants::DEFAULT_AGILITY/10.;
+    let angular_acceleration = x_input * player.planetype.agility()/10.;
     player.angular_velocity += angular_acceleration;
     player.angular_velocity *= constants::ANGULAR_FADE;
-    if player.angular_velocity > constants::DEFAULT_AGILITY {
-        player.angular_velocity = constants::DEFAULT_AGILITY;
-    } else if player.angular_velocity < -constants::DEFAULT_AGILITY {
-        player.angular_velocity = -constants::DEFAULT_AGILITY;
+    if player.angular_velocity > player.planetype.agility() {
+        player.angular_velocity = player.planetype.agility();
+    } else if player.angular_velocity < -player.planetype.agility() {
+        player.angular_velocity = -player.planetype.agility();
     }
     player.rotation = player.rotation + player.angular_velocity;
 }

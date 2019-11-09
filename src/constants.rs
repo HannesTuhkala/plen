@@ -8,6 +8,7 @@ pub const WORLD_SIZE: f32 = 3000.;
 pub const MAX_SPEED: f32 = 400.;
 pub const MIN_SPEED: f32 = 50.;
 pub const DEFAULT_ACCELERATION: f32 = 200.;
+pub const DEFAULT_HEALTH: u8 = 150;
 
 pub const DEFAULT_AGILITY: f32 = 0.04;
 pub const ANGULAR_FADE: f32 = 0.9;
