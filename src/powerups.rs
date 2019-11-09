@@ -8,12 +8,22 @@ use rand_derive::Rand;
 pub enum PowerUpKind {
     Missile,
     Afterburner,
+    Laser
 }
 impl PowerUpKind {
     pub fn starting_duration(&self) -> Option<f32> {
         match self {
             PowerUpKind::Missile => None,
+            PowerUpKind::Laser => None,
             PowerUpKind::Afterburner => Some(5.),
+        }
+    }
+
+    pub fn is_weapon(&self) -> bool {
+        match self {
+            PowerUpKind::Missile => true,
+            PowerUpKind::Laser => true,
+            PowerUpKind::Afterburner => false,
         }
     }
 }

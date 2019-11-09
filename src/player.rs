@@ -116,6 +116,14 @@ impl Player {
     }
 
     pub fn apply_powerup(&mut self, kind: PowerUpKind) {
+        // Only allow one weapon at a time
+        if kind.is_weapon() {
+            self.powerups.retain(|p| !p.kind.is_weapon())
+        }
+        else {
+            self.powerups.retain(|p| p.kind != kind)
+        }
+        // Remove duplicates, only allow one weapon
         self.powerups.push(AppliedPowerup::new(kind))
     }
 
