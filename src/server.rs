@@ -200,7 +200,7 @@ impl Server {
         }
 
         let dead_players: Vec<_> = self.state.players.iter()
-            .filter(|player| player.health == 0).map(|player| player.id)
+            .filter(|player| player.health <= 0).map(|player| player.id)
             .collect();
 
         self.state.players.retain(
