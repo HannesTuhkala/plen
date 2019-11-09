@@ -18,13 +18,13 @@ use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
 
 
-fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream) {
+fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
+    -> io::Result<()>
+{
     let data = serde_json::to_string(msg)
         .expect("Failed to encode message");
-    stream.write(data.as_bytes())
-        .expect("Failed to send message to client");
-    stream.write(&[0])
-        .expect("Failed to send message to client");
+    stream.write_all(data.as_bytes())?;
+    stream.write_all(&[0])
 }
 
 // TODO: Use modulo maybe?
@@ -107,6 +107,7 @@ fn main() {
 
         std::thread::sleep(std::time::Duration::from_millis(10));
 
+        let mut clients_to_delete = vec!();
         for (id, ref mut client) in connections.iter_mut() {
             client.fetch_bytes().unwrap();
 
@@ -131,8 +132,26 @@ fn main() {
                 }
             }
 
-            send_server_message(&ServerMessage::GameState(state.clone()), &mut client.stream);
+            let result = send_server_message(
+                &ServerMessage::GameState(state.clone()),
+                &mut client.stream
+            );
+
+            if let Err(e) = result {
+                match e.kind() {
+                    io::ErrorKind::ConnectionReset => {
+                        println!("Player {} disconnected", id);
+                        clients_to_delete.push(*id);
+                    }
+                    e => {
+                        panic!("Unhandled network issue: {:?}", e)
+                    }
+                }
+            }
         }
+        connections = connections.into_iter()
+            .filter(|(id, _)| !clients_to_delete.contains(id))
+            .collect();
     }
 }
 
