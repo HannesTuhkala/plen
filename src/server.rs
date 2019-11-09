@@ -164,6 +164,9 @@ fn main() {
                 }
             }
         }
+        state.players = state.players.into_iter()
+            .filter(|player| !clients_to_delete.contains(&player.id))
+            .collect();
         connections = connections.into_iter()
             .filter(|(id, _)| !clients_to_delete.contains(id))
             .collect();
