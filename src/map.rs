@@ -29,13 +29,10 @@ impl Map {
     pub fn draw(
         &self,
         ctx: &mut ggez::Context,
-        my_id: u64,
+        camera_position: na::Point2<f32>,
         game_state: &GameState,
         assets: &Assets
     ) {
-        let my_player = game_state.get_player_by_id(my_id)
-            .expect("Could not find my own player!");
-        let camera_position = my_player.position;
         let mut background_sb = spritebatch::SpriteBatch::new(
             assets.background.clone()
         );

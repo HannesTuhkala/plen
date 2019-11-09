@@ -52,6 +52,7 @@ fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
 
 struct MainState {
     my_id: u64,
+    camera_position: na::Point2<f32>,
     server_reader: MessageReader<ServerMessage>,
     game_state: gamestate::GameState,
     map: map::Map,
@@ -66,6 +67,7 @@ impl MainState {
         let s = MainState {
             server_reader: stream,
             my_id,
+            camera_position: na::Point2::new(0., 0.),
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
             assets: assets,
@@ -111,7 +113,12 @@ impl event::EventHandler for MainState {
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        self.map.draw(ctx, self.my_id, &self.game_state, &self.assets);
+
+        if let Some(my_player) = self.game_state.get_player_by_id(self.my_id) {
+            self.camera_position = my_player.position;
+        }
+
+        self.map.draw(ctx, self.camera_position, &self.game_state, &self.assets);
         graphics::present(ctx)?;
         Ok(())
     }

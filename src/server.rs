@@ -98,7 +98,7 @@ impl Server {
         }
     }
 
-    pub fn update(mut self) -> Self {
+    pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
         let delta_time = 1./100.;
         std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
@@ -106,7 +106,15 @@ impl Server {
 
         self.state.update();
         self.accept_new_connections();
-        self.update_clients(delta_time)
+        self.update_clients(delta_time);
+
+        for bullet in &mut self.state.bullets {
+            bullet.update();
+        }
+
+        self.state.bullets.retain(
+            |bullet| bullet.traveled_distance < constants::BULLET_MAX_TRAVEL
+        );
     }
 
     fn accept_new_connections(&mut self) {
@@ -141,16 +149,7 @@ impl Server {
         }
     }
 
-    fn update_clients(mut self, delta_time: f32) -> Self {
-        let mut bullets_to_delete = vec!();
-        for bullet in &mut self.state.bullets {
-            bullet.update();
-
-            if bullet.traveled_distance > constants::BULLET_MAX_TRAVEL {
-                bullets_to_delete.push(bullet.id);
-            }
-        }
-
+    fn update_clients(&mut self, delta_time: f32) {
         // Send data to clients
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in self.connections.iter_mut() {
@@ -222,30 +221,24 @@ impl Server {
             remove_player_on_disconnect!(result);
         }
 
-        let mut dead_players: Vec<_> = self.state.players.iter()
+        let dead_players: Vec<_> = self.state.players.iter()
             .filter(|player| player.health == 0).map(|player| player.id)
             .collect();
 
-        self.state.players = self.state.players.into_iter()
-            .filter(|player| !clients_to_delete.contains(&player.id) &&
-                    !dead_players.contains(&player.id))
-            .collect();
-        self.connections = self.connections.into_iter()
-            .filter(|(id, _)| !clients_to_delete.contains(id))
-            .collect();
-
-        self.state.bullets = self.state.bullets.into_iter()
-            .filter(|bullet| !bullets_to_delete.contains(&bullet.id))
-            .collect();
-
-        self
+        self.state.players.retain(
+            |player| !clients_to_delete.contains(&player.id) &&
+                !dead_players.contains(&player.id)
+        );
+        self.connections.retain(
+            |(id, _)| !clients_to_delete.contains(id)
+        );
     }
 }
 
 fn main() {
     let mut server = Server::new();
     loop {
-        server = server.update();
+        server.update();
     }
 }
 
