@@ -82,11 +82,49 @@ impl Map {
         for sb in powerup_sbs.values() {
             graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
         }
+        for tile_x in [-1., 0., 1.].iter() {
+            for tile_y in [-1., 0., 1.].iter() {
+                for player in &game_state.players {
+                    let offset = na::Vector2::new(
+                        tile_x * constants::WORLD_SIZE,
+                        tile_y * constants::WORLD_SIZE,
+                    );
+
+                    let position = na::Point2::new(
+                        player.position.x - camera_position.x,
+                        player.position.y - camera_position.y,
+                    ) + offset;
+
+                    let health = player.health as f32;
+                    let max_health = player.planetype.health() as f32;
+                    const HEALTH_BAR_WIDTH: f32 = 50.;
+                    let red_rect = graphics::Rect::new(
+                        position.x - HEALTH_BAR_WIDTH / 2.,
+                        position.y + 50.,
+                        HEALTH_BAR_WIDTH,
+                        10.
+                    );
+                    let green_rect = graphics::Rect::new(
+                        position.x - HEALTH_BAR_WIDTH / 2.,
+                        position.y + 50.,
+                        HEALTH_BAR_WIDTH * health / max_health,
+                        10.
+                    );
+                    let red_mesh = graphics::Mesh::new_rectangle(
+                        ctx, graphics::DrawMode::fill(), red_rect, graphics::Color::new(1., 0., 0., 1.)
+                    ).unwrap();
+                    let green_mesh = graphics::Mesh::new_rectangle(
+                        ctx, graphics::DrawMode::fill(), green_rect, graphics::Color::new(0., 1., 0., 1.)
+                    ).unwrap();
+                    graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
+                    graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
+                }
+            }
+        }
 
         graphics::draw(ctx, &bullet_sb, (na::Point2::new(0., 0.),)).unwrap();
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, my_id,
-                               &my_player, assets);
+            Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, &my_player);
         }
     }
 
@@ -169,17 +207,15 @@ impl Map {
         game_state: &GameState,
         miniplane_sb: &mut spritebatch::SpriteBatch,
         ctx: &mut ggez::Context,
-        my_id: u64,
         my_player: &player::Player,
-        assets: &Assets
     ) {
         let mut builder = graphics::MeshBuilder::new();
         Map::add_mini_map_background(&mut builder);
         let mesh = builder.build(ctx).unwrap();
         graphics::draw(ctx, &mesh, (na::Point2::new(
-                    constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
-                    constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
-                    ),));
+            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
+            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
+        ),)).unwrap();
         let my_pos = my_player.position;
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
