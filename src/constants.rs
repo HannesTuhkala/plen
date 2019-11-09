@@ -18,7 +18,7 @@ pub const BULLET_DAMAGE: u8 = 10;
 pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.8;
 pub const PLAYER_COOLDOWN: f32 = 0.1;
 
-pub const WINDOW_SIZE: f32 = 800.;
+pub const WINDOW_SIZE: f32 = 600.;
 
 pub const SCANCODE_W: u32 = 17;
 pub const SCANCODE_A: u32 = 30;
