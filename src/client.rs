@@ -142,7 +142,7 @@ pub fn main() -> ggez::GameResult {
         path::PathBuf::from("./resources")
     };
 
-    let stream = TcpStream::connect("127.0.0.1:30000")?;
+    let stream = TcpStream::connect("skarman.space:4444")?;
     println!("Connected to server");
 
     stream.set_nonblocking(true)?;
