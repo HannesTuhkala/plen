@@ -151,7 +151,7 @@ impl Map {
         }
 
         let position = na::Point2::new(
-            constants::WINDOW_SIZE - 550.,
+            constants::WINDOW_SIZE - 530.,
             -constants::WINDOW_SIZE/2.);
         yeehaw_sb.add(
             graphics::DrawParam::default()
