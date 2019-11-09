@@ -124,7 +124,9 @@ impl Map {
                 graphics::DrawParam::default()
                     .dest(position)
                     .rotation(player.rotation)
-                    .offset(na::Point2::new(0.5, 0.5)));
+                    .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
+                    .offset(na::Point2::new(0.5, 0.5))
+            );
         }
 
         for bullet in &game_state.bullets {
