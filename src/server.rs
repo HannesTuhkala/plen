@@ -35,6 +35,8 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     let mut dx = 0.;
     let mut dy = 0.;
 
+    // let speed_boost = player.powerups.
+
     player.speed += y_input * player.planetype.acceleration() * delta;
     if player.speed > constants::MAX_SPEED {
         player.speed = constants::MAX_SPEED;

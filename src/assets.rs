@@ -21,6 +21,8 @@ impl Assets {
                 .expect("Could not load generic powerup image")),
             (PowerUpKind::Afterburner, Image::new(ctx, "/powerups/afterburner.png")
                 .expect("could not load missile powerup asset")),
+            (PowerUpKind::Laser, Image::new(ctx, "/powerups/laser.png")
+                .expect("could not load missile powerup asset")),
         });
         Assets {
             cessna: Image::new(ctx, "/cessna.png").

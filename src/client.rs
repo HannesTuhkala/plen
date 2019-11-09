@@ -118,7 +118,13 @@ impl event::EventHandler for MainState {
             self.camera_position = my_player.position;
         }
 
-        self.map.draw(ctx, self.camera_position, &self.game_state, &self.assets);
+        self.map.draw(
+            self.my_id,
+            ctx,
+            self.camera_position,
+            &self.game_state,
+            &self.assets
+        );
         graphics::present(ctx)?;
         Ok(())
     }

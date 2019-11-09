@@ -28,6 +28,7 @@ impl Map {
 
     pub fn draw(
         &self,
+        my_id: u64,
         ctx: &mut ggez::Context,
         camera_position: na::Point2<f32>,
         game_state: &GameState,
