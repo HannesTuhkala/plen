@@ -40,11 +40,11 @@ impl Map {
                           .dest(background_position));
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),))
             .unwrap();
-        my_player.draw(ctx,
-                       na::Point2::new(
-                           constants::WINDOW_SIZE/2.,
-                           constants::WINDOW_SIZE/2.),
-                       my_player.rotation, assets).unwrap();
+        my_player.draw(
+            ctx,
+            na::Point2::new(0.0, 0.0),
+            my_player.rotation, assets
+        ).unwrap();
 
         for player in &game_state.players {
             if player.id != my_id {

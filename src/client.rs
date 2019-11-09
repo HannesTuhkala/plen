@@ -18,6 +18,8 @@ mod map;
 mod bullet;
 mod gamestate;
 mod constants;
+mod messages;
+use messages::{MessageReader, ClientMessage, ServerMessage};
 
 struct KeyStates {
     forward: ElementState,
@@ -36,9 +38,6 @@ impl KeyStates {
         }
     }
 }
-
-mod messages;
-use messages::{MessageReader, ClientMessage, ServerMessage};
 
 fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
     let data = serde_json::to_string(msg)
@@ -150,9 +149,19 @@ pub fn main() -> ggez::GameResult {
                       .title("Flying broccoli"))
         .window_mode(ggez::conf::WindowMode::default()
                      .dimensions(constants::WINDOW_SIZE,
-                                  constants::WINDOW_SIZE))
+                                 constants::WINDOW_SIZE))
         .add_resource_path(resource_dir)
         .build()?;
+
+    let mut coords = graphics::screen_coordinates(ctx);
+    coords.translate(
+        na::Vector2::new(
+            -coords.w / 2.0, -coords.h / 2.0
+        )
+    );
+    graphics::set_screen_coordinates(
+        ctx, coords
+    ).expect("Could not set screen coordinates");
 
     let assets = Assets::new(ctx);
     let state = &mut MainState::new(my_id, reader, assets)?;
