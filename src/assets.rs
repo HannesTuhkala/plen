@@ -11,6 +11,7 @@ pub struct Assets {
     pub cessna: Image,
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
+    pub bullet: Image,
 }
 
 impl Assets {
@@ -26,6 +27,8 @@ impl Assets {
             background: Image::new(ctx, "/background.png").
                 expect("Could not find background image!"),
             powerups,
+            bullet: Image::new(ctx, "/bullet.png").
+                expect("Could not find bullet image!"),
         }
     }
 }

@@ -12,8 +12,7 @@ pub const DEFAULT_ACCELERATION: f32 = 200.;
 pub const DEFAULT_AGILITY: f32 = 0.04;
 pub const ANGULAR_FADE: f32 = 0.9;
 
-pub const BULLET_VELOCITY_FACTOR: f32 = 1.1;
-pub const BULLET_VELOCITY_CONSTANT: f32 = 1000.0;
+pub const BULLET_VELOCITY: f32 = 10.0;
 
 pub const WINDOW_SIZE: f32 = 800.;
 

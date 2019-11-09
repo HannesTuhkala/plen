@@ -197,8 +197,13 @@ pub fn main() -> ggez::GameResult {
                             _ => {} // Handle other key events here
                         }
 
-                        if keycode == keyboard::KeyCode::Space {
-                            send_client_message(&ClientMessage::Shoot, &mut state.server_reader.stream);
+                        if keycode == keyboard::KeyCode::Space &&
+                            key_state == ElementState::Pressed
+                        {
+                            send_client_message(
+                                &ClientMessage::Shoot,
+                                &mut state.server_reader.stream
+                            );
                         }
                     }
 
