@@ -37,3 +37,5 @@ pub const PLANE_SELECTION_SIZE: f32 = 200.;
 
 pub const COLOR_SELECTION_POS: (f32, f32) = (400., 450.);
 pub const COLOR_SELECTION_SIZE: f32 = 200.;
+
+pub const PARTICLE_SPAWN_RATE: f32 = 0.05;

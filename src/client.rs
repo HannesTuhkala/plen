@@ -12,6 +12,7 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::env;
 use std::path;
+use std::time::Instant;
 
 use ggez;
 use ggez::event::{self, EventHandler};
@@ -76,6 +77,7 @@ struct MainState {
     map: map::Map,
     assets: Assets,
     key_states: KeyStates,
+    last_time: Instant,
 }
 
 
@@ -100,6 +102,7 @@ impl MainState {
             map: map::Map::new(),
             assets: assets,
             key_states: KeyStates::new(),
+            last_time: Instant::now(),
         };
         Ok(s)
     }
@@ -226,6 +229,9 @@ impl<'a> MenuState<'a> {
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        let elapsed = self.last_time.elapsed();
+        self.last_time = Instant::now();
+
         self.server_reader.fetch_bytes().unwrap();
         // TODO: Use a real loop
         while let Some(message) = self.server_reader.next() {
@@ -252,6 +258,8 @@ impl event::EventHandler for MainState {
         if self.key_states.right == ElementState::Pressed {
             x_input += 1.0;
         }
+
+        self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
 
         let shooting = self.key_states.shooting == ElementState::Pressed;
         let input_message = ClientMessage::Input{ x_input, y_input, shooting };
