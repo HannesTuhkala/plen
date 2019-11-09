@@ -22,11 +22,15 @@ impl<T> MessageReader<T> {
     pub fn fetch_bytes(&mut self) -> io::Result<()> {
         let mut buffer = [1; 64];
         loop {
-            let amount = self.stream.read(&mut buffer)?;
+            let amount = match self.stream.read(&mut buffer) {
+                Ok(amount) => amount,
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => 0,
+                e => e?,
+            };
             if amount == 0 {
                 break Ok(());
             }
-            self.byte_queue.extend(buffer.iter());
+            self.byte_queue.extend(buffer.iter().take(amount));
         }
     }
 }
@@ -50,6 +54,7 @@ macro_rules! impl_message_reader {
                     None => return None,
                     Some(i) => self.byte_queue.drain(0..i)
                 }.collect::<Vec<u8>>();
+                self.byte_queue.pop_front();
 
                 let as_str = String::from_utf8_lossy(&msg_bytes);
 

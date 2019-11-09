@@ -119,15 +119,14 @@ impl event::EventHandler for MainState {
 }
 
 pub fn main() -> ggez::GameResult { 
-    let mut stream = TcpStream::connect("127.0.0.1:30000")?;
+    let stream = TcpStream::connect("127.0.0.1:30000")?;
     println!("Connected to server");
 
     stream.set_nonblocking(true)?;
     let mut reader = MessageReader::new(stream);
 
-
     let msg = loop {
-        reader.fetch_bytes();
+        reader.fetch_bytes().unwrap();
         if let Some(msg) = reader.next() {
             break msg;
         }
