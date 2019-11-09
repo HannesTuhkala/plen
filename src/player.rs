@@ -131,13 +131,13 @@ impl Player {
             self.position + self.velocity * delta_time
         );
 
-        let angular_acceleration = x_input * player.planetype.agility()/10.;
+        let angular_acceleration = x_input * self.planetype.agility()/10.;
         self.angular_velocity += angular_acceleration;
         self.angular_velocity *= constants::ANGULAR_FADE;
-        if self.angular_velocity > player.planetype.agility() {
-            self.angular_velocity = player.planetype.agility();
-        } else if self.angular_velocity < -player.planetype.agility() {
-            self.angular_velocity = -player.planetype.agility();
+        if self.angular_velocity > self.planetype.agility() {
+            self.angular_velocity = self.planetype.agility();
+        } else if self.angular_velocity < -self.planetype.agility() {
+            self.angular_velocity = -self.planetype.agility();
         }
         self.rotation = self.rotation + self.angular_velocity;
 
@@ -188,4 +188,5 @@ impl Player {
                     .map(|left| left > 0.)
                     .unwrap_or(true)})
     }
+
 }
