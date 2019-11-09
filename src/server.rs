@@ -6,6 +6,7 @@ use std::net::TcpListener;
 use std::collections::HashMap;
 use serde_json;
 use nalgebra::Point2;
+use nalgebra as na;
 
 mod messages;
 mod player;
@@ -13,7 +14,7 @@ mod bullet;
 mod gamestate;
 mod constants;
 
-use messages::{ServerMessage};
+use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
 
 
@@ -26,6 +27,50 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream) {
         .expect("Failed to send message to client");
 }
 
+// TODO: Use modulo maybe?
+fn wrap_around(pos: Point2<f32>) -> Point2<f32> {
+    let mut new_x = pos.x;
+    let mut new_y = pos.y;
+
+    if pos.x > constants::WORLD_SIZE {
+        new_x = 0.;
+    } else if pos.x < 0. {
+        new_x = constants::WORLD_SIZE;
+    }
+
+    if pos.y > constants::WORLD_SIZE {
+        new_y = 0.;
+    } else if pos.y < 0. {
+        new_y = constants::WORLD_SIZE;
+    }
+
+    Point2::new(new_x, new_y)
+}
+
+fn update_player_position(player: &mut Player, x_input: f32, y_input: f32) {
+    let mut dx = 0.;
+    let mut dy = 0.;
+
+    player.speed += y_input * constants::DEFAULT_ACCELERATION;
+    if player.speed > constants::MAX_SPEED {
+        player.speed = constants::MAX_SPEED;
+    }
+    if player.speed < constants::MIN_SPEED {
+        player.speed = constants::MIN_SPEED;
+    }
+
+    let rotation = x_input * constants::DEFAULT_AGILITY;
+
+    dx += player.speed * (player.rotation - std::f32::consts::PI/2.).cos();
+    dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
+    player.velocity = na::Vector2::new(dx, dy);
+
+    player.position = wrap_around(
+        player.position + player.velocity);
+
+    player.rotation = player.rotation + rotation;
+}
+
 fn main() {
     let mut connections = vec!();
 
@@ -33,23 +78,22 @@ fn main() {
         .unwrap();
 
     let mut state = gamestate::GameState::new();
-    state.add_player(player::Player::new(1337, Point2::new(10., 10.)));
 
     listener.set_nonblocking(true).unwrap();
 
     println!("Listening on 127.0.0.1:30000");
 
-    let mut players = vec::Vec::<Player>::new();
     let mut next_id: u64 = 0;
     loop {
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => {
+                    stream.set_nonblocking(true).unwrap();
                     println!("Got new connection {}", next_id);
                     send_server_message(&ServerMessage::AssignId(next_id), &mut stream);
-                    connections.push((next_id, stream));
-                    let mut player = Player::new(next_id, Point2::new(10., 10.));
-                    players.push(player);
+                    connections.push((next_id, MessageReader::<ClientMessage>::new(stream)));
+                    let player = Player::new(next_id, Point2::new(10., 10.));
+                    state.add_player(player);
                     next_id += 1;
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -64,7 +108,30 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(10));
 
         for (id, ref mut client) in connections.iter_mut() {
-            send_server_message(&ServerMessage::GameState(state.clone()), client);
+            client.fetch_bytes().unwrap();
+
+            let mut player_input_x = 0.0;
+            let mut player_input_y = 0.0;
+
+            // TODO: Use a real loop
+            while let Some(message) = client.next() {
+                match message {
+                    ClientMessage::Ping => {},
+                    ClientMessage::Shoot => {},
+                    ClientMessage::Input(input_x, input_y) => {
+                        player_input_x = input_x;
+                        player_input_y = input_y;
+                    }
+                }
+            }
+
+            for mut player in &mut state.players {
+                if player.id == *id {
+                    update_player_position(&mut player, player_input_x, player_input_y);
+                }
+            }
+
+            send_server_message(&ServerMessage::GameState(state.clone()), &mut client.stream);
         }
     }
 }

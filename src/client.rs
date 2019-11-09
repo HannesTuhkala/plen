@@ -25,12 +25,21 @@ enum Action {
 }
 
 mod messages;
-use messages::{MessageReader, ServerMessage};
+use messages::{MessageReader, ClientMessage, ServerMessage};
+
+fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
+    let data = serde_json::to_string(msg)
+        .expect("Failed to encode message");
+    stream.write(data.as_bytes())
+        .expect("Failed to send message to server");
+    stream.write(&[0])
+        .expect("Failed to send message to server");
+}
 
 struct MainState {
     my_id: u64,
-    server_stream: MessageReader<ServerMessage>,
-    player: player::Player
+    server_reader: MessageReader<ServerMessage>,
+    game_state: gamestate::GameState,
 }
 
 impl MainState {
@@ -38,89 +47,53 @@ impl MainState {
         -> ggez::GameResult<MainState>
     {
         let s = MainState {
-            server_stream: stream,
+            server_reader: stream,
             my_id,
-            player: player::Player::new(my_id, Point2::new(0., 0.)),
+            game_state: gamestate::GameState::new()
         };
         Ok(s)
-    }
-
-    fn wrap_around(pos: na::Point2<f32>) -> na::Point2<f32> {
-        let mut new_x = pos.x;
-        let mut new_y = pos.y;
-
-        if pos.x > constants::WORLD_SIZE {
-            new_x = 0.;
-        } else if pos.x < 0. {
-            new_x = constants::WORLD_SIZE;
-        }
-
-        if pos.y > constants::WORLD_SIZE {
-            new_y = 0.;
-        } else if pos.y < 0. {
-            new_y = constants::WORLD_SIZE;
-        }
-
-        na::Point2::new(new_x, new_y)
-    }
-
-    fn update_player_position(&mut self, ctx: &mut ggez::Context) {
-        let mut dx = 0.;
-        let mut dy = 0.;
-        let mut rotation: f32 = 0.;
-
-        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
-            if self.player.speed < constants::MAX_SPEED {
-                self.player.speed += constants::DEFAULT_ACCELERATION;
-            } else {
-                self.player.speed = constants::MAX_SPEED;
-            }
-        }
-        if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
-            if self.player.speed > constants::MIN_SPEED {
-                self.player.speed -= constants::DEFAULT_ACCELERATION;
-            } else {
-                self.player.speed = constants::MIN_SPEED;
-            }
-        }
-        if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
-            rotation = -constants::DEFAULT_AGILITY;
-        } 
-        if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
-            rotation = constants::DEFAULT_AGILITY;
-        }
-
-        dx += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).cos();
-        dy += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).sin();
-        self.player.velocity = na::Vector2::new(dx, dy);
-
-        self.player.position = MainState::wrap_around(
-            self.player.position + self.player.velocity);
-
-        self.player.rotation = self.player.rotation + rotation;
     }
 }
 
 impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        let messages = self.server_stream.fetch_bytes();
+        self.server_reader.fetch_bytes().unwrap();
         // TODO: Use a real loop
-        while let Some(message) = self.server_stream.next() {
+        while let Some(message) = self.server_reader.next() {
             match message {
                 ServerMessage::Ping => {}
-                ServerMessage::AssignId(_) => {panic!("Got new ID after intialisatioin")}
+                ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
-                    // TODO: Handle GameState
+                    self.game_state = state
                 }
             }
         }
-        self.update_player_position(ctx);
+
+        let mut y_input = 0.0;
+        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
+            y_input += 1.0;
+        }
+        if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
+            y_input -= 1.0;
+        }
+
+        let mut x_input = 0.0;
+        if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
+            x_input -= 1.0;
+        } 
+        if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
+            x_input += 1.0;
+        }
+
+        send_client_message(&ClientMessage::Input(x_input, y_input), &mut self.server_reader.stream);
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        self.player.draw(ctx)?;
+        for player in &mut self.game_state.players {
+            player.draw(ctx)?;
+        }
         graphics::present(ctx)?;
         Ok(())
     }

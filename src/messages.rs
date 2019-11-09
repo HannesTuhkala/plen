@@ -6,7 +6,7 @@ use std::iter::Iterator;
 use std::marker::PhantomData;
 
 pub struct MessageReader<T> {
-    stream: TcpStream,
+    pub stream: TcpStream,
     byte_queue: VecDeque<u8>,
     _0: PhantomData<T>,
 }
@@ -82,4 +82,5 @@ pub enum ServerMessage {
 pub enum ClientMessage {
     Ping,
     Shoot,
+    Input(f32, f32),
 }
