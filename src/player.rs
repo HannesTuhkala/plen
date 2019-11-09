@@ -31,7 +31,7 @@ impl PlaneType {
 
     pub fn agility(&self) -> f32 {
         match self {
-            PlaneType::SUKA_BLYAT => constants::DEFAULT_AGILITY * 23.,
+            PlaneType::SUKA_BLYAT => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HOWDY_COWBOY => constants::DEFAULT_AGILITY * 4.,
             PlaneType::EL_POLLO_ROMERO => constants::DEFAULT_AGILITY * 2.,
             PlaneType::ACHTUNG_BLITZ => constants::DEFAULT_AGILITY * 5.,
@@ -112,6 +112,8 @@ impl Player {
         let mut dx = 0.;
         let mut dy = 0.;
 
+
+        self.speed += y_input * self.planetype.acceleration() * delta_time;
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if(has_speed_boost) {1.8} else {1.};
@@ -128,7 +130,7 @@ impl Player {
         self.velocity = na::Vector2::new(dx, dy);
 
         self.position = math::wrap_around(
-            self.position + self.velocity * delta_time
+            self.position + self.velocity * delta_time * speed_boost
         );
 
         let angular_acceleration = x_input * self.planetype.agility()/10.;
@@ -139,7 +141,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = self.rotation + self.angular_velocity;
+        self.rotation = (self.rotation + self.angular_velocity);
 
         self.manage_powerups(delta_time);
     }

@@ -9,6 +9,7 @@ use crate::powerups::PowerUpKind;
 
 pub struct Assets {
     pub cessna: Image,
+    pub miniplane: Image,
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
     pub bullet: Image,
@@ -29,6 +30,8 @@ impl Assets {
                 expect("Could not find cessna image!"),
             background: Image::new(ctx, "/background.png").
                 expect("Could not find background image!"),
+            miniplane: Image::new(ctx, "/miniplane.png").
+                expect("Could not find miniplane image!"),
             powerups,
             bullet: Image::new(ctx, "/bullet.png").
                 expect("Could not find bullet image!"),

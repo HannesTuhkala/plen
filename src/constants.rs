@@ -26,3 +26,5 @@ pub const SCANCODE_S: u32 = 31;
 pub const SCANCODE_D: u32 = 32;
 
 pub const POWERUP_AMOUNT: u32 = 5;
+
+pub const MINI_MAP_SIZE: f32 = 300.;
