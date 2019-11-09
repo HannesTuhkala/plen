@@ -142,8 +142,13 @@ impl Server {
     }
 
     fn update_clients(mut self, delta_time: f32) -> Self {
+        let mut bullets_to_delete = vec!();
         for bullet in &mut self.state.bullets {
             bullet.update();
+
+            if bullet.traveled_distance > constants::BULLET_MAX_TRAVEL {
+                bullets_to_delete.push(bullet.id);
+            }
         }
 
         // Send data to clients
@@ -228,6 +233,11 @@ impl Server {
         self.connections = self.connections.into_iter()
             .filter(|(id, _)| !clients_to_delete.contains(id))
             .collect();
+
+        self.state.bullets = self.state.bullets.into_iter()
+            .filter(|bullet| !bullets_to_delete.contains(&bullet.id))
+            .collect();
+
         self
     }
 }

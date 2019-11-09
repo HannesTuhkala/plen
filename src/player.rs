@@ -7,7 +7,6 @@ use ggez;
 use crate::constants;
 use crate::bullet;
 use crate::assets::Assets;
-use rand::Rng;
 
 use crate::powerups::PowerUpKind;
 
@@ -39,17 +38,15 @@ impl Player {
     }
 
     pub fn shoot(&self) -> bullet::Bullet {
-        let mut rng = rand::thread_rng();
         let dir = self.rotation - std::f32::consts::PI / 2.;
 
-        bullet::Bullet {
-            id: rng.gen_range(0, u64::max_value()),
-            position: self.position,
-            velocity: self.velocity + na::Vector2::new(
+        bullet::Bullet::new(
+            self.position,
+            self.velocity + na::Vector2::new(
                 dir.cos() * constants::BULLET_VELOCITY,
                 dir.sin() * constants::BULLET_VELOCITY,
             ),
-        }
+        )
     }
 
     pub fn apply_powerup(&mut self, kind: PowerUpKind) {

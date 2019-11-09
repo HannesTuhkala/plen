@@ -14,6 +14,7 @@ pub const ANGULAR_FADE: f32 = 0.9;
 
 pub const BULLET_VELOCITY: f32 = 10.0;
 pub const BULLET_DAMAGE: u8 = 10;
+pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.8;
 
 pub const WINDOW_SIZE: f32 = 800.;
 
