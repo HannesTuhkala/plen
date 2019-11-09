@@ -25,6 +25,7 @@ impl GameState {
 
     pub fn update(&mut self, delta: f32) {
         self.handle_powerups();
+        self.handle_bullets();
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -40,13 +41,6 @@ impl GameState {
         None
     }
 
-    fn update_player_health(player: &mut Player, damage: u8) {
-        if player.health <= damage {
-            player.health = 0;
-        } else {
-            player.health = player.health - damage;
-        }
-    }
 
     pub fn add_bullet(&mut self, bullet: Bullet) {
         self.bullets.push(bullet)
@@ -81,14 +75,20 @@ impl GameState {
         }
     }
 
-//    pub fn handle_bullets(&mut self) {
-//        let hit_radius = PLANE_SIZE * BULLER_RADIUS;
-//        for player in &mut self.players {
-//            for bullet in &mut self.bullets {
-//                if (bullet.position - player.position).norm() < hit_radius as f32 {
-//                    player.health()
-//                }
-//            }
-//        }
-//    }
+    pub fn handle_bullets(&mut self) {
+        let hit_radius = PLANE_SIZE * BULLET_RADIUS;
+        let mut bullets_to_remove = vec!();
+
+        for player in &mut self.players {
+            for bullet in &mut self.bullets {
+                if (bullet.position - player.position).norm() < hit_radius as f32 {
+                    player.update_player_health(10);
+                    bullets_to_remove.push(bullet.id);
+                }
+            }
+        }
+        self.bullets.retain(
+            |bullet| !bullets_to_remove.contains(&bullet.id)
+        )
+    }
 }

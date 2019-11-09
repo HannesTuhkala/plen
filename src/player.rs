@@ -146,6 +146,14 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
+    pub fn update_player_health(&mut self, damage: u8) {
+        if self.health <= damage {
+            self.health = 0;
+        } else {
+            self.health = self.health - damage;
+        }
+    }
+
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
         let dir = self.rotation - std::f32::consts::PI / 2.;
 
