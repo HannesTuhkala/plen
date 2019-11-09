@@ -11,6 +11,8 @@ use rand::Rng;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Player {
     pub id: u64,
+    pub rotation: f32,
+    pub speed: f32,
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
 }
@@ -20,24 +22,19 @@ impl Player {
     pub fn new(id: u64, position: na::Point2<f32>) -> Player {
         Player {
             id: id,
-            position,
+            rotation: 0.,
+            speed: 0.,
+            position: na::Point2::new(100.0, 100.0),
             velocity: na::Vector2::new(0.0, 0.0),
         }
     }
 
     pub fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        let rect = graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(
-                0.,
-                0.,
-                constants::PLANE_SIZE as f32,
-                constants::PLANE_SIZE as f32,
-            ),
-            graphics::WHITE,
-        )?;
-        graphics::draw(ctx, &rect, (self.position,))?;
+        let image = graphics::Image::new(ctx, "/cessna.png")?;
+        graphics::draw(ctx, &image, graphics::DrawParam::default()
+                       .dest(self.position)
+                       .rotation(self.rotation)
+                       .offset(na::Point2::new(0.5, 0.5)))?;
         Ok(())
     }
 
@@ -53,4 +50,3 @@ impl Player {
         }
     }
 }
-

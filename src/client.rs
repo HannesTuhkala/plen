@@ -1,5 +1,7 @@
 use std::io::prelude::*;
 use std::net::TcpStream;
+use std::env;
+use std::path;
 
 use nalgebra::Point2;
 
@@ -43,20 +45,6 @@ impl MainState {
         Ok(s)
     }
 
-    fn get_input(ctx: &ggez::Context) -> Option<Action> {
-        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
-            Some(Action::Up)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
-            Some(Action::Down)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
-            Some(Action::Left)
-        } else if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
-            Some(Action::Right)
-        } else {
-            None
-        }
-    }
-
     fn wrap_around(pos: na::Point2<f32>) -> na::Point2<f32> {
         let mut new_x = pos.x;
         let mut new_y = pos.y;
@@ -79,17 +67,37 @@ impl MainState {
     fn update_player_position(&mut self, ctx: &mut ggez::Context) {
         let mut dx = 0.;
         let mut dy = 0.;
-        match MainState::get_input(ctx) {
-            Some(Action::Up) => dy -= constants::DEFAULT_ACCELERATION,
-            Some(Action::Down) => dy += constants::DEFAULT_ACCELERATION,
-            Some(Action::Left) => dx -= constants::DEFAULT_ACCELERATION,
-            Some(Action::Right) => dx += constants::DEFAULT_ACCELERATION,
-            None => ()
-        };
+        let mut rotation: f32 = 0.;
 
-        self.player.velocity += na::Vector2::new(dx, dy);
+        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
+            if self.player.speed < constants::MAX_SPEED {
+                self.player.speed += constants::DEFAULT_ACCELERATION;
+            } else {
+                self.player.speed = constants::MAX_SPEED;
+            }
+        }
+        if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
+            if self.player.speed > constants::MIN_SPEED {
+                self.player.speed -= constants::DEFAULT_ACCELERATION;
+            } else {
+                self.player.speed = constants::MIN_SPEED;
+            }
+        }
+        if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
+            rotation = -constants::DEFAULT_AGILITY;
+        } 
+        if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
+            rotation = constants::DEFAULT_AGILITY;
+        }
+
+        dx += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).cos();
+        dy += self.player.speed * (self.player.rotation - std::f32::consts::PI/2.).sin();
+        self.player.velocity = na::Vector2::new(dx, dy);
+
         self.player.position = MainState::wrap_around(
             self.player.position + self.player.velocity);
+
+        self.player.rotation = self.player.rotation + rotation;
     }
 }
 
@@ -118,7 +126,15 @@ impl event::EventHandler for MainState {
     }
 }
 
-pub fn main() -> ggez::GameResult { 
+pub fn main() -> ggez::GameResult {
+    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+        let mut path = path::PathBuf::from(manifest_dir);
+        path.push("resources");
+        path
+    } else {
+        path::PathBuf::from("./resources")
+    };
+
     let stream = TcpStream::connect("127.0.0.1:30000")?;
     println!("Connected to server");
 
@@ -139,8 +155,11 @@ pub fn main() -> ggez::GameResult {
         panic!("Expected to get an id from server")
     };
 
-    let cb = ggez::ContextBuilder::new("super_simple", "ggez");
-    let (ctx, event_loop) = &mut cb.build()?;
+    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
+        .window_setup(ggez::conf::WindowSetup::default().title("Flying broccoli"))
+        .add_resource_path(resource_dir)
+        .build()?;
+
     let state = &mut MainState::new(my_id, reader)?;
     event::run(ctx, event_loop, state)
 }
