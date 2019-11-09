@@ -151,11 +151,12 @@ impl Map {
         }
 
         let position = na::Point2::new(
-            constants::WINDOW_SIZE - 400., 0.);
+            constants::WINDOW_SIZE/2. - 400.,
+            -constants::WINDOW_SIZE/2.);
         secret1_sb.add(
             graphics::DrawParam::default()
                 .dest(position)
-                .offset(na::Point2::new(0.5, 0.5)));
+                .scale(na::Vector2::new(0.5, 0.5)));
     }
 
     fn draw_ui(
