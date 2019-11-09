@@ -15,6 +15,7 @@ mod player;
 mod bullet;
 mod gamestate;
 mod constants;
+mod powerups;
 
 use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
