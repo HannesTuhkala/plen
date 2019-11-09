@@ -66,7 +66,6 @@ fn main() {
             send_server_message(&ServerMessage::Ping, client);
         }
 
-        println!("Loop {}", i);
     }
 }
 
