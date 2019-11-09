@@ -3,10 +3,9 @@ use std::net::TcpStream;
 use std::env;
 use std::path;
 
-use nalgebra::Point2;
-
 use ggez;
-use ggez::event;
+use ggez::event::{self, EventHandler};
+use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
@@ -20,12 +19,22 @@ mod bullet;
 mod gamestate;
 mod constants;
 
-enum Action {
-    Up,
-    Down,
-    Left,
-    Right,
-    //TO BE IMPLEMENTED: Shoot,
+struct KeyStates {
+    forward: ElementState,
+    back: ElementState,
+    left: ElementState,
+    right: ElementState,
+}
+
+impl KeyStates {
+    fn new() -> Self {
+        KeyStates {
+            forward: ElementState::Released,
+            back: ElementState::Released,
+            left: ElementState::Released,
+            right: ElementState::Released,
+        }
+    }
 }
 
 mod messages;
@@ -46,6 +55,7 @@ struct MainState {
     game_state: gamestate::GameState,
     map: map::Map,
     assets: Assets,
+    key_states: KeyStates,
 }
 
 impl MainState {
@@ -57,7 +67,8 @@ impl MainState {
             my_id,
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
-            assets: assets
+            assets: assets,
+            key_states: KeyStates::new(),
         };
         Ok(s)
     }
@@ -78,18 +89,18 @@ impl event::EventHandler for MainState {
         }
 
         let mut y_input = 0.0;
-        if keyboard::is_key_pressed(ctx, event::KeyCode::W) {
+        if self.key_states.forward == ElementState::Pressed {
             y_input += 1.0;
         }
-        if keyboard::is_key_pressed(ctx, event::KeyCode::S) {
+        if self.key_states.back == ElementState::Pressed {
             y_input -= 1.0;
         }
 
         let mut x_input = 0.0;
-        if keyboard::is_key_pressed(ctx, event::KeyCode::A) {
+        if self.key_states.left == ElementState::Pressed {
             x_input -= 1.0;
         } 
-        if keyboard::is_key_pressed(ctx, event::KeyCode::D) {
+        if self.key_states.right == ElementState::Pressed {
             x_input += 1.0;
         }
 
@@ -145,5 +156,45 @@ pub fn main() -> ggez::GameResult {
 
     let assets = Assets::new(ctx);
     let state = &mut MainState::new(my_id, reader, assets)?;
-    event::run(ctx, event_loop, state)
+    while ctx.continuing {
+        // Tell the timer stuff a frame has happened.
+        // Without this the FPS timer functions and such won't work.
+        ctx.timer_context.tick();
+
+        event_loop.poll_events(|event| {
+            // This tells `ggez` to update it's internal states, should the event require that.
+            // These include cursor position, view updating on resize, etc.
+            ctx.process_event(&event);
+
+            match event {
+                Event::WindowEvent { event, .. } => match event {
+                    WindowEvent::CloseRequested => event::quit(ctx),
+                    WindowEvent::KeyboardInput {
+                        input: KeyboardInput {
+                            scancode,
+                            state: key_state,
+                            ..
+                        },
+                        ..
+                    } => match scancode {
+                        constants::SCANCODE_W => { state.key_states.forward = key_state },
+                        constants::SCANCODE_S => { state.key_states.back = key_state },
+                        constants::SCANCODE_A => { state.key_states.left = key_state },
+                        constants::SCANCODE_D => { state.key_states.right = key_state },
+                        _ => {} // Handle other key events here
+                    }
+
+                    // Add other window event handling here
+                    _ => {}
+                },
+
+                // Add other event handling here
+                _ => {}
+            }
+        });
+
+        state.update(ctx)?;
+        state.draw(ctx)?;
+    }
+    Ok(())
 }
