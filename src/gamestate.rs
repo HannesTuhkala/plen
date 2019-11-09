@@ -21,4 +21,13 @@ impl GameState {
     pub fn add_player(&mut self, player: Player) {
         self.players.push(player)
     }
+
+    pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
+        for player in &self.players {
+            if player.id == id {
+                return Some(player);
+            }
+        }
+        None
+    }
 }

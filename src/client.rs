@@ -12,6 +12,7 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 mod player;
+mod map;
 mod bullet;
 mod gamestate;
 mod constants;
@@ -129,7 +130,11 @@ pub fn main() -> ggez::GameResult {
     };
 
     let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
-        .window_setup(ggez::conf::WindowSetup::default().title("Flying broccoli"))
+        .window_setup(ggez::conf::WindowSetup::default()
+                      .title("Flying broccoli"))
+        .window_mode(ggez::conf::WindowMode::default()
+                     .dimensions(constants::WINDOW_SIZE,
+                                  constants::WINDOW_SIZE))
         .add_resource_path(resource_dir)
         .build()?;
 
