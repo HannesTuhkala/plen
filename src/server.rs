@@ -19,6 +19,7 @@ use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
 
 
+
 fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     -> io::Result<()>
 {
@@ -141,21 +142,27 @@ impl Server {
         // Send data to clients
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in self.connections.iter_mut() {
-            match client.fetch_bytes() {
-                Ok(_) => {},
-                Err(e) => {
-                    match e.kind() {
-                        io::ErrorKind::ConnectionReset => {
-                            println!("Player {} disconnected", id);
-                            clients_to_delete.push(*id);
-                            break;
+            macro_rules! remove_player_on_disconnect {
+                ($op:expr) => {
+                    match $op {
+                        Ok(_) => {},
+                        Err(e) => {
+                            match e.kind() {
+                                io::ErrorKind::ConnectionReset => {
+                                    println!("Player {} disconnected", id);
+                                    clients_to_delete.push(*id);
+                                    break;
+                                }
+                                e => {
+                                    panic!("Unhandled network issue: {:?}", e)
+                                }
+                            }
                         }
-                        e => {
-                            panic!("Unhandled network issue: {:?}", e)
-                        }
-                    }
+                    };
+
                 }
-            };
+            }
+            remove_player_on_disconnect!(client.fetch_bytes());
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
@@ -187,19 +194,7 @@ impl Server {
                 &ServerMessage::GameState(self.state.clone()),
                 &mut client.stream
             );
-
-            if let Err(e) = result {
-                match e.kind() {
-                    io::ErrorKind::ConnectionReset => {
-                        println!("Player {} disconnected", id);
-                        clients_to_delete.push(*id);
-                        break;
-                    }
-                    e => {
-                        panic!("Unhandled network issue: {:?}", e)
-                    }
-                }
-            }
+            remove_player_on_disconnect!(result);
         }
         self.state.players = self.state.players.into_iter()
             .filter(|player| !clients_to_delete.contains(&player.id))
