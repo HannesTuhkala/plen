@@ -146,9 +146,13 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
-    pub fn update_player_health(&mut self, damage: u8) {
+    pub fn update_player_health(&mut self, damage: u8, should_heal: bool) {
         if self.health <= damage {
             self.health = 0;
+        }
+
+        if (should_heal) {
+            self.health = self.health + damage;
         } else {
             self.health = self.health - damage;
         }
@@ -179,10 +183,12 @@ impl Player {
         // Only allow one weapon at a time
         if kind.is_weapon() {
             self.powerups.retain(|p| !p.kind.is_weapon())
-        }
-        else {
+        } else if (kind == PowerUpKind::Health) {
+            self.update_player_health(constants::POWERUP_HEALTH_BOOST, true);
+        } else {
             self.powerups.retain(|p| p.kind != kind)
         }
+
         // Remove duplicates, only allow one weapon
         self.powerups.push(AppliedPowerup::new(kind))
     }
