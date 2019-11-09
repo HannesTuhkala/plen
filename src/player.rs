@@ -8,7 +8,7 @@ use crate::constants;
 use crate::bullet;
 use crate::assets::Assets;
 
-use crate::powerups::PowerUpKind;
+use crate::powerups::{PowerUpKind, AppliedPowerup};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum PlaneType {
@@ -83,7 +83,7 @@ pub struct Player {
     pub health: u8,
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
-    pub powerups: Vec<PowerUpKind>,
+    pub powerups: Vec<AppliedPowerup>,
     pub planetype: PlaneType,
 }
 
@@ -116,6 +116,28 @@ impl Player {
     }
 
     pub fn apply_powerup(&mut self, kind: PowerUpKind) {
-        self.powerups.push(kind)
+        self.powerups.push(AppliedPowerup::new(kind))
+    }
+
+    pub fn manage_powerups(&mut self, delta: f32) {
+        let new_powerups = self.powerups.iter_mut()
+            .for_each(|p| {
+                // Decrease the powerup time left
+                p.duration_left = p.duration_left
+                    .map(|left| left - delta)
+            });
+
+                // Check if the time is up and this should be removed
+        self.powerups
+            .retain(|p| {
+                p.duration_left
+                    .map(|left| left > 0.)
+                    .unwrap_or(true)
+            })
+
+    }
+
+    pub fn update(&mut self, delta: f32) {
+        self.manage_powerups(delta);
     }
 }
