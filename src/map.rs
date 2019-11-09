@@ -151,12 +151,12 @@ impl Map {
         }
 
         let position = na::Point2::new(
-            constants::WINDOW_SIZE - 530.,
+            constants::WINDOW_SIZE - 430.,
             -constants::WINDOW_SIZE/2.);
         yeehaw_sb.add(
             graphics::DrawParam::default()
                 .dest(position)
-                .scale(na::Vector2::new(0.4, 0.4)));
+                .scale(na::Vector2::new(0.2, 0.2)));
     }
 
     fn draw_ui(
