@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use serde_json;
 use nalgebra::Point2;
 use nalgebra as na;
+use std::time::Instant;
 
 mod messages;
 mod player;
@@ -47,11 +48,11 @@ fn wrap_around(pos: Point2<f32>) -> Point2<f32> {
     Point2::new(new_x, new_y)
 }
 
-fn update_player_position(player: &mut Player, x_input: f32, y_input: f32) {
+fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta: f32) {
     let mut dx = 0.;
     let mut dy = 0.;
 
-    player.speed += y_input * constants::DEFAULT_ACCELERATION;
+    player.speed += y_input * constants::DEFAULT_ACCELERATION * delta;
     if player.speed > constants::MAX_SPEED {
         player.speed = constants::MAX_SPEED;
     }
@@ -63,7 +64,7 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32) {
 
     dx += player.speed * (player.rotation - std::f32::consts::PI/2.).cos();
     dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
-    player.velocity = na::Vector2::new(dx, dy);
+    player.velocity = na::Vector2::new(dx, dy) * delta;
 
     player.position = wrap_around(
         player.position + player.velocity);
@@ -84,14 +85,22 @@ fn main() {
     println!("Listening on 127.0.0.1:30000");
 
     let mut next_id: u64 = 0;
+    let mut last_time = Instant::now();
     loop {
+        // Read data from clients
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => {
                     stream.set_nonblocking(true).unwrap();
                     println!("Got new connection {}", next_id);
-                    send_server_message(&ServerMessage::AssignId(next_id), &mut stream);
-                    connections.push((next_id, MessageReader::<ClientMessage>::new(stream)));
+                    send_server_message(
+                        &ServerMessage::AssignId(next_id),
+                        &mut stream
+                    );
+                    connections.push((
+                        next_id,
+                        MessageReader::<ClientMessage>::new(stream)
+                    ));
                     let player = Player::new(next_id, Point2::new(10., 10.));
                     state.add_player(player);
                     next_id += 1;
@@ -105,8 +114,12 @@ fn main() {
             }
         }
 
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        let elapsed = last_time.elapsed();
+        let delta_time = 1./100.;
+        std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
+        last_time = Instant::now();
 
+        // Send data to clients
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in connections.iter_mut() {
             match client.fetch_bytes() {
@@ -142,7 +155,12 @@ fn main() {
 
             for mut player in &mut state.players {
                 if player.id == *id {
-                    update_player_position(&mut player, player_input_x, player_input_y);
+                    update_player_position(
+                        &mut player,
+                        player_input_x,
+                        player_input_y,
+                        delta_time,
+                    );
                 }
             }
 
