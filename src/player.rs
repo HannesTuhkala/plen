@@ -122,7 +122,7 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            position: na::Point2::new(100.0, 100.0),
+            position: position,
             powerups: vec!(),
             cooldown: 0.,
             planetype: plane_type,
