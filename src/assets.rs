@@ -23,9 +23,13 @@ impl Assets {
             (PowerUpKind::Missile, Image::new(ctx, "/powerups/missile.png")
                 .expect("Could not load generic powerup image")),
             (PowerUpKind::Afterburner, Image::new(ctx, "/powerups/afterburner.png")
-                .expect("could not load missile powerup asset")),
+                .expect("Could not load missile powerup asset")),
             (PowerUpKind::Laser, Image::new(ctx, "/powerups/laser.png")
-                .expect("could not load missile powerup asset")),
+                .expect("Could not load laser powerup asset")),
+            (PowerUpKind::Health, Image::new(ctx, "/powerups/heal.png")
+                .expect("Could not load health powerup asset")),
+            (PowerUpKind::Invincibility, Image::new(ctx, "/powerups/invincibility.png")
+                .expect("Could not load invincibility powerup asset")),
         });
     
         Assets {

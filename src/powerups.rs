@@ -10,7 +10,7 @@ pub enum PowerUpKind {
     Afterburner,
     Laser,
     Health,
-    Invincible,
+    Invincibility,
 }
 impl PowerUpKind {
     pub fn starting_duration(&self) -> Option<f32> {
@@ -19,7 +19,7 @@ impl PowerUpKind {
             PowerUpKind::Laser => None,
             PowerUpKind::Afterburner => Some(5.),
             PowerUpKind::Health => None,
-            PowerUpKind::Invincible => Some(10.),
+            PowerUpKind::Invincibility => Some(10.),
         }
     }
 
@@ -29,7 +29,7 @@ impl PowerUpKind {
             PowerUpKind::Laser => true,
             PowerUpKind::Afterburner => false,
             PowerUpKind::Health => false,
-            PowerUpKind::Invincible => false,
+            PowerUpKind::Invincibility => false,
         }
     }
 }
