@@ -5,6 +5,7 @@ mod bullet;
 mod gamestate;
 mod constants;
 mod math;
+mod powerups;
 
 use std::io;
 use std::vec;

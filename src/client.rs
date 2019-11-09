@@ -5,6 +5,7 @@ mod bullet;
 mod gamestate;
 mod constants;
 mod messages;
+mod powerups;
 mod math;
 
 use std::io::prelude::*;
