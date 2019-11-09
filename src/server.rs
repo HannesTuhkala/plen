@@ -16,6 +16,7 @@ use serde_json;
 use nalgebra::Point2;
 use nalgebra as na;
 use std::time::Instant;
+use rand::Rng;
 
 use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
@@ -167,9 +168,14 @@ impl Server {
                         player_shooting = shooting
                     },
                     ClientMessage::JoinGame{ name, plane, color } => {
+                        let mut random = rand::thread_rng();
+
                         let player = Player::new(
                             *id,
-                            Point2::new(10., 10.),
+                            Point2::new(
+                                random.gen_range(0., constants::WORLD_SIZE),
+                                random.gen_range(0., constants::WORLD_SIZE)
+                                ),
                             plane,
                             color,
                             name
