@@ -82,6 +82,10 @@ fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta
     player.rotation = player.rotation + player.angular_velocity;
 }
 
+fn update_player_health(player: &mut Player, damage: u8) {
+    player.health = player.health + damage;
+}
+
 struct Server {
     listener: TcpListener,
     connections: Vec<(u64, MessageReader<ClientMessage>)>,
