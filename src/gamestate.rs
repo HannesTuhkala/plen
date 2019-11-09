@@ -1,4 +1,3 @@
-use std::vec;
 use serde_derive::{Serialize, Deserialize};
 use rand::prelude::*;
 use nalgebra as na;
@@ -24,7 +23,7 @@ impl GameState {
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, delta: f32) {
         self.handle_powerups();
     }
 
@@ -39,6 +38,11 @@ impl GameState {
             }
         }
         None
+    }
+
+
+    pub fn add_bullet(&mut self, bullet: Bullet) {
+        self.bullets.push(bullet)
     }
 
     pub fn handle_powerups(&mut self) {
@@ -65,7 +69,7 @@ impl GameState {
             let x = random::<f32>() * constants::WORLD_SIZE as f32;
             let y = random::<f32>() * constants::WORLD_SIZE as f32;
             self.powerups.push(
-                PowerUp::new(PowerUpKind::Missile, na::Point2::new(x, y))
+                PowerUp::new(random::<PowerUpKind>(), na::Point2::new(x, y))
             )
         }
     }

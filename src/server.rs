@@ -1,25 +1,25 @@
-use std::io;
-use std::vec;
-use std::io::prelude::*;
-use std::net::TcpStream;
-use std::net::TcpListener;
-use std::collections::HashMap;
-use serde_json;
-use nalgebra::Point2;
-use nalgebra as na;
-use std::time::Instant;
-
 mod messages;
 mod assets;
 mod player;
 mod bullet;
 mod gamestate;
 mod constants;
+mod math;
 mod powerups;
+
+use std::io;
+use std::vec;
+use std::io::prelude::*;
+use std::net::TcpStream;
+use std::net::TcpListener;
+use serde_json;
+use nalgebra::Point2;
+use nalgebra as na;
+use std::time::Instant;
 
 use messages::{ClientMessage, ServerMessage, MessageReader};
 use player::Player;
-
+use powerups::PowerUpKind;
 
 
 fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
@@ -31,55 +31,13 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     stream.write_all(&[0])
 }
 
-// TODO: Use modulo maybe?
-fn wrap_around(pos: Point2<f32>) -> Point2<f32> {
-    let mut new_x = pos.x;
-    let mut new_y = pos.y;
-
-    if pos.x > constants::WORLD_SIZE {
-        new_x = 0.;
-    } else if pos.x < 0. {
-        new_x = constants::WORLD_SIZE;
+fn update_player_health(player: &mut Player, damage: u8) {
+    if player.health <= damage {
+        // TODO: kill player
+        player.health = 0;
+    } else {
+        player.health = player.health - damage;
     }
-
-    if pos.y > constants::WORLD_SIZE {
-        new_y = 0.;
-    } else if pos.y < 0. {
-        new_y = constants::WORLD_SIZE;
-    }
-
-    Point2::new(new_x, new_y)
-}
-
-fn update_player_position(player: &mut Player, x_input: f32, y_input: f32, delta: f32) {
-    let mut dx = 0.;
-    let mut dy = 0.;
-
-    player.speed += y_input * constants::DEFAULT_ACCELERATION * delta;
-    if player.speed > constants::MAX_SPEED {
-        player.speed = constants::MAX_SPEED;
-    }
-    if player.speed < constants::MIN_SPEED {
-        player.speed = constants::MIN_SPEED;
-    }
-
-
-    dx += player.speed * (player.rotation - std::f32::consts::PI/2.).cos();
-    dy += player.speed * (player.rotation - std::f32::consts::PI/2.).sin();
-    player.velocity = na::Vector2::new(dx, dy) * delta;
-
-    player.position = wrap_around(
-        player.position + player.velocity);
-
-    let angular_acceleration = x_input * constants::DEFAULT_AGILITY/10.;
-    player.angular_velocity += angular_acceleration;
-    player.angular_velocity *= constants::ANGULAR_FADE;
-    if player.angular_velocity > constants::DEFAULT_AGILITY {
-        player.angular_velocity = constants::DEFAULT_AGILITY;
-    } else if player.angular_velocity < -constants::DEFAULT_AGILITY {
-        player.angular_velocity = -constants::DEFAULT_AGILITY;
-    }
-    player.rotation = player.rotation + player.angular_velocity;
 }
 
 struct Server {
@@ -108,14 +66,23 @@ impl Server {
         }
     }
 
-    pub fn update(mut self) -> Self {
+    pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
         let delta_time = 1./100.;
         std::thread::sleep(std::time::Duration::from_millis(10) - elapsed);
         self.last_time = Instant::now();
 
+        self.state.update(delta_time);
         self.accept_new_connections();
-        self.update_clients(delta_time)
+        self.update_clients(delta_time);
+
+        for bullet in &mut self.state.bullets {
+            bullet.update(delta_time);
+        }
+
+        self.state.bullets.retain(
+            |bullet| bullet.traveled_distance < constants::BULLET_MAX_TRAVEL
+        );
     }
 
     fn accept_new_connections(&mut self) {
@@ -125,10 +92,13 @@ impl Server {
                 Ok(mut stream) => {
                     stream.set_nonblocking(true).unwrap();
                     println!("Got new connection {}", self.next_id);
-                    send_server_message(
+                    if let Err(_) = send_server_message(
                         &ServerMessage::AssignId(self.next_id),
                         &mut stream
-                    );
+                    ) {
+                        println!("Could not send assign id message");
+                        continue;
+                    }
                     self.connections.push((
                         self.next_id,
                         MessageReader::<ClientMessage>::new(stream)
@@ -147,7 +117,7 @@ impl Server {
         }
     }
 
-    fn update_clients(mut self, delta_time: f32) -> Self {
+    fn update_clients(&mut self, delta_time: f32) {
         // Send data to clients
         let mut clients_to_delete = vec!();
         for (id, ref mut client) in self.connections.iter_mut() {
@@ -168,35 +138,44 @@ impl Server {
                             }
                         }
                     };
-
                 }
             }
             remove_player_on_disconnect!(client.fetch_bytes());
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
+            let mut player_shooting = false;
 
             // TODO: Use a real loop
             while let Some(message) = client.next() {
                 match message {
-                    ClientMessage::Ping => {},
-                    ClientMessage::Shoot => {},
-                    ClientMessage::Input(input_x, input_y) => {
-                        player_input_x = input_x;
-                        player_input_y = input_y;
+                    ClientMessage::Input{ x_input, y_input, shooting } => {
+                        player_input_x = x_input;
+                        player_input_y = y_input;
+                        player_shooting = shooting
                     }
                 }
             }
 
-            for mut player in &mut self.state.players {
+            let mut bullet = None;
+            for player in &mut self.state.players {
                 if player.id == *id {
-                    update_player_position(
-                        &mut player,
+                    player.update(
                         player_input_x,
                         player_input_y,
                         delta_time,
                     );
+
+                    if player_shooting {
+                        bullet = player.shoot();
+                    }
+
+                    break;
                 }
+            }
+
+            if let Some(bullet) = bullet {
+                self.state.add_bullet(bullet);
             }
 
             let result = send_server_message(
@@ -205,20 +184,25 @@ impl Server {
             );
             remove_player_on_disconnect!(result);
         }
-        self.state.players = self.state.players.into_iter()
-            .filter(|player| !clients_to_delete.contains(&player.id))
+
+        let dead_players: Vec<_> = self.state.players.iter()
+            .filter(|player| player.health == 0).map(|player| player.id)
             .collect();
-        self.connections = self.connections.into_iter()
-            .filter(|(id, _)| !clients_to_delete.contains(id))
-            .collect();
-        self
+
+        self.state.players.retain(
+            |player| !clients_to_delete.contains(&player.id) &&
+                !dead_players.contains(&player.id)
+        );
+        self.connections.retain(
+            |(id, _)| !clients_to_delete.contains(id)
+        );
     }
 }
 
 fn main() {
     let mut server = Server::new();
     loop {
-        server = server.update();
+        server.update();
     }
 }
 

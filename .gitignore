@@ -5,7 +5,11 @@
 .Trash-*
 .nfs*
 
+
 ### Rust
 
 /target
 **/*.rs.bk
+
+### Krita
+*.kra-autosave.kra

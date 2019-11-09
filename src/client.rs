@@ -1,3 +1,13 @@
+mod player;
+mod assets;
+mod map;
+mod bullet;
+mod gamestate;
+mod constants;
+mod messages;
+mod powerups;
+mod math;
+
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::env;
@@ -11,15 +21,6 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 use assets::Assets;
-
-mod player;
-mod assets;
-mod map;
-mod bullet;
-mod gamestate;
-mod constants;
-mod messages;
-mod powerups;
 use messages::{MessageReader, ClientMessage, ServerMessage};
 
 struct KeyStates {
@@ -27,6 +28,7 @@ struct KeyStates {
     back: ElementState,
     left: ElementState,
     right: ElementState,
+    shooting: ElementState,
 }
 
 impl KeyStates {
@@ -36,6 +38,7 @@ impl KeyStates {
             back: ElementState::Released,
             left: ElementState::Released,
             right: ElementState::Released,
+            shooting: ElementState::Released,
         }
     }
 }
@@ -51,6 +54,7 @@ fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
 
 struct MainState {
     my_id: u64,
+    camera_position: na::Point2<f32>,
     server_reader: MessageReader<ServerMessage>,
     game_state: gamestate::GameState,
     map: map::Map,
@@ -65,6 +69,7 @@ impl MainState {
         let s = MainState {
             server_reader: stream,
             my_id,
+            camera_position: na::Point2::new(0., 0.),
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
             assets: assets,
@@ -80,7 +85,6 @@ impl event::EventHandler for MainState {
         // TODO: Use a real loop
         while let Some(message) = self.server_reader.next() {
             match message {
-                ServerMessage::Ping => {}
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
                     self.game_state = state
@@ -104,13 +108,26 @@ impl event::EventHandler for MainState {
             x_input += 1.0;
         }
 
-        send_client_message(&ClientMessage::Input(x_input, y_input), &mut self.server_reader.stream);
+        let shooting = self.key_states.shooting == ElementState::Pressed;
+        let input_message = ClientMessage::Input{ x_input, y_input, shooting };
+        send_client_message(&input_message, &mut self.server_reader.stream);
         Ok(())
     }
 
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        self.map.draw(ctx, self.my_id, &self.game_state, &self.assets);
+
+        if let Some(my_player) = self.game_state.get_player_by_id(self.my_id) {
+            self.camera_position = my_player.position;
+        }
+
+        self.map.draw(
+            self.my_id,
+            ctx,
+            self.camera_position,
+            &self.game_state,
+            &self.assets
+        );
         graphics::present(ctx)?;
         Ok(())
     }
@@ -183,15 +200,22 @@ pub fn main() -> ggez::GameResult {
                         input: KeyboardInput {
                             scancode,
                             state: key_state,
+                            virtual_keycode: keycode,
                             ..
                         },
                         ..
-                    } => match scancode {
-                        constants::SCANCODE_W => { state.key_states.forward = key_state },
-                        constants::SCANCODE_S => { state.key_states.back = key_state },
-                        constants::SCANCODE_A => { state.key_states.left = key_state },
-                        constants::SCANCODE_D => { state.key_states.right = key_state },
-                        _ => {} // Handle other key events here
+                    } => {
+                        match scancode {
+                            constants::SCANCODE_W => { state.key_states.forward = key_state },
+                            constants::SCANCODE_S => { state.key_states.back = key_state },
+                            constants::SCANCODE_A => { state.key_states.left = key_state },
+                            constants::SCANCODE_D => { state.key_states.right = key_state },
+                            _ => {} // Handle other key events here
+                        }
+
+                        if keycode == Some(keyboard::KeyCode::Space) {
+                            state.key_states.shooting = key_state;
+                        }
                     }
 
                     // Add other window event handling here
