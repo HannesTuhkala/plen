@@ -19,6 +19,7 @@ mod bullet;
 mod gamestate;
 mod constants;
 mod messages;
+mod powerups;
 use messages::{MessageReader, ClientMessage, ServerMessage};
 
 struct KeyStates {

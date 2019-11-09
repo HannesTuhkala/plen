@@ -9,6 +9,8 @@ use crate::bullet;
 use crate::assets::Assets;
 use rand::Rng;
 
+use crate::powerups::PowerUpKind;
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Player {
     pub id: u64,
@@ -16,6 +18,7 @@ pub struct Player {
     pub speed: f32,
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
+    pub powerups: Vec<PowerUpKind>,
 }
 
 
@@ -27,6 +30,7 @@ impl Player {
             speed: 0.,
             position: na::Point2::new(100.0, 100.0),
             velocity: na::Vector2::new(0.0, 0.0),
+            powerups: vec!(),
         }
     }
 
@@ -51,5 +55,9 @@ impl Player {
                 angle.cos() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT,
                 angle.sin() * constants::BULLET_VELOCITY_FACTOR + constants::BULLET_VELOCITY_CONSTANT),
         }
+    }
+
+    pub fn apply_powerup(&mut self, kind: PowerUpKind) {
+        self.powerups.push(kind)
     }
 }
