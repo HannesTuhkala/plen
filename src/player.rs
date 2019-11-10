@@ -6,6 +6,7 @@ use ggez::graphics;
 use ggez;
 use crate::constants;
 use crate::bullet;
+use crate::weapons;
 use crate::assets::Assets;
 use crate::math;
 
@@ -23,9 +24,9 @@ impl PlaneType {
     pub fn speed(&self) -> f64 {
         match self {
             PlaneType::SukaBlyat => 5.4,
-            PlaneType::HowdyCowboy => 1.2,
-            PlaneType::ElPolloRomero => 1.1,
-            PlaneType::AchtungBlitzKrieg => 1.3,
+            PlaneType::HowdyCowboy => 3.2,
+            PlaneType::ElPolloRomero => 6.1,
+            PlaneType::AchtungBlitzKrieg => 4.3,
         }
     }
 
@@ -118,7 +119,8 @@ pub struct Player {
     pub powerups: Vec<AppliedPowerup>,
     pub planetype: PlaneType,
     pub color: Color,
-    pub name: String
+    pub name: String,
+    pub has_used_gun: bool,
 }
 
 
@@ -132,12 +134,13 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            powerups: vec!(AppliedPowerup::new(PowerUpKind::Invincibility)),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Invincibility), AppliedPowerup::new(PowerUpKind::Gun),),
             position: position,
             cooldown: 0.,
             planetype: plane_type,
             color: color,
-            name: name
+            name: name,
+            has_used_gun: false,
         }
     }
 
@@ -165,8 +168,12 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
-    fn invincibility_is_on(& self) -> bool {
+    fn invincibility_is_on(&self) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
+    }
+
+    fn weapon_is_wielded(&self, kind: PowerUpKind) -> bool {
+        self.powerups.iter().any(|powerup|powerup.kind == kind)
     }
 
     pub fn damage_player(&mut self, damage: i16) {
@@ -185,7 +192,19 @@ impl Player {
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
-        if self.cooldown <= 0. || self.invincibility_is_on() {
+        if weapon_is_wielded(PowerUpKind::Laser) {
+            if !self.has_used_gun {
+                self.has_used_gun = true;
+                self.cooldown = constants::LASER_COOLDOWN;
+            } else {
+                if self.cooldown <= 0. {
+                    // TODO: Shoot the actual fucking laser
+                    self.powerups.retain(|powerup|powerup.kind == PowerUpKind::Laser);
+                    self.powerups.push(AppliedPowerup::new(PowerUpKind::Gun));
+                    self.has_used_gun = false;
+                }
+            }
+        if self.cooldown <= 0. && !self.invincibility_is_on() {
             let dir = self.rotation - std::f32::consts::PI / 2.;
             self.cooldown = constants::PLAYER_COOLDOWN;
             Some(bullet::Bullet::new(

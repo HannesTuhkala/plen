@@ -13,6 +13,7 @@ use rand::prelude::*;
 use crate::assets::Assets;
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
+use crate::player;
 
 use std::collections::HashMap;
 
@@ -176,7 +177,7 @@ impl Map {
                         HEALTH_BAR_WIDTH * health / max_health,
                         10.
                     );
-                    let red_mesh = graphics::Mesh::new_rectangle(
+                                        let red_mesh = graphics::Mesh::new_rectangle(
                         ctx, graphics::DrawMode::fill(), red_rect, graphics::Color::new(1., 0., 0., 1.)
                     ).unwrap();
                     let green_mesh = graphics::Mesh::new_rectangle(
@@ -184,6 +185,26 @@ impl Map {
                     ).unwrap();
                     graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
                     graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
+
+                    if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_been_used {
+                        let rotation = player.rotation - std::f32::consts::PI / 2.;
+
+                        let laser_start = player.position + na::Vector2::new(
+                            rotation.cos() * constants::BULLET_START,
+                            rotation.sin() * constants::BULLET_START,
+                        );
+                    
+                        let laser_end = player.position + na::Vector2::new(
+                            rotation.cos() * constants::LASER_RANGE,
+                            rotation.sin() * constants::LASER_RANGE,
+                        );
+
+                        let laser_line_mesh = graphics::Mesh::new_line(
+                            ctx, &[laser_start, laser_end], 5., grahics::Color::new(0., 0., 1., 1.)
+                        ).unwrap();
+
+                        graphics::draw(ctx, &laser_line_mesh, graphics::DrawParam::default()).unwrap();
+                    }
                 }
             }
         }
