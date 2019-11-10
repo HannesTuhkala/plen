@@ -20,7 +20,7 @@ use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
-//use ears::AudioController;
+use ears::AudioController;
 
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
@@ -71,13 +71,13 @@ fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
         .expect("Failed to send message to server");
 }
 
-struct MainState<'a> {
+struct MainState {
     my_id: u64,
     camera_position: na::Point2<f32>,
-    server_reader: &'a mut MessageReader<ServerMessage>,
+    server_reader: MessageReader<ServerMessage>,
     game_state: gamestate::GameState,
     map: map::Map,
-    assets: &'a mut Assets,
+    assets: Assets,
     key_states: KeyStates,
     last_time: Instant,
     powerup_rotation: f32,
@@ -96,9 +96,9 @@ struct EndState<'a> {
     assets: &'a Assets
 }
 
-impl<'a> MainState<'a> {
-    fn new(my_id: u64, stream: &'a mut MessageReader<ServerMessage>, assets: &'a mut Assets)
-        -> ggez::GameResult<MainState<'a>>
+impl MainState {
+    fn new(my_id: u64, stream: MessageReader<ServerMessage>, assets: Assets)
+        -> ggez::GameResult<MainState>
     {
         let s = MainState {
             server_reader: stream,
@@ -138,21 +138,12 @@ impl<'a> EndState<'a> {
 
 impl<'a> event::EventHandler for EndState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        Ok(())
-    }
-
-    fn key_down_event(
-        &mut self,
-        ctx: &mut ggez::Context,
-        keycode: keyboard::KeyCode,
-        _keymod: keyboard::KeyMods,
-        repeat: bool
-    ) {
-        if keycode == keyboard::KeyCode::Return && !repeat {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return) {
             ctx.continuing = false;
         }
+        Ok(())
     }
-
+    
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
         graphics::draw(
@@ -170,20 +161,11 @@ impl<'a> event::EventHandler for MenuState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         self.plane = PLANES[self.plane_selection].clone();
         self.color = COLORS[self.color_selection].clone();
-        Ok(())
-    }
-
-    fn key_down_event(
-        &mut self,
-        ctx: &mut ggez::Context,
-        keycode: keyboard::KeyCode,
-        _keymod: keyboard::KeyMods,
-        repeat: bool
-    ) {
-        if (keycode == keyboard::KeyCode::Return ||
-            keycode == keyboard::KeyCode::Space) && !repeat {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return)
+            || keyboard::is_key_pressed(ctx, keyboard::KeyCode::Space) {
             ctx.continuing = false;
         }
+        Ok(())
     }
     
     fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
@@ -264,11 +246,11 @@ impl<'a> MenuState<'a> {
 
         let mut plane_specs = graphics::Text::new(format!(
             "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
-            self.plane.agility(),
-            self.plane.firepower(),
+            self.plane.planetype.agility(),
+            self.plane.planetype.firepower(),
             self.plane.acceleration().trunc(),
-            self.plane.health(),
-            self.plane.resilience()));
+            self.plane.planetype.health(),
+            self.plane.planetype.resilience()));
         plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &plane_specs,
                        (na::Point2::new(
@@ -300,7 +282,7 @@ impl<'a> MenuState<'a> {
     }
 }
 
-impl<'a> event::EventHandler for MainState<'a> {
+impl event::EventHandler for MainState {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         let elapsed = self.last_time.elapsed();
         self.last_time = Instant::now();
@@ -316,14 +298,13 @@ impl<'a> event::EventHandler for MainState<'a> {
                 ServerMessage::PlaySound(sound, pos) => {
                     match sound {
                         SoundEffect::Powerup => {
-                            //self.assets.powerup.play_at(pos);
+                            self.assets.powerup.play_at(pos);
                         }
                         SoundEffect::Gun => {
-                            //self.assets.gun.play_at(pos);
+                            self.assets.gun.play_at(pos);
                         }
                         SoundEffect::Explosion => {
-                            //self.assets.explosion.play_at(pos);
-                            self.map.add_explosion(pos);
+                            self.assets.explosion.play_at(pos);
                         }
                     }
                 }
@@ -333,7 +314,7 @@ impl<'a> event::EventHandler for MainState<'a> {
             }
         }
 
-        //ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
+        ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
 
         let mut y_input = 0.0;
         if self.key_states.forward == ElementState::Pressed {
@@ -383,61 +364,49 @@ impl<'a> event::EventHandler for MainState<'a> {
 
 pub fn main() -> ggez::GameResult {
     let mut should_continue = true;
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
-
-    let host = std::env::var("SERVER")
-        .unwrap_or(String::from("localhost:4444"));
-    let stream = TcpStream::connect(host)?;
-    println!("Connected to server");
-
-    stream.set_nonblocking(true)?;
-    let mut reader = MessageReader::new(stream);
-
-    let msg = loop {
-        reader.fetch_bytes().unwrap();
-        if let Some(msg) = reader.next() {
-            break msg;
-        }
-    };
-
-    let my_id = if let ServerMessage::AssignId(id) = msg {
-        println!("Received the id {}", id);
-        id
-    } else {
-        panic!("Expected to get an id from server")
-    };
-
-    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
-        .window_setup(ggez::conf::WindowSetup::default()
-                      .title("plyen"))
-        .window_mode(ggez::conf::WindowMode::default()
-                     .dimensions(constants::WINDOW_SIZE,
-                                 constants::WINDOW_SIZE))
-        .add_resource_path(resource_dir)
-        .build()?;
-
-    let mut assets = Assets::new(ctx);
-
-    let mut color_selection = 0;
-    let mut plane_selection = 0;
-    
     while should_continue {
+        let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+            let mut path = path::PathBuf::from(manifest_dir);
+            path.push("resources");
+            path
+        } else {
+            path::PathBuf::from("./resources")
+        };
+
+        let host = std::env::var("SERVER")
+            .unwrap_or(String::from("localhost:4444"));
+        let stream = TcpStream::connect(host)?;
+        println!("Connected to server");
+
+        stream.set_nonblocking(true)?;
+        let mut reader = MessageReader::new(stream);
+
+        let msg = loop {
+            reader.fetch_bytes().unwrap();
+            if let Some(msg) = reader.next() {
+                break msg;
+            }
+        };
+
+        let my_id = if let ServerMessage::AssignId(id) = msg {
+            println!("Received the id {}", id);
+            id
+        } else {
+            panic!("Expected to get an id from server")
+        };
+
+        let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
+            .window_setup(ggez::conf::WindowSetup::default()
+                          .title("Flying broccoli"))
+            .window_mode(ggez::conf::WindowMode::default()
+                         .dimensions(constants::WINDOW_SIZE,
+                                     constants::WINDOW_SIZE))
+            .add_resource_path(resource_dir)
+            .build()?;
+
+        let assets = Assets::new(ctx);
         let state = &mut MenuState::new(&assets);
-
-        state.color_selection = color_selection;
-        state.plane_selection = plane_selection;
-
         event::run(ctx, event_loop, state)?;
-
-        color_selection = state.color_selection;
-        plane_selection = state.plane_selection;
-
         ctx.continuing = true;
         send_client_message(
             &ClientMessage::JoinGame { 
@@ -448,17 +417,17 @@ pub fn main() -> ggez::GameResult {
             &mut reader.stream
         );
 
+        let mut coords = graphics::screen_coordinates(ctx);
+        coords.translate(
+            na::Vector2::new(
+                -coords.w / 2.0, -coords.h / 2.0
+            )
+        );
         graphics::set_screen_coordinates(
-            ctx,
-            graphics::Rect {
-                x: -constants::WINDOW_SIZE / 2.,
-                y: -constants::WINDOW_SIZE / 2.,
-                w: constants::WINDOW_SIZE,
-                h: constants::WINDOW_SIZE,
-            }
+            ctx, coords
         ).expect("Could not set screen coordinates");
 
-        let state = &mut MainState::new(my_id, &mut reader, &mut assets)?;
+        let state = &mut MainState::new(my_id, reader, assets)?;
         while ctx.continuing {
             // Tell the timer stuff a frame has happened.
             // Without this the FPS timer functions and such won't work.
@@ -509,23 +478,9 @@ pub fn main() -> ggez::GameResult {
             state.update(ctx)?;
             state.draw(ctx)?;
         }
-
-        if should_continue {
-            ctx.continuing = true;
-            let state = &mut EndState::new(&state.assets);
-            event::run(ctx, event_loop, state)?;
-            ctx.continuing = true;
-
-            graphics::set_screen_coordinates(
-                ctx,
-                graphics::Rect {
-                    x: 0.,
-                    y: 0.,
-                    w: constants::WINDOW_SIZE,
-                    h: constants::WINDOW_SIZE,
-                }
-            ).expect("Could not set screen coordinates");
-        }
+        ctx.continuing = true;
+        let state = &mut EndState::new(&state.assets);
+        event::run(ctx, event_loop, state);
     }
     Ok(())
 }

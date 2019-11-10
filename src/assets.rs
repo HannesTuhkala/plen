@@ -5,11 +5,44 @@ use std::rc::Rc;
 
 use ggez;
 use ggez::graphics::{Image, Font};
-//use ears::AudioController;
+use ears::AudioController;
 use nalgebra as na;
 
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
+
+pub struct SoundEffect {
+    sound_instances: Vec<ears::Sound>,
+}
+
+impl SoundEffect {
+    fn new(file: &str) -> Self {
+        let sound_data = Rc::new(RefCell::new(
+            ears::SoundData::new(file).unwrap()
+        ));
+
+        Self {
+            sound_instances: (0..10).map(
+                |_| {
+                    let mut sound = ears::Sound::new_with_data(sound_data.clone()).unwrap();
+                    sound.set_volume(0.2);
+                    sound
+                }
+            ).collect()
+        }
+    }
+
+    pub fn play_at(&mut self, pos: na::Point2<f32>) {
+        for sound in &mut self.sound_instances {
+            if !sound.is_playing() {
+                sound.play();
+                sound.set_position([pos.x, 0., pos.y]);
+                break;
+            }
+        }
+    }
+}
+
 
 pub struct Assets {
     pub font: Font,
@@ -26,13 +59,13 @@ pub struct Assets {
     pub laser_charge: Image,
     pub laser_firing: Image,
     pub laser_decay: [Image; 3],
-    //pub achtung_blitzkrieg_engine: ears::Sound,
-    //pub el_pollo_romero_engine: ears::Sound,
-    //pub howdy_cowboy_engine: ears::Sound,
-    //pub suka_blyat_engine: ears::Sound,
-    //pub explosion: SoundEffect,
-    //pub powerup: SoundEffect,
-    //pub gun: SoundEffect,
+    pub achtung_blitzkrieg_engine: ears::Sound,
+    pub el_pollo_romero_engine: ears::Sound,
+    pub howdy_cowboy_engine: ears::Sound,
+    pub suka_blyat_engine: ears::Sound,
+    pub explosion: SoundEffect,
+    pub powerup: SoundEffect,
+    pub gun: SoundEffect,
 }
 
 impl Assets {
@@ -97,24 +130,24 @@ impl Assets {
                     .expect("Failed to load laser decay 3"),
             ],
 
-            //achtung_blitzkrieg_engine: ears::Sound::new("resources/audio/achtungblitzkrieg-engine.ogg").unwrap(),
-            //el_pollo_romero_engine: ears::Sound::new("resources/audio/elpolloromero-engine.ogg").unwrap(),
-            //howdy_cowboy_engine: ears::Sound::new("resources/audio/howdycowboy-engine.ogg").unwrap(),
-            //suka_blyat_engine: ears::Sound::new("resources/audio/sukablyat-engine.ogg").unwrap(),
-            //powerup: SoundEffect::new("resources/audio/powerup.ogg"),
-            //explosion: SoundEffect::new("resources/audio/explosion.ogg"),
-            //gun: SoundEffect::new("resources/audio/gun.ogg"),
+            achtung_blitzkrieg_engine: ears::Sound::new("resources/audio/achtungblitzkrieg-engine.ogg").unwrap(),
+            el_pollo_romero_engine: ears::Sound::new("resources/audio/elpolloromero-engine.ogg").unwrap(),
+            howdy_cowboy_engine: ears::Sound::new("resources/audio/howdycowboy-engine.ogg").unwrap(),
+            suka_blyat_engine: ears::Sound::new("resources/audio/sukablyat-engine.ogg").unwrap(),
+            powerup: SoundEffect::new("resources/audio/powerup.ogg"),
+            explosion: SoundEffect::new("resources/audio/explosion.ogg"),
+            gun: SoundEffect::new("resources/audio/gun.ogg"),
         };
 
-        //assets.achtung_blitzkrieg_engine.set_looping(true);
-        //assets.el_pollo_romero_engine.set_looping(true);
-        //assets.howdy_cowboy_engine.set_looping(true);
-        //assets.suka_blyat_engine.set_looping(true);
+        assets.achtung_blitzkrieg_engine.set_looping(true);
+        assets.el_pollo_romero_engine.set_looping(true);
+        assets.howdy_cowboy_engine.set_looping(true);
+        assets.suka_blyat_engine.set_looping(true);
 
-        //assets.achtung_blitzkrieg_engine.set_volume(0.2);
-        //assets.el_pollo_romero_engine.set_volume(0.2);
-        //assets.howdy_cowboy_engine.set_volume(0.2);
-        //assets.suka_blyat_engine.set_volume(0.2);
+        assets.achtung_blitzkrieg_engine.set_volume(0.2);
+        assets.el_pollo_romero_engine.set_volume(0.2);
+        assets.howdy_cowboy_engine.set_volume(0.2);
+        assets.suka_blyat_engine.set_volume(0.2);
 
         assets
     }
