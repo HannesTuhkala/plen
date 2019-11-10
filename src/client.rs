@@ -205,7 +205,7 @@ impl<'a> MenuState<'a> {
                        (na::Point2::new(
                                px
                                + constants::PLANE_SELECTION_SIZE/3.
-                               - constants::PLANE_SIZE as f32,
+                               - (constants::PLANE_SIZE as f32)*2.,
                                py
                                + constants::PLANE_SELECTION_SIZE/2.
                                - constants::PLANE_SIZE as f32,
@@ -220,8 +220,10 @@ impl<'a> MenuState<'a> {
             self.plane.resilience()));
         plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &plane_specs,
-                       (na::Point2::new(px + constants::PLANE_SELECTION_SIZE/1.8,
-                                        py + constants::PLANE_SELECTION_SIZE/3.),)).unwrap();
+                       (na::Point2::new(
+                               px + constants::PLANE_SELECTION_SIZE/2.4,
+                               py + constants::PLANE_SELECTION_SIZE/3.),))
+            .unwrap();
     }
 
     fn draw_selected_color(
