@@ -137,6 +137,8 @@ impl Map {
                 );
 
                 self.place_world_at(
+                    ctx,
+                    assets,
                     game_state,
                     &mut background_sb,
                     &mut plane_sbs,
@@ -216,10 +218,14 @@ impl Map {
         }
 
         graphics::draw(ctx, &yeehaw_sb, (na::Point2::new(0., 0.),)).unwrap();
+        graphics::draw_queued_text(
+            ctx, (na::Point2::new(0., 0.),), None, graphics::FilterMode::Linear);
     }
 
     fn place_world_at(
         &self,
+        ctx: &mut ggez::Context,
+        assets: &Assets,
         game_state: &GameState,
         background_sb: &mut spritebatch::SpriteBatch,
         plane_sbs: &mut HashMap<PlaneType, spritebatch::SpriteBatch>,
@@ -253,6 +259,16 @@ impl Map {
                     .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
                     .offset(na::Point2::new(0.5, 0.5))
             );
+
+            let mut nametag = graphics::Text::new(player.name.clone());
+            nametag.set_font(assets.font, graphics::Scale::uniform(15.));
+            let width = nametag.width(ctx) as f32;
+            graphics::queue_text(
+                ctx, &nametag,
+                na::Point2::new(position.x - width/2., position.y + 30.),
+                Some(player.color.rgba().into())
+            );
+
 
             player.laser_charge_progress().map(|p| {
                 laser_charge_sb.add(

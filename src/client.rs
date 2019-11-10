@@ -24,6 +24,8 @@ use ggez::input::keyboard;
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage};
 
+use whoami;
+
 const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::SukaBlyat,
     player::PlaneType::HowdyCowboy,
@@ -113,7 +115,7 @@ impl MainState {
 impl<'a> MenuState<'a> {
     fn new(assets: &Assets) -> MenuState {
         MenuState {
-            name: String::new(),
+            name: String::from(whoami::username()),
             plane: player::PlaneType::SukaBlyat,
             color: player::Color::Red,
             assets: assets,
@@ -138,7 +140,8 @@ impl<'a> event::EventHandler for MenuState<'a> {
         graphics::draw(ctx, &self.assets.menu_background,
                        (na::Point2::new(0., 0.),)).unwrap();
         self.draw_selected_plane(ctx, self.assets);
-        self.draw_selected_color(ctx);
+        self.draw_selected_color(ctx, self.assets);
+        self.draw_player_name(ctx, self.assets);
         graphics::present(ctx)?;
         Ok(())
     }
@@ -161,12 +164,23 @@ impl<'a> event::EventHandler for MenuState<'a> {
 }
 
 impl<'a> MenuState<'a> {
+    fn draw_player_name(&mut self, ctx: &mut ggez::Context, assets: &Assets) {
+        let (nx, ny) = constants::NAME_POS;
+        let mut text = graphics::Text::new(format!(
+            "Helo comrade {}", self.name.clone())
+        );
+        text.set_font(assets.font, graphics::Scale::uniform(15.));
+        graphics::draw(ctx, &text,
+                       (na::Point2::new(nx + 10., ny + 10.),)).unwrap();
+    }
+
     fn draw_selected_plane(&mut self, ctx: &mut ggez::Context,
                            assets: &Assets) {
         let sprite = assets.planes[&self.plane].clone();
         let text = self.plane.name();
         let (px, py) = constants::PLANE_SELECTION_POS;
-        let ggez_text = graphics::Text::new(text);
+        let mut ggez_text = graphics::Text::new(text);
+        ggez_text.set_font(assets.font, graphics::Scale::uniform(15.));
         let background_rect = &graphics::Mesh::new_rectangle(
             ctx,
             graphics::DrawMode::fill(),
@@ -183,7 +197,8 @@ impl<'a> MenuState<'a> {
         ).unwrap();
         graphics::draw(ctx, &ggez_text,
                        (na::Point2::new(px + 10., py + 10.),)).unwrap();
-        let instruction = graphics::Text::new("click to change plane blyat:");
+        let mut instruction = graphics::Text::new("click to change plane blyat:");
+        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &instruction,
                        (na::Point2::new(px, py - 20.),)).unwrap();
         graphics::draw(ctx, &sprite,
@@ -196,19 +211,22 @@ impl<'a> MenuState<'a> {
                                - constants::PLANE_SIZE as f32,
                        ),)).unwrap();
 
-        let plane_specs = graphics::Text::new(format!(
+        let mut plane_specs = graphics::Text::new(format!(
             "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResiliance: {}",
             self.plane.agility(),
             self.plane.firepower(),
             self.plane.acceleration().trunc(),
             self.plane.health(),
             self.plane.resilience()));
+        plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &plane_specs,
                        (na::Point2::new(px + constants::PLANE_SELECTION_SIZE/1.8,
                                         py + constants::PLANE_SELECTION_SIZE/3.),)).unwrap();
     }
 
-    fn draw_selected_color(&mut self, ctx: &mut ggez::Context) {
+    fn draw_selected_color(
+        &mut self, ctx: &mut ggez::Context, assets: &Assets
+        ) {
         let (cx, cy) = constants::COLOR_SELECTION_POS;
         let background_rect = &graphics::Mesh::new_rectangle(
             ctx,
@@ -222,7 +240,8 @@ impl<'a> MenuState<'a> {
         ).unwrap();
         graphics::draw(
             ctx, background_rect, (na::Point2::new(0., 0.),)).unwrap();
-        let instruction = graphics::Text::new("click to change color:");
+        let mut instruction = graphics::Text::new("click to change color:");
+        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &instruction,
                        (na::Point2::new(cx, cy - 20.),)).unwrap();
     }
@@ -336,7 +355,7 @@ pub fn main() -> ggez::GameResult {
     ctx.continuing = true;
     send_client_message(
         &ClientMessage::JoinGame { 
-            name: String::from("plyenplayer"),
+            name: state.name.clone(),
             plane: state.plane.clone(),
             color: state.color.clone()
         },

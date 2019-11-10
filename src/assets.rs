@@ -2,13 +2,14 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use ggez;
-use ggez::graphics::{Image};
+use ggez::graphics::{Image, Font};
 
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
 
 
 pub struct Assets {
+    pub font: Font,
     pub planes: HashMap<PlaneType, Image>,
     pub miniplane: Image,
     pub background: Image,
@@ -52,6 +53,8 @@ impl Assets {
         });
     
         Assets {
+            font: Font::new(ctx, "/yoster.ttf")
+                .expect("Could not find font!"),
             planes,
             background: Image::new(ctx, "/background.png")
                 .expect("Could not find background image!"),
