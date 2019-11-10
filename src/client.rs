@@ -28,7 +28,7 @@ const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::SukaBlyat,
     player::PlaneType::HowdyCowboy,
     player::PlaneType::ElPolloRomero,
-    player::PlaneType::AchtungBlitz,
+    player::PlaneType::AchtungBlitzKrieg,
 ];
 
 
@@ -163,7 +163,6 @@ impl<'a> MenuState<'a> {
                            assets: &Assets) {
         let sprite = assets.planes[&self.plane].clone();
         let text = self.plane.name();
-
         let (px, py) = constants::PLANE_SELECTION_POS;
         let ggez_text = graphics::Text::new(text);
         let background_rect = &graphics::Mesh::new_rectangle(

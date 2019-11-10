@@ -38,7 +38,7 @@ impl Assets {
         let planes = HashMap::from_iter(vec!{
             (PlaneType::SukaBlyat, Image::new(ctx, "/fishbed.png")
                 .expect("Failed to load fishbed")),
-            (PlaneType::AchtungBlitz, Image::new(ctx, "/messersmitt.png")
+            (PlaneType::AchtungBlitzKrieg, Image::new(ctx, "/messersmitt.png")
                 .expect("Failed to load messersmitt")),
             (PlaneType::ElPolloRomero, Image::new(ctx, "/cessna.png")
                 .expect("Failed to load spanish")),
