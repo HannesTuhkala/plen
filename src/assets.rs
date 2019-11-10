@@ -2,19 +2,21 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use ggez;
-use ggez::graphics::{Image};
+use ggez::graphics::{Image, Font};
 
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
 
 
 pub struct Assets {
+    pub font: Font,
     pub planes: HashMap<PlaneType, Image>,
     pub miniplane: Image,
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
     pub bullet: Image,
     pub menu_background: Image,
+    pub end_background: Image,
     pub yeehaw_1: Image,
     pub yeehaw_2: Image,
     pub smoke: Image,
@@ -52,6 +54,8 @@ impl Assets {
         });
     
         Assets {
+            font: Font::new(ctx, "/yoster.ttf")
+                .expect("Could not find font!"),
             planes,
             background: Image::new(ctx, "/background.png")
                 .expect("Could not find background image!"),
@@ -61,6 +65,8 @@ impl Assets {
             bullet: Image::new(ctx, "/bullet.png")
                 .expect("Could not find bullet image!"),
             menu_background: Image::new(ctx, "/menu_background.png").
+                expect("Could not find bullet image!"),
+            end_background: Image::new(ctx, "/endscreen.png").
                 expect("Could not find bullet image!"),
             yeehaw_1: Image::new(ctx, "/yeehaw.png").
                 expect("Could not find secret 1!"),

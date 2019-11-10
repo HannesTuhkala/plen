@@ -198,6 +198,13 @@ impl Server {
                         bullet = player.shoot();
                     }
 
+                    if player.health <= 0 {
+                        let result = send_server_message(
+                            &ServerMessage::YouDied,
+                            &mut client.stream
+                        );
+                        remove_player_on_disconnect!(result);
+                    }
                     let result = send_server_message(
                         &ServerMessage::GameState(self.state.clone()),
                         &mut client.stream

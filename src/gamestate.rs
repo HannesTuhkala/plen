@@ -30,6 +30,7 @@ impl GameState {
         self.handle_powerups();
         self.handle_bullets();
         self.handle_lasers(delta);
+        self.handle_player_collisions(delta);
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -44,7 +45,6 @@ impl GameState {
         }
         None
     }
-
 
     pub fn add_bullet(&mut self, bullet: Bullet) {
         self.bullets.push(bullet)
@@ -134,6 +134,32 @@ impl GameState {
                         player.damage_player(laser.damage);
                         break;
                     }
+                }
+            }
+        }
+    }
+
+    pub fn handle_player_collisions(&mut self, delta: f32) {
+        let mut collided_players = vec!();
+        let hit_radius = PLANE_SIZE * 2;
+
+        for p1 in &self.players {
+            for p2 in &self.players {
+                let distance = (p1.position - p2.position).norm();
+                if p1.id != p2.id && distance < hit_radius as f32 &&
+                    !collided_players.contains(&p1.id) {
+                    collided_players.push(p1.id);
+                }
+            }
+        }
+
+        for player in &mut self.players {
+            player.update_collision_timer(delta);
+
+            for id in &collided_players {
+                if player.id == *id && player.time_to_next_collision == 0. {
+                    player.health -= constants::COLLISION_DAMAGE;
+                    player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
                 }
             }
         }
