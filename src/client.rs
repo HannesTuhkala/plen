@@ -398,7 +398,7 @@ pub fn main() -> ggez::GameResult {
 
         let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
             .window_setup(ggez::conf::WindowSetup::default()
-                          .title("Flying broccoli"))
+                          .title("plyen"))
             .window_mode(ggez::conf::WindowMode::default()
                          .dimensions(constants::WINDOW_SIZE,
                                      constants::WINDOW_SIZE))
