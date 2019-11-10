@@ -11,33 +11,12 @@ use crate::math;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum PlaneType {
     SukaBlyat,
     HowdyCowboy,
     ElPolloRomero,
     AchtungBlitz,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub enum Color {
-    Red,
-    Green,
-    Blue,
-    Yellow,
-    Purple,
-}
-
-impl Color {
-    pub fn rgba(&self) -> (f32, f32, f32, f32) {
-        match self {
-            Color::Red => (1., 0., 0., 1.),
-            Color::Green => (0., 1., 0., 1.),
-            Color::Blue => (0., 0., 1., 1.),
-            Color::Yellow => (1., 1., 0., 1.),
-            Color::Purple => (1., 0., 1., 1.),
-        }
-    }
 }
 
 impl PlaneType {
@@ -94,7 +73,38 @@ impl PlaneType {
             PlaneType::AchtungBlitz => 0.9,
         }
     }
+
+    pub fn name(&self) -> &str {
+        match self {
+            PlaneType::SukaBlyat => "Suka Blyat",
+            PlaneType::HowdyCowboy => "Howdy Cowboy",
+            PlaneType::ElPolloRomero => "El Pllo Romero",
+            PlaneType::AchtungBlitz => "Achtung Blitz",
+        }
+    }
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum Color {
+    Red,
+    Green,
+    Blue,
+    Yellow,
+    Purple,
+}
+
+impl Color {
+    pub fn rgba(&self) -> (f32, f32, f32, f32) {
+        match self {
+            Color::Red => (1., 0., 0., 1.),
+            Color::Green => (0., 1., 0., 1.),
+            Color::Blue => (0., 0., 1., 1.),
+            Color::Yellow => (1., 1., 0., 1.),
+            Color::Purple => (1., 0., 1., 1.),
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Player {

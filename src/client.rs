@@ -161,20 +161,9 @@ impl<'a> event::EventHandler for MenuState<'a> {
 impl<'a> MenuState<'a> {
     fn draw_selected_plane(&mut self, ctx: &mut ggez::Context,
                            assets: &Assets) {
-        let (sprite, text) = match self.plane {
-            player::PlaneType::SukaBlyat => {
-                (&assets.cessna, "Suka Blyat!")
-            },
-            player::PlaneType::HowdyCowboy => {
-                (&assets.cessna, "Howdy Cowboy")
-            },
-            player::PlaneType::ElPolloRomero => {
-                (&assets.cessna, "El Pollo Romero")
-            },
-            player::PlaneType::AchtungBlitz => {
-                (&assets.cessna, "Achtung Blitz")
-            },
-        };
+        let sprite = assets.planes[&self.plane].clone();
+        let text = self.plane.name();
+
         let (px, py) = constants::PLANE_SELECTION_POS;
         let ggez_text = graphics::Text::new(text);
         let background_rect = &graphics::Mesh::new_rectangle(
@@ -196,7 +185,7 @@ impl<'a> MenuState<'a> {
         let instruction = graphics::Text::new("click to change plane blyat:");
         graphics::draw(ctx, &instruction,
                        (na::Point2::new(px, py - 20.),)).unwrap();
-        graphics::draw(ctx, sprite,
+        graphics::draw(ctx, &sprite,
                        (na::Point2::new(
                                px
                                + constants::PLANE_SELECTION_SIZE/2.

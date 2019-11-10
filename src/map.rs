@@ -12,6 +12,7 @@ use rand::prelude::*;
 
 use crate::assets::Assets;
 use crate::powerups::PowerUpKind;
+use crate::player::PlaneType;
 
 use std::collections::HashMap;
 
@@ -89,9 +90,11 @@ impl Map {
         let mut background_sb = spritebatch::SpriteBatch::new(
             assets.background.clone()
         );
-        let mut plane_sb = spritebatch::SpriteBatch::new(
-            assets.cessna.clone()
-        );
+        let mut plane_sbs = assets.planes.iter()
+            .map(|(k, v)| {
+                (k.clone(), spritebatch::SpriteBatch::new(v.clone()))
+            })
+            .collect();
         let mut miniplane_sb = spritebatch::SpriteBatch::new(
             assets.miniplane.clone()
         );
@@ -124,7 +127,7 @@ impl Map {
                 self.place_world_at(
                     game_state,
                     &mut background_sb,
-                    &mut plane_sb,
+                    &mut plane_sbs,
                     &mut powerup_sbs,
                     &mut bullet_sb,
                     &mut smoke_sb,
@@ -138,7 +141,9 @@ impl Map {
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
-        graphics::draw(ctx, &plane_sb, (na::Point2::new(0., 0.),)).unwrap();
+        for sb in plane_sbs.values() {
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)).unwrap();
+        }
 
         for sb in powerup_sbs.values() {
             graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
@@ -195,7 +200,7 @@ impl Map {
         &self,
         game_state: &GameState,
         background_sb: &mut spritebatch::SpriteBatch,
-        plane_sb: &mut spritebatch::SpriteBatch,
+        plane_sbs: &mut HashMap<PlaneType, spritebatch::SpriteBatch>,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
         bullet_sb: &mut spritebatch::SpriteBatch,
         smoke_sb: &mut spritebatch::SpriteBatch,
@@ -215,7 +220,7 @@ impl Map {
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
             ) + offset;
-            plane_sb.add(
+            plane_sbs.get_mut(&player.planetype).expect("Missing plane asset").add(
                 graphics::DrawParam::default()
                     .dest(position)
                     .rotation(player.rotation)

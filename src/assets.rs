@@ -5,10 +5,11 @@ use ggez;
 use ggez::graphics::{Image};
 
 use crate::powerups::PowerUpKind;
+use crate::player::PlaneType;
 
 
 pub struct Assets {
-    pub cessna: Image,
+    pub planes: HashMap<PlaneType, Image>,
     pub miniplane: Image,
     pub background: Image,
     pub powerups: HashMap<PowerUpKind, Image>,
@@ -33,10 +34,20 @@ impl Assets {
             (PowerUpKind::Invincibility, Image::new(ctx, "/powerups/invincibility.png")
                 .expect("Could not load invincibility powerup asset")),
         });
+
+        let planes = HashMap::from_iter(vec!{
+            (PlaneType::SukaBlyat, Image::new(ctx, "/fishbed.png")
+                .expect("Failed to load fishbed")),
+            (PlaneType::AchtungBlitz, Image::new(ctx, "/messersmitt.png")
+                .expect("Failed to load messersmitt")),
+            (PlaneType::ElPolloRomero, Image::new(ctx, "/cessna.png")
+                .expect("Failed to load spanish")),
+            (PlaneType::HowdyCowboy, Image::new(ctx, "/jasgripen.png")
+                .expect("Failed to load jasgipen")),
+        });
     
         Assets {
-            cessna: Image::new(ctx, "/cessna.png")
-                .expect("Could not find cessna image!"),
+            planes,
             background: Image::new(ctx, "/background.png")
                 .expect("Could not find background image!"),
             miniplane: Image::new(ctx, "/miniplane.png")

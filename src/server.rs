@@ -197,7 +197,7 @@ impl Server {
                         &mut client.stream
                     );
                     remove_player_on_disconnect!(result);
-                    break;
+                    break
                 }
             }
 
