@@ -52,3 +52,6 @@ pub const COLOR_SELECTION_SIZE: f32 = 200.;
 pub const NAME_POS: (f32, f32) = (50., 150.);
 
 pub const PARTICLE_SPAWN_RATE: f32 = 0.05;
+
+pub const COLLISION_DAMAGE: i16 = 30;
+pub const COLLISION_GRACE_PERIOD: f32 = 1.;

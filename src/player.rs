@@ -123,6 +123,7 @@ pub struct Player {
     // Time until laser burst
     pub laser_charge_time: Option<f32>,
     pub lasering_this_frame: bool,
+    pub time_to_next_collision: f32,
 }
 
 
@@ -145,6 +146,7 @@ impl Player {
             has_used_gun: false,
             laser_charge_time: None,
             lasering_this_frame: false,
+            time_to_next_collision: constants::COLLISION_GRACE_PERIOD,
         }
     }
 
@@ -178,10 +180,16 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
+    pub fn update_collision_timer(&mut self, delta_time: f32) {
+        self.time_to_next_collision -= delta_time;
+        if self.time_to_next_collision < 0. {
+            self.time_to_next_collision = 0.
+        }
+    }
+
     fn invincibility_is_on(&self) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
     }
-
 
     fn weapon_is_wielded(&self, kind: PowerUpKind) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == kind)

@@ -151,7 +151,7 @@ impl<'a> event::EventHandler for MenuState<'a> {
                                x: f32, y: f32) {
         let (px, py) = constants::PLANE_SELECTION_POS;
         let s = constants::PLANE_SELECTION_SIZE;
-        if x > px && x < px + s && y > py && y < py + s {
+        if x > px && x < px + s * 1.25 && y > py && y < py + s {
             self.plane_selection = (self.plane_selection + 1) % 4;
         }
 
@@ -186,7 +186,7 @@ impl<'a> MenuState<'a> {
             graphics::DrawMode::fill(),
             graphics::Rect::new(
                 px, py,
-                constants::PLANE_SELECTION_SIZE*2.,
+                constants::PLANE_SELECTION_SIZE*1.25,
                 constants::PLANE_SELECTION_SIZE
                 ),
             [0., 0., 0., 0.5].into()
