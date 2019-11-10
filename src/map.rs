@@ -111,10 +111,6 @@ impl Map {
             assets.bullet.clone()
         );
 
-        let mut yeehaw_sb = spritebatch::SpriteBatch::new(
-            assets.yeehaw_1.clone()
-        );
-
         let mut smoke_sb = spritebatch::SpriteBatch::new(
             assets.smoke.clone()
         );
@@ -155,7 +151,7 @@ impl Map {
             }
         }
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs, &mut yeehaw_sb);
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
@@ -217,7 +213,6 @@ impl Map {
             Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, &my_player);
         }
 
-        graphics::draw(ctx, &yeehaw_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw_queued_text(
             ctx, (na::Point2::new(0., 0.),), None, graphics::FilterMode::Linear);
     }
@@ -356,7 +351,6 @@ impl Map {
         my_id: u64,
         game_state: &GameState,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
-        yeehaw_sb: &mut spritebatch::SpriteBatch,
     ) {
         let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
         let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
@@ -374,13 +368,6 @@ impl Map {
                 }
             });
 
-        let position = na::Point2::new(
-            constants::WINDOW_SIZE - 480.,
-            -constants::WINDOW_SIZE/2.);
-        yeehaw_sb.add(
-            graphics::DrawParam::default()
-                .dest(position)
-                .scale(na::Vector2::new(0.3, 0.3)));
     }
 
     fn draw_mini_map(

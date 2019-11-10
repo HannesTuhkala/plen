@@ -211,29 +211,34 @@ impl Player {
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
-        if self.weapon_is_wielded(PowerUpKind::Laser) {
-            // Start charging the laser
-            if let None = self.laser_charge_time {
-                self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
+        if !self.invincibility_is_on() {
+            if self.weapon_is_wielded(PowerUpKind::Laser) {
+                // Start charging the laser
+                if let None = self.laser_charge_time {
+                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
+                }
             }
-        }
-        else {
-            self.laser_charge_time = None;
-        }
-        if self.cooldown <= 0. && !self.invincibility_is_on() {
-            let dir = self.rotation - std::f32::consts::PI / 2.;
-            self.cooldown = constants::PLAYER_COOLDOWN;
-            Some(bullet::Bullet::new(
-                self.position + na::Vector2::new(
-                    dir.cos() * constants::BULLET_START,
-                    dir.sin() * constants::BULLET_START,
-                ),
-                self.final_velocity() + na::Vector2::new(
-                    dir.cos() * constants::BULLET_VELOCITY,
-                    dir.sin() * constants::BULLET_VELOCITY,
-                ),
-                self.planetype.firepower(),
-            ))
+            else {
+                self.laser_charge_time = None;
+            }
+        
+            if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
+                let dir = self.rotation - std::f32::consts::PI / 2.;
+                self.cooldown = constants::PLAYER_COOLDOWN;
+                Some(bullet::Bullet::new(
+                    self.position + na::Vector2::new(
+                        dir.cos() * constants::BULLET_START,
+                        dir.sin() * constants::BULLET_START,
+                    ),
+                    self.final_velocity() + na::Vector2::new(
+                        dir.cos() * constants::BULLET_VELOCITY,
+                        dir.sin() * constants::BULLET_VELOCITY,
+                    ),
+                    self.planetype.firepower(),
+                ))
+            } else {
+                None
+            }
         } else {
             None
         }
