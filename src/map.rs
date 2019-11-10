@@ -186,6 +186,8 @@ impl Map {
                     graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
 
                     if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_used_gun {
+                        // TODO: It does not draw the laser line properly (can't be found) so maybe
+                        // position is wrong or something
                         let rotation = player.rotation - std::f32::consts::PI / 2.;
 
                         let laser_start = player.position + na::Vector2::new(
