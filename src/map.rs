@@ -336,15 +336,17 @@ impl Map {
             constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
         ),)).unwrap();
         let my_pos = my_player.position;
+        let mut powerup_mesh_builder = graphics::MeshBuilder::new();
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
+                let offset = na::Vector2::new(
+                    tile_x * constants::MINI_MAP_SIZE,
+                    tile_y * constants::MINI_MAP_SIZE,
+                );
+                let scale = constants::MINI_MAP_SIZE
+                    / constants::WORLD_SIZE;
                 for player in &game_state.players {
-                    let offset = na::Vector2::new(
-                        tile_x * constants::MINI_MAP_SIZE,
-                        tile_y * constants::MINI_MAP_SIZE,
-                    );
-                    let scale = constants::MINI_MAP_SIZE
-                        / constants::WORLD_SIZE;
                     let position = na::Point2::new(
                         (player.position.x - my_pos.x)*scale,
                         (player.position.y - my_pos.y)*scale,
@@ -357,12 +359,36 @@ impl Map {
                                 .dest(position + offset)
                                 .rotation(player.rotation)
                                 .scale(na::Vector2::new(0.5, 0.5))
+                                .color(player.color.rgba().into())
                                 .offset(na::Point2::new(0.5, 0.5))
+                        );
+                    }
+                }
+                for powerup in &game_state.powerups {
+                    let position = na::Point2::new(
+                        (powerup.position.x - my_pos.x)*scale,
+                        (powerup.position.y - my_pos.y)*scale,
+                    );
+                    let dist = ((position.x + offset.x).powi(2)
+                                + (position.y + offset.y).powi(2)).sqrt();
+                    if dist <= constants::MINI_MAP_SIZE/2. {
+                        powerup_mesh_builder
+                            .circle(
+                                graphics::DrawMode::fill(),
+                                position + offset,
+                                2.,
+                                0.1,
+                                [0.5, 1., 0.5, 0.7,].into()
                         );
                     }
                 }
             }
         }
+        let powerup_mesh = powerup_mesh_builder.build(ctx).unwrap();
+        graphics::draw(ctx, &powerup_mesh, (na::Point2::new(
+            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE/2.,
+            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE/2.,
+        ),)).unwrap();
         graphics::draw(
             ctx, miniplane_sb, graphics::DrawParam::default()
                 .dest(
