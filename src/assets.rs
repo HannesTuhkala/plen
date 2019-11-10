@@ -71,8 +71,6 @@ pub struct Assets {
 impl Assets {
     pub fn new(ctx: &mut ggez::Context) -> Assets {
         let powerups = HashMap::from_iter(vec!{
-            (PowerUpKind::Missile, Image::new(ctx, "/powerups/missile.png")
-             .expect("Could not load generic powerup image")),
             (PowerUpKind::Afterburner, Image::new(ctx, "/powerups/afterburner.png")
              .expect("Could not load missile powerup asset")),
             (PowerUpKind::Laser, Image::new(ctx, "/powerups/laser.png")

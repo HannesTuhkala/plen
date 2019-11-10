@@ -6,7 +6,6 @@ use rand_derive::Rand;
 
 #[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Rand)]
 pub enum PowerUpKind {
-    Missile,
     Afterburner,
     Laser,
     Health,
@@ -16,7 +15,6 @@ pub enum PowerUpKind {
 impl PowerUpKind {
     pub fn starting_duration(&self) -> Option<f32> {
         match self {
-            PowerUpKind::Missile => None,
             PowerUpKind::Laser => None,
             PowerUpKind::Afterburner => Some(5.),
             PowerUpKind::Health => None,
@@ -27,7 +25,6 @@ impl PowerUpKind {
 
     pub fn is_weapon(&self) -> bool {
         match self {
-            PowerUpKind::Missile => true,
             PowerUpKind::Laser => true,
             PowerUpKind::Afterburner => false,
             PowerUpKind::Health => false,
@@ -38,7 +35,6 @@ impl PowerUpKind {
 
     pub fn is_instant(&self) -> bool {
         match self {
-            PowerUpKind::Missile => false,
             PowerUpKind::Laser => false,
             PowerUpKind::Afterburner => false,
             PowerUpKind::Health => true,
