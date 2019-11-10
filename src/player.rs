@@ -78,7 +78,7 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => "Suka Blyat",
             PlaneType::HowdyCowboy => "Howdy Cowboy",
-            PlaneType::ElPolloRomero => "El Pllo Romero",
+            PlaneType::ElPolloRomero => "El Pollo Romero",
             PlaneType::AchtungBlitzKrieg => "Achtung Blitzkrieg",
         }
     }
