@@ -246,11 +246,11 @@ impl<'a> MenuState<'a> {
 
         let mut plane_specs = graphics::Text::new(format!(
             "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
-            self.plane.planetype.agility(),
-            self.plane.planetype.firepower(),
+            self.plane.agility(),
+            self.plane.firepower(),
             self.plane.acceleration().trunc(),
-            self.plane.planetype.health(),
-            self.plane.planetype.resilience()));
+            self.plane.health(),
+            self.plane.resilience()));
         plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
         graphics::draw(ctx, &plane_specs,
                        (na::Point2::new(
