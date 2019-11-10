@@ -18,7 +18,7 @@ use nalgebra as na;
 use std::time::Instant;
 use rand::Rng;
 
-use messages::{ClientMessage, ServerMessage, MessageReader};
+use messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
 use player::Player;
 use powerups::PowerUpKind;
 
@@ -133,27 +133,30 @@ impl Server {
     fn update_clients(&mut self, delta_time: f32) {
         // Send data to clients
         let mut clients_to_delete = vec!();
-        for (id, ref mut client) in self.connections.iter_mut() {
-            macro_rules! remove_player_on_disconnect {
-                ($op:expr) => {
-                    match $op {
-                        Ok(_) => {},
-                        Err(e) => {
-                            match e.kind() {
-                                io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
-                                    println!("Player {} disconnected", id);
-                                    clients_to_delete.push(*id);
-                                    break;
-                                }
-                                e => {
-                                    panic!("Unhandled network issue: {:?}", e)
-                                }
+        let mut sounds_to_play = vec!();
+
+        macro_rules! remove_player_on_disconnect {
+            ($op:expr, $id:expr) => {
+                match $op {
+                    Ok(_) => {},
+                    Err(e) => {
+                        match e.kind() {
+                            io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
+                                println!("Player {} disconnected", $id);
+                                clients_to_delete.push($id);
+                                break;
+                            }
+                            e => {
+                                panic!("Unhandled network issue: {:?}", e)
                             }
                         }
-                    };
-                }
+                    }
+                };
             }
-            remove_player_on_disconnect!(client.fetch_bytes());
+        }
+
+        for (id, ref mut client) in self.connections.iter_mut() {
+            remove_player_on_disconnect!(client.fetch_bytes(), *id);
 
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
@@ -203,19 +206,31 @@ impl Server {
                             &ServerMessage::YouDied,
                             &mut client.stream
                         );
-                        remove_player_on_disconnect!(result);
+                        remove_player_on_disconnect!(result, *id);
                     }
                     let result = send_server_message(
                         &ServerMessage::GameState(self.state.clone()),
                         &mut client.stream
                     );
-                    remove_player_on_disconnect!(result);
+                    remove_player_on_disconnect!(result, *id);
                     break
                 }
             }
 
             if let Some(bullet) = bullet {
+                let pos = bullet.position;
                 self.state.add_bullet(bullet);
+                sounds_to_play.push((SoundEffect::Gun, pos));
+            }
+        }
+
+        for (sound, pos) in &sounds_to_play {
+            for (id, ref mut client) in self.connections.iter_mut() {
+                let result = send_server_message(
+                    &ServerMessage::PlaySound(*sound, *pos),
+                    &mut client.stream
+                );
+                remove_player_on_disconnect!(result, *id);
             }
         }
 

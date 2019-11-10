@@ -20,9 +20,10 @@ use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
+use ears::AudioController;
 
 use assets::Assets;
-use messages::{MessageReader, ClientMessage, ServerMessage};
+use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
 
 use whoami;
 
@@ -32,7 +33,6 @@ const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::ElPolloRomero,
     player::PlaneType::AchtungBlitzKrieg,
 ];
-
 
 const COLORS: [player::Color; 5] = [
     player::Color::Red,
@@ -82,7 +82,6 @@ struct MainState {
     last_time: Instant,
     powerup_rotation: f32,
 }
-
 
 struct MenuState<'a> {
     plane: player::PlaneType,
@@ -139,8 +138,7 @@ impl<'a> EndState<'a> {
 
 impl<'a> event::EventHandler for EndState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return)
-            || keyboard::is_key_pressed(ctx, keyboard::KeyCode::Space) {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return) {
             ctx.continuing = false;
         }
         Ok(())
@@ -296,12 +294,27 @@ impl event::EventHandler for MainState {
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
                     self.game_state = state
+                },
+                ServerMessage::PlaySound(sound, pos) => {
+                    match sound {
+                        SoundEffect::Powerup => {
+                            self.assets.powerup.play_at(pos);
+                        }
+                        SoundEffect::Gun => {
+                            self.assets.gun.play_at(pos);
+                        }
+                        SoundEffect::Explosion => {
+                            self.assets.explosion.play_at(pos);
+                        }
+                    }
                 }
                 ServerMessage::YouDied => {
                     ctx.continuing = false
                 }
             }
         }
+
+        ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
 
         let mut y_input = 0.0;
         if self.key_states.forward == ElementState::Pressed {
@@ -393,7 +406,7 @@ pub fn main() -> ggez::GameResult {
 
         let assets = Assets::new(ctx);
         let state = &mut MenuState::new(&assets);
-        event::run(ctx, event_loop, state);
+        event::run(ctx, event_loop, state)?;
         ctx.continuing = true;
         send_client_message(
             &ClientMessage::JoinGame { 

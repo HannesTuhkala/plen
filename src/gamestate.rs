@@ -147,7 +147,7 @@ impl GameState {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
                 if p1.id != p2.id && distance < hit_radius as f32 &&
-                    !collided_players.contains(&p1.id) {
+                    !collided_players.contains(&p1.id) && !p1.invincibility_is_on() {
                     collided_players.push(p1.id);
                 }
             }

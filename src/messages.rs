@@ -1,9 +1,11 @@
 use std::io::{self, prelude::*};
-use serde_derive::{Serialize, Deserialize};
 use std::net::TcpStream;
 use std::collections::VecDeque;
 use std::iter::Iterator;
 use std::marker::PhantomData;
+
+use serde_derive::{Serialize, Deserialize};
+use nalgebra as na;
 
 use crate::player;
 
@@ -75,17 +77,19 @@ macro_rules! impl_message_reader {
 impl_message_reader!(ServerMessage);
 impl_message_reader!(ClientMessage);
 
-
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub enum SoundEffect { Powerup, Explosion, Gun }
 
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
     AssignId(u64),
     GameState(crate::gamestate::GameState),
-    YouDied
+    PlaySound(SoundEffect, na::Point2<f32>),
+    YouDied,
 }
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
     Input { x_input: f32, y_input: f32, shooting: bool },
-    JoinGame { name: String, plane: player::PlaneType, color: player::Color }
+    JoinGame { name: String, plane: player::PlaneType, color: player::Color },
 }
