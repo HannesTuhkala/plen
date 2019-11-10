@@ -43,7 +43,7 @@ impl PowerUpKind {
             PowerUpKind::Health => true,
             PowerUpKind::Invincibility => false,
             PowerUpKind::Gun => false,
-            PowerUpKind::Slowtime => false,
+            PowerUpKind::SlowTime => false,
         }
     }
 
@@ -54,7 +54,7 @@ impl PowerUpKind {
             PowerUpKind::Health => 0.4,
             PowerUpKind::Invincibility => 0.3,
             PowerUpKind::Gun => 0.7,
-            PowerUpKind::Slowtime => 0.1,
+            PowerUpKind::SlowTime => 0.1,
         }
     }
 }
