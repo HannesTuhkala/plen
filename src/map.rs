@@ -34,9 +34,32 @@ impl SmokeParticle {
     }
 }
 
+#[derive(Clone)]
+pub struct ExplosionParticle {
+    alive: bool,
+    alpha: f32,
+    position: na::Point2<f32>,
+    velocity: na::Vector2<f32>,
+}
+
+impl ExplosionParticle {
+    fn new() -> Self {
+        let mut rng = rand::thread_rng();
+        let angle = rng.gen::<f32>() * std::f32::consts::PI * 2.;
+
+        Self {
+            alive: false,
+            alpha: 0.,
+            position: na::Point2::new(0., 0.),
+            velocity: na::Vector2::new(angle.cos(), angle.sin())
+        }
+    }
+}
+
 pub struct Map {
     scan_angle: f32,
     smoke_particles: Vec<SmokeParticle>,
+    explosion_particles: Vec<ExplosionParticle>,
     smoke_timer: f32,
 }
 
@@ -45,7 +68,32 @@ impl Map {
         Map {
             scan_angle: 0.,
             smoke_particles: vec![SmokeParticle::new(); 200],
+            explosion_particles: vec![ExplosionParticle::new(); 200],
             smoke_timer: 0.
+        }
+    }
+
+    pub fn add_explosion(&mut self, pos: na::Point2<f32>) {
+        let mut rng = rand::thread_rng();
+        self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
+
+        let mut spawned_particles = 0;
+        for explosion_particle in &mut self.explosion_particles {
+            if !explosion_particle.alive {
+                let random_offset = na::Vector2::new(
+                    (rng.gen::<f32>() - 0.5) * 5.,
+                    (rng.gen::<f32>() - 0.5) * 5.,
+                );
+
+                explosion_particle.alive = true;
+                explosion_particle.alpha = 1.0;
+                explosion_particle.position = pos + random_offset;
+                spawned_particles += 1;
+
+                if spawned_particles >= 10 {
+                    break;
+                }
+            }
         }
     }
 
@@ -75,6 +123,16 @@ impl Map {
                 smoke_particle.alpha -= delta_time;
                 if smoke_particle.alpha <= 0. {
                     smoke_particle.alive = false;
+                }
+            }
+        }
+
+        for explosion_particle in &mut self.explosion_particles {
+            if explosion_particle.alive {
+                explosion_particle.position += explosion_particle.velocity * delta_time;
+                explosion_particle.alpha -= delta_time;
+                if explosion_particle.alpha <= 0. {
+                    explosion_particle.alive = false;
                 }
             }
         }
@@ -330,7 +388,6 @@ impl Map {
                      .offset(na::Point2::new(0.5, 0.5)));
         }
 
-
         for smoke_particle in &self.smoke_particles {
             let position = na::Point2::new(
                 smoke_particle.position.x - camera_position.x,
@@ -343,6 +400,20 @@ impl Map {
                         .offset(na::Point2::new(0.5, 0.5))
                         .color(graphics::Color::new(1.0, 1.0, 1.0, smoke_particle.alpha))
                         .scale(na::Vector2::new(0.2, 0.2)));
+            }
+        }
+
+        for explosion_particle in &self.explosion_particles {
+            let position = na::Point2::new(
+                explosion_particle.position.x - camera_position.x,
+                explosion_particle.position.y - camera_position.y,
+            ) + offset;
+            if explosion_particle.alive {
+                smoke_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .offset(na::Point2::new(0.5, 0.5))
+                        .color(graphics::Color::new(1.0, 1.0, 1.0, explosion_particle.alpha)));
             }
         }
     }

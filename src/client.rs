@@ -305,6 +305,7 @@ impl event::EventHandler for MainState {
                         }
                         SoundEffect::Explosion => {
                             self.assets.explosion.play_at(pos);
+                            self.map.add_explosion(pos);
                         }
                     }
                 }
