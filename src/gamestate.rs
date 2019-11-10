@@ -119,7 +119,7 @@ impl GameState {
             let hit_radius = PLANE_SIZE + 50;
             for player in &mut self.players {
                 if player.id == laser.owner {
-                    break
+                    continue
                 }
                 let mut lowest_distance = 100000.;
                 for step in 0..100 {
