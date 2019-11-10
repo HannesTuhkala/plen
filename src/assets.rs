@@ -33,6 +33,8 @@ impl Assets {
                 .expect("Could not load health powerup asset")),
             (PowerUpKind::Invincibility, Image::new(ctx, "/powerups/invincibility.png")
                 .expect("Could not load invincibility powerup asset")),
+            (PowerUpKind::Gun, Image::new(ctx, "/powerups/gun.png")
+                .expect("Could not load gun powerup asset")),
         });
 
         let planes = HashMap::from_iter(vec!{
