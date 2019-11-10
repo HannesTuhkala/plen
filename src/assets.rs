@@ -1,14 +1,47 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use std::io::BufReader;
-use std::fs::File;
-use std::path::PathBuf;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use ggez;
 use ggez::graphics::{Image};
+use ears::AudioController;
+use nalgebra as na;
 
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
+
+pub struct SoundEffect {
+    sound_instances: Vec<ears::Sound>,
+}
+
+impl SoundEffect {
+    fn new(file: &str) -> Self {
+        let sound_data = Rc::new(RefCell::new(
+            ears::SoundData::new(file).unwrap()
+        ));
+
+        Self {
+            sound_instances: (0..10).map(
+                |_| {
+                    let mut sound = ears::Sound::new_with_data(sound_data.clone()).unwrap();
+                    sound.set_volume(0.2);
+                    sound
+                }
+            ).collect()
+        }
+    }
+
+    pub fn play_at(&mut self, pos: na::Point2<f32>) {
+        for sound in &mut self.sound_instances {
+            if !sound.is_playing() {
+                sound.play();
+                sound.set_position([pos.x, 0., pos.y]);
+                break;
+            }
+        }
+    }
+}
 
 
 pub struct Assets {
@@ -22,17 +55,17 @@ pub struct Assets {
     pub yeehaw_2: Image,
     pub smoke: Image,
 
-    pub achtung_blitzkrieg_engine: rodio::Decoder<BufReader<File>>,
-    pub el_pollo_romero_engine: rodio::Decoder<BufReader<File>>,
-    pub howdy_cowboy_engine: rodio::Decoder<BufReader<File>>,
-    pub suka_blyat_engine: rodio::Source::Buffered<Item = f32>,
-    pub explosion: rodio::Decoder<BufReader<File>>,
-    pub powerup: rodio::Decoder<BufReader<File>>,
-    pub gun: rodio::Decoder<BufReader<File>>,
+    pub achtung_blitzkrieg_engine: ears::Sound,
+    pub el_pollo_romero_engine: ears::Sound,
+    pub howdy_cowboy_engine: ears::Sound,
+    pub suka_blyat_engine: ears::Sound,
+    pub explosion: SoundEffect,
+    pub powerup: SoundEffect,
+    pub gun: SoundEffect,
 }
 
 impl Assets {
-    pub fn new(ctx: &mut ggez::Context, resource_dir: &PathBuf) -> Assets {
+    pub fn new(ctx: &mut ggez::Context) -> Assets {
         let powerups = HashMap::from_iter(vec!{
             (PowerUpKind::Missile, Image::new(ctx, "/powerups/missile.png")
                 .expect("Could not load generic powerup image")),
@@ -59,7 +92,7 @@ impl Assets {
                 .expect("Failed to load jasgipen")),
         });
     
-        Assets {
+        let mut assets = Assets {
             planes,
             background: Image::new(ctx, "/background.png")
                 .expect("Could not find background image!"),
@@ -77,57 +110,25 @@ impl Assets {
             smoke: Image::new(ctx, "/smoke.png")
                 .expect("Could not find smoke image"),
 
-            achtung_blitzkrieg_engine: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "achtungblitzkrieg-engine.ogg"
-                        )
-                    )).unwrap(),
-            el_pollo_romero_engine: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "elpolloromero-engine.ogg"
-                        )
-                    )).unwrap(),
-            howdy_cowboy_engine: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "howdycowboy-engine.ogg"
-                        )
-                    )).unwrap(),
-            suka_blyat_engine: BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "sukablyat-engine.ogg"
-                        )
-                    ),
-            powerup: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "powerup.ogg"
-                        )
-                    )).unwrap(),
-            explosion: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "explosion.ogg"
-                        )
-                    )).unwrap(),
-            gun: rodio::Decoder::new(BufReader::new(
-                    Self::read_audio(
-                        resource_dir,
-                        "gun.ogg"
-                        )
-                    )).unwrap(),
-        }
-    }
+            achtung_blitzkrieg_engine: ears::Sound::new("resources/audio/achtungblitzkrieg-engine.ogg").unwrap(),
+            el_pollo_romero_engine: ears::Sound::new("resources/audio/elpolloromero-engine.ogg").unwrap(),
+            howdy_cowboy_engine: ears::Sound::new("resources/audio/howdycowboy-engine.ogg").unwrap(),
+            suka_blyat_engine: ears::Sound::new("resources/audio/sukablyat-engine.ogg").unwrap(),
+            powerup: SoundEffect::new("resources/audio/powerup.ogg"),
+            explosion: SoundEffect::new("resources/audio/explosion.ogg"),
+            gun: SoundEffect::new("resources/audio/gun.ogg"),
+        };
 
-    fn read_audio(resource_dir: &PathBuf, name: &str) -> File {
-        let mut path = resource_dir.clone();
-        path.push("audio");
-        path.push(name);
-        File::open(path.clone()).expect(
-            &format!("Could not find audio file {:?}", path)
-        )
+        assets.achtung_blitzkrieg_engine.set_looping(true);
+        assets.el_pollo_romero_engine.set_looping(true);
+        assets.howdy_cowboy_engine.set_looping(true);
+        assets.suka_blyat_engine.set_looping(true);
+
+        assets.achtung_blitzkrieg_engine.set_volume(0.2);
+        assets.el_pollo_romero_engine.set_volume(0.2);
+        assets.howdy_cowboy_engine.set_volume(0.2);
+        assets.suka_blyat_engine.set_volume(0.2);
+
+        assets
     }
 }
