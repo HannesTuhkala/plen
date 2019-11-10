@@ -263,7 +263,7 @@ impl<'a> MenuState<'a> {
                        ),)).unwrap();
 
         let mut plane_specs = graphics::Text::new(format!(
-            "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResiliance: {}",
+            "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
             self.plane.agility(),
             self.plane.firepower(),
             self.plane.acceleration().trunc(),
