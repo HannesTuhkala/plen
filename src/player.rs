@@ -165,8 +165,12 @@ impl Player {
         self.manage_powerups(delta_time);
     }
 
+    fn invincibility_is_on(& self) -> bool {
+        self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
+    }
+
     pub fn damage_player(&mut self, damage: i16) {
-        if self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility) {
+        if self.invincibility_is_on() {
             return;
         }
 
@@ -181,9 +185,8 @@ impl Player {
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
-        let dir = self.rotation - std::f32::consts::PI / 2.;
-
-        if self.cooldown <= 0. {
+        if self.cooldown <= 0. || self.invincibility_is_on() {
+            let dir = self.rotation - std::f32::consts::PI / 2.;
             self.cooldown = constants::PLAYER_COOLDOWN;
             Some(bullet::Bullet::new(
                 self.position + na::Vector2::new(
