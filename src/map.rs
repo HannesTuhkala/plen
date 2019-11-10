@@ -44,14 +44,11 @@ pub struct ExplosionParticle {
 
 impl ExplosionParticle {
     fn new() -> Self {
-        let mut rng = rand::thread_rng();
-        let angle = rng.gen::<f32>() * std::f32::consts::PI * 2.;
-
         Self {
             alive: false,
             alpha: 0.,
             position: na::Point2::new(0., 0.),
-            velocity: na::Vector2::new(angle.cos(), angle.sin())
+            velocity: na::Vector2::new(0., 0.),
         }
     }
 }
@@ -85,11 +82,18 @@ impl Map {
                     (rng.gen::<f32>() - 0.5) * 5.,
                 );
 
+                let mut rng = rand::thread_rng();
+                let angle = rng.gen::<f32>() * std::f32::consts::PI * 2.;
+
                 explosion_particle.alive = true;
                 explosion_particle.alpha = 1.0;
                 explosion_particle.position = pos + random_offset;
-                spawned_particles += 1;
+                explosion_particle.velocity = na::Vector2::new(
+                    50. * angle.cos(),
+                    50. * angle.sin()
+                );
 
+                spawned_particles += 1;
                 if spawned_particles >= 10 {
                     break;
                 }
