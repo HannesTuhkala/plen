@@ -78,9 +78,20 @@ impl Server {
         }
     }
 
+    fn get_delta_time(&mut self) -> f32 {
+        for player in &mut self.state.players {
+            if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::SlowTime) {
+                return 1./100.;
+            }
+        }
+
+        return 1./1000.;
+    }
+
     pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
-        let delta_time = 1./100.;
+        //let delta_time = 1./100.;
+        let delta_time = self.get_delta_time();
         let dt_duration = std::time::Duration::from_millis(10);
         if elapsed < dt_duration {
             std::thread::sleep(dt_duration - elapsed);
