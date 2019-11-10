@@ -27,7 +27,7 @@ pub const SCANCODE_A: u32 = 30;
 pub const SCANCODE_S: u32 = 31;
 pub const SCANCODE_D: u32 = 32;
 
-pub const POWERUP_AMOUNT: u32 = 5;
+pub const POWERUP_AMOUNT: u32 = 10;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;
 
 pub const MINI_MAP_SIZE: f32 = 300.;
