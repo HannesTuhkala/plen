@@ -5,7 +5,7 @@ use serde_derive::{Serialize, Deserialize};
 use ggez::graphics;
 use ggez;
 use crate::constants;
-use crate::bullet;
+use crate::bullet::{self, LaserBeam};
 use crate::assets::Assets;
 use crate::math;
 
@@ -120,6 +120,10 @@ pub struct Player {
     pub color: Color,
     pub name: String,
     pub has_used_gun: bool,
+    // Time until laser burst
+    pub laser_charge_time: Option<f32>,
+    pub lasering_this_frame: bool,
+    pub time_to_next_collision: f32,
 }
 
 
@@ -133,18 +137,27 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Laser)),
             position: position,
             cooldown: 0.,
             planetype: plane_type,
             color: color,
             name: name,
             has_used_gun: false,
+            laser_charge_time: None,
+            lasering_this_frame: false,
+            time_to_next_collision: constants::COLLISION_GRACE_PERIOD,
         }
     }
 
     pub fn update(&mut self, x_input: f32, y_input: f32, delta_time: f32) {
         self.cooldown = (self.cooldown - delta_time).max(0.);
+        self.laser_charge_time = self.laser_charge_time.map(|t| t-delta_time);
+        self.lasering_this_frame = self.laser_charge_time
+            .map(|t| t < 0.)
+            .unwrap_or(false);
+        self.laser_charge_time =
+            if self.lasering_this_frame {None} else {self.laser_charge_time};
 
         let velocity = self.final_velocity();
 
@@ -165,6 +178,13 @@ impl Player {
         self.rotation = (self.rotation + self.angular_velocity * delta_time);
 
         self.manage_powerups(delta_time);
+    }
+
+    pub fn update_collision_timer(&mut self, delta_time: f32) {
+        self.time_to_next_collision -= delta_time;
+        if self.time_to_next_collision < 0. {
+            self.time_to_next_collision = 0.
+        }
     }
 
     fn invincibility_is_on(&self) -> bool {
@@ -191,34 +211,47 @@ impl Player {
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
-        if self.weapon_is_wielded(PowerUpKind::Laser) {
-            if !self.has_used_gun {
-                self.has_used_gun = true;
-                self.cooldown = constants::LASER_COOLDOWN;
-            } else {
-                if self.cooldown <= 0. {
-                    // TODO: Shoot the actual fucking laser
-                    self.powerups.retain(|powerup|powerup.kind != PowerUpKind::Laser);
-                    self.powerups.push(AppliedPowerup::new(PowerUpKind::Gun));
-                    self.has_used_gun = false;
+        if !self.invincibility_is_on() {
+            if self.weapon_is_wielded(PowerUpKind::Laser) {
+                // Start charging the laser
+                if let None = self.laser_charge_time {
+                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
                 }
             }
-        }
-        if self.cooldown <= 0. && !self.invincibility_is_on() {
-            let dir = self.rotation - std::f32::consts::PI / 2.;
-            self.cooldown = constants::PLAYER_COOLDOWN;
-            Some(bullet::Bullet::new(
-                self.position + na::Vector2::new(
-                    dir.cos() * constants::BULLET_START,
-                    dir.sin() * constants::BULLET_START,
-                ),
-                self.final_velocity() + na::Vector2::new(
-                    dir.cos() * constants::BULLET_VELOCITY,
-                    dir.sin() * constants::BULLET_VELOCITY,
-                ),
-                self.planetype.firepower(),
-            ))
+            else {
+                self.laser_charge_time = None;
+            }
+        
+            if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
+                let dir = self.rotation - std::f32::consts::PI / 2.;
+                self.cooldown = constants::PLAYER_COOLDOWN;
+                Some(bullet::Bullet::new(
+                    self.position + na::Vector2::new(
+                        dir.cos() * constants::BULLET_START,
+                        dir.sin() * constants::BULLET_START,
+                    ),
+                    self.final_velocity() + na::Vector2::new(
+                        dir.cos() * constants::BULLET_VELOCITY,
+                        dir.sin() * constants::BULLET_VELOCITY,
+                    ),
+                    self.planetype.firepower(),
+                ))
+            } else {
+                None
+            }
         } else {
+            None
+        }
+    }
+
+    pub fn laser_charge_progress(&self) -> Option<f32> {
+        self.laser_charge_time.map(|t| 1.-(t / constants::LASER_FIRE_TIME))
+    }
+    pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
+        if self.lasering_this_frame {
+            Some(LaserBeam::new(self.position, self.rotation, 100, self.id))
+        }
+        else {
             None
         }
     }
@@ -257,24 +290,20 @@ impl Player {
                     .unwrap_or(true)})
     }
 
-    pub fn final_velocity(&self) -> na::Vector2<f32> {
-        let mut dx = 0.;
-        let mut dy = 0.;
-
+    pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if(has_speed_boost) {1.8} else {1.};
 
-        let mut speed = self.speed;
-        if speed > constants::MAX_SPEED {
-            speed = constants::MAX_SPEED;
+        if self.speed > constants::MAX_SPEED {
+            self.speed = constants::MAX_SPEED;
         }
-        if speed < constants::MIN_SPEED {
-            speed = constants::MIN_SPEED;
+        if self.speed < constants::MIN_SPEED {
+            self.speed = constants::MIN_SPEED;
         }
 
-        dx += speed * (self.rotation - std::f32::consts::PI/2.).cos();
-        dy += speed * (self.rotation - std::f32::consts::PI/2.).sin();
+        let dx = self.speed * (self.rotation - std::f32::consts::PI/2.).cos();
+        let dy = self.speed * (self.rotation - std::f32::consts::PI/2.).sin();
         na::Vector2::new(dx, dy) * speed_boost
     }
 

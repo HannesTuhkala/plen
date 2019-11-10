@@ -1,6 +1,8 @@
 pub const PLANE_SIZE: u32 = 20;
 pub const BULLET_RADIUS: u32 = 1;
 pub const POWERUP_RADIUS: u32 = 20;
+pub const POWERUP_SPEED: f32 = 0.03;
+pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
 pub const WORLD_SIZE: f32 = 3000.;
@@ -20,8 +22,14 @@ pub const BULLET_START: f32 = 30.;
 pub const PLAYER_COOLDOWN: f32 = 0.2;
 pub const BULLET_ARM_TIME: f32 = 0.03;
 
-pub const LASER_COOLDOWN: f32 = 900.0;
-pub const LASER_RANGE: f32 = 2000.;
+// Time between laser charge start and fire
+pub const LASER_FIRE_TIME: f32 = 0.5;
+// Durationi of laser damage
+pub const LASER_ACTIVE_TIME: f32 = 0.02;
+// Time at which the beam lingors while not doing any damage
+pub const LASER_DECAY_TIME: f32 = 0.3;
+// Distance at which the laser is effective
+pub const LASER_RANGE: f32 = 300.;
 
 pub const WINDOW_SIZE: f32 = 700.;
 
@@ -41,4 +49,9 @@ pub const PLANE_SELECTION_SIZE: f32 = 200.;
 pub const COLOR_SELECTION_POS: (f32, f32) = (400., 450.);
 pub const COLOR_SELECTION_SIZE: f32 = 200.;
 
+pub const NAME_POS: (f32, f32) = (50., 150.);
+
 pub const PARTICLE_SPAWN_RATE: f32 = 0.05;
+
+pub const COLLISION_DAMAGE: i16 = 30;
+pub const COLLISION_GRACE_PERIOD: f32 = 1.;

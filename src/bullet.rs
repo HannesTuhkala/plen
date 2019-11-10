@@ -41,3 +41,44 @@ impl Bullet {
         self.lifetime > constants::BULLET_ARM_TIME
     }
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LaserBeam {
+    pub position: na::Point2<f32>,
+    pub angle: f32,
+    pub damage: i16,
+    pub lifetime: f32,
+    pub owner: u64,
+}
+
+impl LaserBeam {
+    pub fn new(
+        position: na::Point2<f32>,
+        angle: f32,
+        damage: i16,
+        owner: u64
+    ) -> Self {
+        Self {
+            position,
+            angle,
+            damage,
+            lifetime: constants::LASER_ACTIVE_TIME,
+            owner
+        }
+    }
+
+    // Update the laser, return true if it should still be active
+    pub fn update(&mut self, delta_time: f32) {
+        self.lifetime -= delta_time;
+    }
+
+    pub fn is_dealing_damage(&self) -> bool {
+        self.lifetime > 0.
+    }
+    pub fn decay_progress(&self) -> f32 {
+        self.lifetime / -constants::LASER_DECAY_TIME
+    }
+    pub fn should_be_removed(&self) -> bool {
+        self.lifetime < -constants::LASER_DECAY_TIME
+    }
+}

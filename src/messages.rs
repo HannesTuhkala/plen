@@ -85,6 +85,7 @@ pub enum ServerMessage {
     AssignId(u64),
     GameState(crate::gamestate::GameState),
     PlaySound(SoundEffect, na::Point2<f32>),
+    YouDied,
 }
 
 #[derive(Serialize, Deserialize)]

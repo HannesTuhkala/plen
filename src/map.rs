@@ -6,6 +6,7 @@ use ggez;
 use ggez::event;
 use ggez::graphics;
 use ggez::graphics::spritebatch;
+use ggez::graphics::Color;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
 use rand::prelude::*;
@@ -85,7 +86,8 @@ impl Map {
         ctx: &mut ggez::Context,
         camera_position: na::Point2<f32>,
         game_state: &GameState,
-        assets: &Assets
+        assets: &Assets,
+        powerup_rotation: f32,
     ) {
         let mut background_sb = spritebatch::SpriteBatch::new(
             assets.background.clone()
@@ -109,13 +111,19 @@ impl Map {
             assets.bullet.clone()
         );
 
-        let mut yeehaw_sb = spritebatch::SpriteBatch::new(
-            assets.yeehaw_1.clone()
-        );
-
         let mut smoke_sb = spritebatch::SpriteBatch::new(
             assets.smoke.clone()
         );
+
+        let mut laser_charge_sb = spritebatch::SpriteBatch::new(
+            assets.laser_charge.clone()
+        );
+        let mut laser_sb = spritebatch::SpriteBatch::new(
+            assets.laser_firing.clone()
+        );
+        let mut laser_decay_sbs = assets.laser_decay.iter().map(|v| {
+            spritebatch::SpriteBatch::new(v.clone())
+        }).collect::<Vec<_>>();
 
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
@@ -125,19 +133,25 @@ impl Map {
                 );
 
                 self.place_world_at(
+                    ctx,
+                    assets,
                     game_state,
                     &mut background_sb,
                     &mut plane_sbs,
                     &mut powerup_sbs,
                     &mut bullet_sb,
                     &mut smoke_sb,
+                    &mut laser_charge_sb,
+                    &mut laser_sb,
+                    &mut laser_decay_sbs,
                     camera_position,
-                    offset
+                    offset,
+                    powerup_rotation,
                 );
             }
         }
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs, &mut yeehaw_sb);
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
@@ -146,6 +160,11 @@ impl Map {
         }
 
         for sb in powerup_sbs.values() {
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
+        }
+        graphics::draw(ctx, &laser_charge_sb, (na::Point2::new(0., 0.),)) .unwrap();
+        graphics::draw(ctx, &laser_sb, (na::Point2::new(0., 0.),)) .unwrap();
+        for sb in &laser_decay_sbs {
             graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
         }
         for tile_x in [-1., 0., 1.].iter() {
@@ -176,7 +195,7 @@ impl Map {
                         HEALTH_BAR_WIDTH * health / max_health,
                         10.
                     );
-                                        let red_mesh = graphics::Mesh::new_rectangle(
+                    let red_mesh = graphics::Mesh::new_rectangle(
                         ctx, graphics::DrawMode::fill(), red_rect, graphics::Color::new(1., 0., 0., 1.)
                     ).unwrap();
                     let green_mesh = graphics::Mesh::new_rectangle(
@@ -185,27 +204,6 @@ impl Map {
                     graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
                     graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
 
-                    if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_used_gun {
-                        // TODO: It does not draw the laser line properly (can't be found) so maybe
-                        // position is wrong or something
-                        let rotation = player.rotation - std::f32::consts::PI / 2.;
-
-                        let laser_start = player.position + na::Vector2::new(
-                            rotation.cos() * constants::BULLET_START,
-                            rotation.sin() * constants::BULLET_START,
-                        );
-                    
-                        let laser_end = player.position + na::Vector2::new(
-                            rotation.cos() * constants::LASER_RANGE,
-                            rotation.sin() * constants::LASER_RANGE,
-                        );
-
-                        let laser_line_mesh = graphics::Mesh::new_line(
-                            ctx, &[laser_start, laser_end], 5., graphics::Color::new(0., 0., 1., 1.)
-                        ).unwrap();
-
-                        graphics::draw(ctx, &laser_line_mesh, graphics::DrawParam::default()).unwrap();
-                    }
                 }
             }
         }
@@ -215,19 +213,26 @@ impl Map {
             Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, &my_player);
         }
 
-        graphics::draw(ctx, &yeehaw_sb, (na::Point2::new(0., 0.),)).unwrap();
+        graphics::draw_queued_text(
+            ctx, (na::Point2::new(0., 0.),), None, graphics::FilterMode::Linear);
     }
 
     fn place_world_at(
         &self,
+        ctx: &mut ggez::Context,
+        assets: &Assets,
         game_state: &GameState,
         background_sb: &mut spritebatch::SpriteBatch,
         plane_sbs: &mut HashMap<PlaneType, spritebatch::SpriteBatch>,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
         bullet_sb: &mut spritebatch::SpriteBatch,
         smoke_sb: &mut spritebatch::SpriteBatch,
+        laser_charge_sb: &mut spritebatch::SpriteBatch,
+        laser_sb: &mut spritebatch::SpriteBatch,
+        laser_decay_sbs: &mut [spritebatch::SpriteBatch],
         camera_position: na::Point2<f32>,
-        offset: na::Vector2<f32>
+        offset: na::Vector2<f32>,
+        powerup_rotation: f32,
     ) {
         let background_position = na::Point2::new(
             -camera_position.x,
@@ -249,6 +254,52 @@ impl Map {
                     .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
                     .offset(na::Point2::new(0.5, 0.5))
             );
+
+            let mut nametag = graphics::Text::new(player.name.clone());
+            nametag.set_font(assets.font, graphics::Scale::uniform(15.));
+            let width = nametag.width(ctx) as f32;
+            graphics::queue_text(
+                ctx, &nametag,
+                na::Point2::new(position.x - width/2., position.y + 30.),
+                Some(player.color.rgba().into())
+            );
+
+
+            player.laser_charge_progress().map(|p| {
+                laser_charge_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .rotation(player.rotation)
+                        .scale(na::Vector2::new(1.0, 1.0))
+                        .offset(na::Point2::new(0.5, 1.0))
+                        .color(Color::new(1., 1., 1., p))
+                );
+            });
+        }
+
+        for laser in &game_state.lasers {
+            let position = na::Point2::new(
+                laser.position.x - camera_position.x,
+                laser.position.y - camera_position.y,
+            ) + offset;
+            if laser.is_dealing_damage() {
+                laser_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .rotation(laser.angle)
+                        .offset(na::Point2::new(0.5, 1.0)));
+            }
+            else {
+                let decay_index =
+                    ((laser.decay_progress() * laser_decay_sbs.len() as f32) as usize)
+                        .min(laser_decay_sbs.len()-1)
+                        .max(0);
+                laser_decay_sbs[decay_index].add(
+                        graphics::DrawParam::default()
+                            .dest(position)
+                            .rotation(laser.angle)
+                            .offset(na::Point2::new(0.5, 1.0)));
+            }
         }
 
         for bullet in &game_state.bullets {
@@ -267,10 +318,15 @@ impl Map {
                 powerup.position.x - camera_position.x,
                 powerup.position.y - camera_position.y,
             ) + offset;
+            let mini_offset = na::Vector2::new(
+                0.,
+                (powerup_rotation*2.).sin()*constants::POWERUP_BOUNCE_HEIGHT
+            );
             powerup_sbs.get_mut(&powerup.kind)
                 .expect("No powerup asset for this kind")
                 .add(graphics::DrawParam::default()
-                     .dest(position)
+                     .dest(position + mini_offset)
+                     .rotation(powerup_rotation)
                      .offset(na::Point2::new(0.5, 0.5)));
         }
 
@@ -295,7 +351,6 @@ impl Map {
         my_id: u64,
         game_state: &GameState,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
-        yeehaw_sb: &mut spritebatch::SpriteBatch,
     ) {
         let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
         let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
@@ -313,13 +368,6 @@ impl Map {
                 }
             });
 
-        let position = na::Point2::new(
-            constants::WINDOW_SIZE - 480.,
-            -constants::WINDOW_SIZE/2.);
-        yeehaw_sb.add(
-            graphics::DrawParam::default()
-                .dest(position)
-                .scale(na::Vector2::new(0.3, 0.3)));
     }
 
     fn draw_mini_map(
