@@ -198,7 +198,7 @@ impl Player {
             } else {
                 if self.cooldown <= 0. {
                     // TODO: Shoot the actual fucking laser
-                    self.powerups.retain(|powerup|powerup.kind == PowerUpKind::Laser);
+                    self.powerups.retain(|powerup|powerup.kind != PowerUpKind::Laser);
                     self.powerups.push(AppliedPowerup::new(PowerUpKind::Gun));
                     self.has_used_gun = false;
                 }

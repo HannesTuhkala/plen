@@ -20,7 +20,7 @@ pub const BULLET_START: f32 = 30.;
 pub const PLAYER_COOLDOWN: f32 = 0.2;
 pub const BULLET_ARM_TIME: f32 = 0.03;
 
-pub const LASER_COOLDOWN: f32 = 0.8;
+pub const LASER_COOLDOWN: f32 = 3.0;
 pub const LASER_RANGE: f32 = 200.;
 
 pub const WINDOW_SIZE: f32 = 700.;
