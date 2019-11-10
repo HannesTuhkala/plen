@@ -13,7 +13,6 @@ use rand::prelude::*;
 use crate::assets::Assets;
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
-use crate::player;
 
 use std::collections::HashMap;
 
@@ -186,7 +185,7 @@ impl Map {
                     graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
                     graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
 
-                    if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_been_used {
+                    if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_used_gun {
                         let rotation = player.rotation - std::f32::consts::PI / 2.;
 
                         let laser_start = player.position + na::Vector2::new(
@@ -200,7 +199,7 @@ impl Map {
                         );
 
                         let laser_line_mesh = graphics::Mesh::new_line(
-                            ctx, &[laser_start, laser_end], 5., grahics::Color::new(0., 0., 1., 1.)
+                            ctx, &[laser_start, laser_end], 5., graphics::Color::new(0., 0., 1., 1.)
                         ).unwrap();
 
                         graphics::draw(ctx, &laser_line_mesh, graphics::DrawParam::default()).unwrap();

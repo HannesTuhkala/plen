@@ -6,7 +6,6 @@ use ggez::graphics;
 use ggez;
 use crate::constants;
 use crate::bullet;
-use crate::weapons;
 use crate::assets::Assets;
 use crate::math;
 
@@ -134,7 +133,7 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            powerups: vec!(AppliedPowerup::new(PowerUpKind::Invincibility), AppliedPowerup::new(PowerUpKind::Gun),),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Laser)),
             position: position,
             cooldown: 0.,
             planetype: plane_type,
@@ -192,7 +191,7 @@ impl Player {
     }
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
-        if weapon_is_wielded(PowerUpKind::Laser) {
+        if self.weapon_is_wielded(PowerUpKind::Laser) {
             if !self.has_used_gun {
                 self.has_used_gun = true;
                 self.cooldown = constants::LASER_COOLDOWN;
@@ -204,6 +203,7 @@ impl Player {
                     self.has_used_gun = false;
                 }
             }
+        }
         if self.cooldown <= 0. && !self.invincibility_is_on() {
             let dir = self.rotation - std::f32::consts::PI / 2.;
             self.cooldown = constants::PLAYER_COOLDOWN;
