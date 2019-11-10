@@ -48,15 +48,22 @@ pub struct LaserBeam {
     pub angle: f32,
     pub damage: i16,
     pub lifetime: f32,
+    pub owner: u64,
 }
 
 impl LaserBeam {
-    pub fn new(position: na::Point2<f32>, angle: f32, damage: i16) -> Self {
+    pub fn new(
+        position: na::Point2<f32>,
+        angle: f32,
+        damage: i16,
+        owner: u64
+    ) -> Self {
         Self {
             position,
             angle,
             damage,
             lifetime: constants::LASER_ACTIVE_TIME,
+            owner
         }
     }
 

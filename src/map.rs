@@ -277,9 +277,9 @@ impl Map {
             }
             else {
                 let decay_index =
-                    (laser.decay_progress() * laser_decay_sbs.len() as f32) as usize;
-                    // .min(laser_decay_sbs.len())
-                    // .max(0);
+                    ((laser.decay_progress() * laser_decay_sbs.len() as f32) as usize)
+                        .min(laser_decay_sbs.len()-1)
+                        .max(0);
                 laser_decay_sbs[decay_index].add(
                         graphics::DrawParam::default()
                             .dest(position)

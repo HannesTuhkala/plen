@@ -208,11 +208,10 @@ impl Player {
             if let None = self.laser_charge_time {
                 self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
             }
+            None
         }
-        else {
+        else if self.cooldown <= 0. && !self.invincibility_is_on() {
             self.laser_charge_time = None;
-        }
-        if self.cooldown <= 0. && !self.invincibility_is_on() {
             let dir = self.rotation - std::f32::consts::PI / 2.;
             self.cooldown = constants::PLAYER_COOLDOWN;
             Some(bullet::Bullet::new(
@@ -236,7 +235,7 @@ impl Player {
     }
     pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
         if self.lasering_this_frame {
-            Some(LaserBeam::new(self.position, self.rotation, 100))
+            Some(LaserBeam::new(self.position, self.rotation, 100, self.id))
         }
         else {
             None

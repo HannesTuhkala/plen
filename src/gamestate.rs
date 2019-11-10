@@ -6,6 +6,7 @@ use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
 use crate::bullet::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
+use crate::math::wrap_around;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
@@ -97,9 +98,6 @@ impl GameState {
     }
 
     pub fn handle_lasers(&mut self, delta: f32) {
-        for laser in &mut self.lasers {
-            laser.update(delta);
-        }
         let mut new_lasers = vec!();
         for player in &self.players {
             player.maybe_get_laser().map(|l| {
@@ -108,5 +106,36 @@ impl GameState {
         }
         self.lasers.append(&mut new_lasers);
         self.lasers.retain(|l| !l.should_be_removed());
+
+        for laser in &mut self.lasers {
+            laser.update(delta);
+
+            // Check collision
+            let direction = na::Vector2::new(
+                (laser.angle + std::f32::consts::PI / 2.).cos(),
+                (laser.angle + std::f32::consts::PI / 2.).sin()
+            );
+
+            let hit_radius = PLANE_SIZE + 50;
+            for player in &mut self.players {
+                if player.id == laser.owner {
+                    break
+                }
+                let mut lowest_distance = 100000.;
+                for step in 0..100 {
+                    let position = laser.position +
+                        (-direction * ((step as f32 /100. as f32) * constants::LASER_RANGE));
+                    let distance = (wrap_around(position) - wrap_around(player.position)).norm();
+                    if distance < lowest_distance {
+                        lowest_distance = distance;
+                    }
+                    if distance < hit_radius as f32 {
+                        // bullets_to_remove.push(bullet.id);
+                        player.damage_player(laser.damage);
+                        break;
+                    }
+                }
+            }
+        }
     }
 }
