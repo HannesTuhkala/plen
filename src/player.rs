@@ -187,7 +187,7 @@ impl Player {
         }
     }
 
-    fn invincibility_is_on(&self) -> bool {
+    pub fn invincibility_is_on(&self) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
     }
 
