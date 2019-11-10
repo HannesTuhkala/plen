@@ -21,7 +21,7 @@ impl PowerUpKind {
             PowerUpKind::Health => None,
             PowerUpKind::Invincibility => Some(10.),
             PowerUpKind::Gun => None,
-            PowerUpKind::SlowTime => Some(5.),
+            PowerUpKind::SlowTime => Some(1.5),
         }
     }
 
