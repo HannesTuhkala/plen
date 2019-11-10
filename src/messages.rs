@@ -80,7 +80,8 @@ impl_message_reader!(ClientMessage);
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {
     AssignId(u64),
-    GameState(crate::gamestate::GameState)
+    GameState(crate::gamestate::GameState),
+    YouDied
 }
 
 #[derive(Serialize, Deserialize)]

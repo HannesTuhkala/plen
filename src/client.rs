@@ -93,6 +93,10 @@ struct MenuState<'a> {
     plane_selection: usize
 }
 
+struct EndState<'a> {
+    assets: &'a Assets
+}
+
 impl MainState {
     fn new(my_id: u64, stream: MessageReader<ServerMessage>, assets: Assets)
         -> ggez::GameResult<MainState>
@@ -125,11 +129,42 @@ impl<'a> MenuState<'a> {
     }
 }
 
+impl<'a> EndState<'a> {
+    fn new(assets: &Assets) -> EndState {
+        EndState {
+            assets: assets,
+        }
+    }
+}
+
+impl<'a> event::EventHandler for EndState<'a> {
+    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return)
+            || keyboard::is_key_pressed(ctx, keyboard::KeyCode::Space) {
+            ctx.continuing = false;
+        }
+        Ok(())
+    }
+    
+    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
+        graphics::draw(
+            ctx, &self.assets.end_background,
+            (na::Point2::new(
+                    -constants::WINDOW_SIZE/2.,
+                    -constants::WINDOW_SIZE/2.,
+                    ),)).unwrap();
+        graphics::present(ctx)?;
+        Ok(())
+    }
+}
+
 impl<'a> event::EventHandler for MenuState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
         self.plane = PLANES[self.plane_selection].clone();
         self.color = COLORS[self.color_selection].clone();
-        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return) {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return)
+            || keyboard::is_key_pressed(ctx, keyboard::KeyCode::Space) {
             ctx.continuing = false;
         }
         Ok(())
@@ -262,6 +297,9 @@ impl event::EventHandler for MainState {
                 ServerMessage::GameState(state) => {
                     self.game_state = state
                 }
+                ServerMessage::YouDied => {
+                    ctx.continuing = false
+                }
             }
         }
 
@@ -312,115 +350,124 @@ impl event::EventHandler for MainState {
 }
 
 pub fn main() -> ggez::GameResult {
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
+    let mut should_continue = true;
+    while should_continue {
+        let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
+            let mut path = path::PathBuf::from(manifest_dir);
+            path.push("resources");
+            path
+        } else {
+            path::PathBuf::from("./resources")
+        };
 
-    let host = std::env::var("SERVER")
-        .unwrap_or(String::from("localhost:4444"));
-    let stream = TcpStream::connect(host)?;
-    println!("Connected to server");
+        let host = std::env::var("SERVER")
+            .unwrap_or(String::from("localhost:4444"));
+        let stream = TcpStream::connect(host)?;
+        println!("Connected to server");
 
-    stream.set_nonblocking(true)?;
-    let mut reader = MessageReader::new(stream);
+        stream.set_nonblocking(true)?;
+        let mut reader = MessageReader::new(stream);
 
-    let msg = loop {
-        reader.fetch_bytes().unwrap();
-        if let Some(msg) = reader.next() {
-            break msg;
-        }
-    };
-
-    let my_id = if let ServerMessage::AssignId(id) = msg {
-        println!("Received the id {}", id);
-        id
-    } else {
-        panic!("Expected to get an id from server")
-    };
-
-    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
-        .window_setup(ggez::conf::WindowSetup::default()
-                      .title("Flying broccoli"))
-        .window_mode(ggez::conf::WindowMode::default()
-                     .dimensions(constants::WINDOW_SIZE,
-                                 constants::WINDOW_SIZE))
-        .add_resource_path(resource_dir)
-        .build()?;
-
-    let assets = Assets::new(ctx);
-    let state = &mut MenuState::new(&assets);
-    event::run(ctx, event_loop, state);
-    ctx.continuing = true;
-    send_client_message(
-        &ClientMessage::JoinGame { 
-            name: state.name.clone(),
-            plane: state.plane.clone(),
-            color: state.color.clone()
-        },
-        &mut reader.stream
-    );
-
-    let mut coords = graphics::screen_coordinates(ctx);
-    coords.translate(
-        na::Vector2::new(
-            -coords.w / 2.0, -coords.h / 2.0
-        )
-    );
-    graphics::set_screen_coordinates(
-        ctx, coords
-    ).expect("Could not set screen coordinates");
-
-    let state = &mut MainState::new(my_id, reader, assets)?;
-    while ctx.continuing {
-        // Tell the timer stuff a frame has happened.
-        // Without this the FPS timer functions and such won't work.
-        ctx.timer_context.tick();
-
-        event_loop.poll_events(|event| {
-            // This tells `ggez` to update it's internal states, should the event require that.
-            // These include cursor position, view updating on resize, etc.
-            ctx.process_event(&event);
-
-            match event {
-                Event::WindowEvent { event, .. } => match event {
-                    WindowEvent::CloseRequested => event::quit(ctx),
-                    WindowEvent::KeyboardInput {
-                        input: KeyboardInput {
-                            scancode,
-                            state: key_state,
-                            virtual_keycode: keycode,
-                            ..
-                        },
-                        ..
-                    } => {
-                        match scancode {
-                            constants::SCANCODE_W => { state.key_states.forward = key_state },
-                            constants::SCANCODE_S => { state.key_states.back = key_state },
-                            constants::SCANCODE_A => { state.key_states.left = key_state },
-                            constants::SCANCODE_D => { state.key_states.right = key_state },
-                            _ => {} // Handle other key events here
-                        }
-
-                        if keycode == Some(keyboard::KeyCode::Space) {
-                            state.key_states.shooting = key_state;
-                        }
-                    }
-
-                    // Add other window event handling here
-                    _ => {}
-                },
-
-                // Add other event handling here
-                _ => {}
+        let msg = loop {
+            reader.fetch_bytes().unwrap();
+            if let Some(msg) = reader.next() {
+                break msg;
             }
-        });
+        };
 
-        state.update(ctx)?;
-        state.draw(ctx)?;
+        let my_id = if let ServerMessage::AssignId(id) = msg {
+            println!("Received the id {}", id);
+            id
+        } else {
+            panic!("Expected to get an id from server")
+        };
+
+        let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
+            .window_setup(ggez::conf::WindowSetup::default()
+                          .title("Flying broccoli"))
+            .window_mode(ggez::conf::WindowMode::default()
+                         .dimensions(constants::WINDOW_SIZE,
+                                     constants::WINDOW_SIZE))
+            .add_resource_path(resource_dir)
+            .build()?;
+
+        let assets = Assets::new(ctx);
+        let state = &mut MenuState::new(&assets);
+        event::run(ctx, event_loop, state);
+        ctx.continuing = true;
+        send_client_message(
+            &ClientMessage::JoinGame { 
+                name: state.name.clone(),
+                plane: state.plane.clone(),
+                color: state.color.clone()
+            },
+            &mut reader.stream
+        );
+
+        let mut coords = graphics::screen_coordinates(ctx);
+        coords.translate(
+            na::Vector2::new(
+                -coords.w / 2.0, -coords.h / 2.0
+            )
+        );
+        graphics::set_screen_coordinates(
+            ctx, coords
+        ).expect("Could not set screen coordinates");
+
+        let state = &mut MainState::new(my_id, reader, assets)?;
+        while ctx.continuing {
+            // Tell the timer stuff a frame has happened.
+            // Without this the FPS timer functions and such won't work.
+            ctx.timer_context.tick();
+
+            event_loop.poll_events(|event| {
+                // This tells `ggez` to update it's internal states, should the event require that.
+                // These include cursor position, view updating on resize, etc.
+                ctx.process_event(&event);
+
+                match event {
+                    Event::WindowEvent { event, .. } => match event {
+                        WindowEvent::CloseRequested => {
+                            should_continue = false;
+                            event::quit(ctx);
+                        },
+                        WindowEvent::KeyboardInput {
+                            input: KeyboardInput {
+                                scancode,
+                                state: key_state,
+                                virtual_keycode: keycode,
+                                ..
+                            },
+                            ..
+                        } => {
+                            match scancode {
+                                constants::SCANCODE_W => { state.key_states.forward = key_state },
+                                constants::SCANCODE_S => { state.key_states.back = key_state },
+                                constants::SCANCODE_A => { state.key_states.left = key_state },
+                                constants::SCANCODE_D => { state.key_states.right = key_state },
+                                _ => {} // Handle other key events here
+                            }
+
+                            if keycode == Some(keyboard::KeyCode::Space) {
+                                state.key_states.shooting = key_state;
+                            }
+                        }
+
+                        // Add other window event handling here
+                        _ => {}
+                    },
+
+                    // Add other event handling here
+                    _ => {}
+                }
+            });
+
+            state.update(ctx)?;
+            state.draw(ctx)?;
+        }
+        ctx.continuing = true;
+        let state = &mut EndState::new(&state.assets);
+        event::run(ctx, event_loop, state);
     }
     Ok(())
 }

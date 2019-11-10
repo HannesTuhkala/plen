@@ -16,6 +16,7 @@ pub struct Assets {
     pub powerups: HashMap<PowerUpKind, Image>,
     pub bullet: Image,
     pub menu_background: Image,
+    pub end_background: Image,
     pub yeehaw_1: Image,
     pub yeehaw_2: Image,
     pub smoke: Image,
@@ -64,6 +65,8 @@ impl Assets {
             bullet: Image::new(ctx, "/bullet.png")
                 .expect("Could not find bullet image!"),
             menu_background: Image::new(ctx, "/menu_background.png").
+                expect("Could not find bullet image!"),
+            end_background: Image::new(ctx, "/endscreen.png").
                 expect("Could not find bullet image!"),
             yeehaw_1: Image::new(ctx, "/yeehaw.png").
                 expect("Could not find secret 1!"),
