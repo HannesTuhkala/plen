@@ -1,5 +1,8 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
+use std::io::BufReader;
+use std::fs::File;
+use std::path::PathBuf;
 
 use ggez;
 use ggez::graphics::{Image};
@@ -18,10 +21,18 @@ pub struct Assets {
     pub yeehaw_1: Image,
     pub yeehaw_2: Image,
     pub smoke: Image,
+
+    pub achtung_blitzkrieg_engine: rodio::Decoder<BufReader<File>>,
+    pub el_pollo_romero_engine: rodio::Decoder<BufReader<File>>,
+    pub howdy_cowboy_engine: rodio::Decoder<BufReader<File>>,
+    pub suka_blyat_engine: rodio::Source::Buffered<Item = f32>,
+    pub explosion: rodio::Decoder<BufReader<File>>,
+    pub powerup: rodio::Decoder<BufReader<File>>,
+    pub gun: rodio::Decoder<BufReader<File>>,
 }
 
 impl Assets {
-    pub fn new(ctx: &mut ggez::Context) -> Assets {
+    pub fn new(ctx: &mut ggez::Context, resource_dir: &PathBuf) -> Assets {
         let powerups = HashMap::from_iter(vec!{
             (PowerUpKind::Missile, Image::new(ctx, "/powerups/missile.png")
                 .expect("Could not load generic powerup image")),
@@ -65,6 +76,58 @@ impl Assets {
                 expect("Could not find secret 2!"),
             smoke: Image::new(ctx, "/smoke.png")
                 .expect("Could not find smoke image"),
+
+            achtung_blitzkrieg_engine: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "achtungblitzkrieg-engine.ogg"
+                        )
+                    )).unwrap(),
+            el_pollo_romero_engine: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "elpolloromero-engine.ogg"
+                        )
+                    )).unwrap(),
+            howdy_cowboy_engine: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "howdycowboy-engine.ogg"
+                        )
+                    )).unwrap(),
+            suka_blyat_engine: BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "sukablyat-engine.ogg"
+                        )
+                    ),
+            powerup: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "powerup.ogg"
+                        )
+                    )).unwrap(),
+            explosion: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "explosion.ogg"
+                        )
+                    )).unwrap(),
+            gun: rodio::Decoder::new(BufReader::new(
+                    Self::read_audio(
+                        resource_dir,
+                        "gun.ogg"
+                        )
+                    )).unwrap(),
         }
+    }
+
+    fn read_audio(resource_dir: &PathBuf, name: &str) -> File {
+        let mut path = resource_dir.clone();
+        path.push("audio");
+        path.push(name);
+        File::open(path.clone()).expect(
+            &format!("Could not find audio file {:?}", path)
+        )
     }
 }
