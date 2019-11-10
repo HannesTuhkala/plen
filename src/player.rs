@@ -257,24 +257,20 @@ impl Player {
                     .unwrap_or(true)})
     }
 
-    pub fn final_velocity(&self) -> na::Vector2<f32> {
-        let mut dx = 0.;
-        let mut dy = 0.;
-
+    pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if(has_speed_boost) {1.8} else {1.};
 
-        let mut speed = self.speed;
-        if speed > constants::MAX_SPEED {
-            speed = constants::MAX_SPEED;
+        if self.speed > constants::MAX_SPEED {
+            self.speed = constants::MAX_SPEED;
         }
-        if speed < constants::MIN_SPEED {
-            speed = constants::MIN_SPEED;
+        if self.speed < constants::MIN_SPEED {
+            self.speed = constants::MIN_SPEED;
         }
 
-        dx += speed * (self.rotation - std::f32::consts::PI/2.).cos();
-        dy += speed * (self.rotation - std::f32::consts::PI/2.).sin();
+        let dx = self.speed * (self.rotation - std::f32::consts::PI/2.).cos();
+        let dy = self.speed * (self.rotation - std::f32::consts::PI/2.).sin();
         na::Vector2::new(dx, dy) * speed_boost
     }
 
