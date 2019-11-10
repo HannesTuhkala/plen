@@ -170,7 +170,7 @@ impl<'a> MenuState<'a> {
             graphics::DrawMode::fill(),
             graphics::Rect::new(
                 px, py,
-                constants::PLANE_SELECTION_SIZE,
+                constants::PLANE_SELECTION_SIZE*2.,
                 constants::PLANE_SELECTION_SIZE
                 ),
             [0., 0., 0., 0.5].into()
@@ -187,12 +187,23 @@ impl<'a> MenuState<'a> {
         graphics::draw(ctx, &sprite,
                        (na::Point2::new(
                                px
-                               + constants::PLANE_SELECTION_SIZE/2.
+                               + constants::PLANE_SELECTION_SIZE/3.
                                - constants::PLANE_SIZE as f32,
                                py
                                + constants::PLANE_SELECTION_SIZE/2.
                                - constants::PLANE_SIZE as f32,
-                               ),)).unwrap();
+                       ),)).unwrap();
+
+        let plane_specs = graphics::Text::new(format!(
+            "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResiliance: {}",
+            self.plane.agility(),
+            self.plane.firepower(),
+            self.plane.acceleration().trunc(),
+            self.plane.health(),
+            self.plane.resilience()));
+        graphics::draw(ctx, &plane_specs,
+                       (na::Point2::new(px + constants::PLANE_SELECTION_SIZE/1.8,
+                                        py + constants::PLANE_SELECTION_SIZE/3.),)).unwrap();
     }
 
     fn draw_selected_color(&mut self, ctx: &mut ggez::Context) {
