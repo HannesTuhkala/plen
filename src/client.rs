@@ -20,7 +20,7 @@ use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
-use ears::AudioController;
+//use ears::AudioController;
 
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
@@ -298,13 +298,13 @@ impl event::EventHandler for MainState {
                 ServerMessage::PlaySound(sound, pos) => {
                     match sound {
                         SoundEffect::Powerup => {
-                            self.assets.powerup.play_at(pos);
+                            //self.assets.powerup.play_at(pos);
                         }
                         SoundEffect::Gun => {
-                            self.assets.gun.play_at(pos);
+                            //self.assets.gun.play_at(pos);
                         }
                         SoundEffect::Explosion => {
-                            self.assets.explosion.play_at(pos);
+                            //self.assets.explosion.play_at(pos);
                             self.map.add_explosion(pos);
                         }
                     }
@@ -315,7 +315,7 @@ impl event::EventHandler for MainState {
             }
         }
 
-        ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
+        //ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
 
         let mut y_input = 0.0;
         if self.key_states.forward == ElementState::Pressed {
