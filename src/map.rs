@@ -86,7 +86,8 @@ impl Map {
         ctx: &mut ggez::Context,
         camera_position: na::Point2<f32>,
         game_state: &GameState,
-        assets: &Assets
+        assets: &Assets,
+        powerup_rotation: f32,
     ) {
         let mut background_sb = spritebatch::SpriteBatch::new(
             assets.background.clone()
@@ -146,7 +147,8 @@ impl Map {
                     &mut laser_sb,
                     &mut laser_decay_sbs,
                     camera_position,
-                    offset
+                    offset,
+                    powerup_rotation,
                 );
             }
         }
@@ -228,7 +230,8 @@ impl Map {
         laser_sb: &mut spritebatch::SpriteBatch,
         laser_decay_sbs: &mut [spritebatch::SpriteBatch],
         camera_position: na::Point2<f32>,
-        offset: na::Vector2<f32>
+        offset: na::Vector2<f32>,
+        powerup_rotation: f32,
     ) {
         let background_position = na::Point2::new(
             -camera_position.x,
@@ -304,10 +307,15 @@ impl Map {
                 powerup.position.x - camera_position.x,
                 powerup.position.y - camera_position.y,
             ) + offset;
+            let mini_offset = na::Vector2::new(
+                0.,
+                (powerup_rotation*2.).sin()*constants::POWERUP_BOUNCE_HEIGHT
+            );
             powerup_sbs.get_mut(&powerup.kind)
                 .expect("No powerup asset for this kind")
                 .add(graphics::DrawParam::default()
-                     .dest(position)
+                     .dest(position + mini_offset)
+                     .rotation(powerup_rotation)
                      .offset(na::Point2::new(0.5, 0.5)));
         }
 
