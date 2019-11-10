@@ -78,6 +78,7 @@ struct MainState {
     assets: Assets,
     key_states: KeyStates,
     last_time: Instant,
+    powerup_rotation: f32,
 }
 
 
@@ -103,6 +104,7 @@ impl MainState {
             assets: assets,
             key_states: KeyStates::new(),
             last_time: Instant::now(),
+            powerup_rotation: 0.,
         };
         Ok(s)
     }
@@ -263,6 +265,8 @@ impl event::EventHandler for MainState {
         let shooting = self.key_states.shooting == ElementState::Pressed;
         let input_message = ClientMessage::Input{ x_input, y_input, shooting };
         send_client_message(&input_message, &mut self.server_reader.stream);
+
+        self.powerup_rotation += constants::POWERUP_SPEED;
         Ok(())
     }
 
@@ -278,7 +282,8 @@ impl event::EventHandler for MainState {
             ctx,
             self.camera_position,
             &self.game_state,
-            &self.assets
+            &self.assets,
+            self.powerup_rotation,
         );
         graphics::present(ctx)?;
         Ok(())
