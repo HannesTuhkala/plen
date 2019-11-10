@@ -6,6 +6,7 @@ use ggez;
 use ggez::event;
 use ggez::graphics;
 use ggez::graphics::spritebatch;
+use ggez::graphics::Color;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
 use rand::prelude::*;
@@ -117,6 +118,16 @@ impl Map {
             assets.smoke.clone()
         );
 
+        let mut laser_charge_sb = spritebatch::SpriteBatch::new(
+            assets.laser_charge.clone()
+        );
+        let mut laser_sb = spritebatch::SpriteBatch::new(
+            assets.laser_firing.clone()
+        );
+        let mut laser_decay_sbs = assets.laser_decay.iter().map(|v| {
+            spritebatch::SpriteBatch::new(v.clone())
+        }).collect::<Vec<_>>();
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 let offset = na::Vector2::new(
@@ -131,6 +142,9 @@ impl Map {
                     &mut powerup_sbs,
                     &mut bullet_sb,
                     &mut smoke_sb,
+                    &mut laser_charge_sb,
+                    &mut laser_sb,
+                    &mut laser_decay_sbs,
                     camera_position,
                     offset
                 );
@@ -146,6 +160,11 @@ impl Map {
         }
 
         for sb in powerup_sbs.values() {
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
+        }
+        graphics::draw(ctx, &laser_charge_sb, (na::Point2::new(0., 0.),)) .unwrap();
+        graphics::draw(ctx, &laser_sb, (na::Point2::new(0., 0.),)) .unwrap();
+        for sb in &laser_decay_sbs {
             graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
         }
         for tile_x in [-1., 0., 1.].iter() {
@@ -176,7 +195,7 @@ impl Map {
                         HEALTH_BAR_WIDTH * health / max_health,
                         10.
                     );
-                                        let red_mesh = graphics::Mesh::new_rectangle(
+                    let red_mesh = graphics::Mesh::new_rectangle(
                         ctx, graphics::DrawMode::fill(), red_rect, graphics::Color::new(1., 0., 0., 1.)
                     ).unwrap();
                     let green_mesh = graphics::Mesh::new_rectangle(
@@ -185,27 +204,6 @@ impl Map {
                     graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
                     graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
 
-                    if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Laser) && player.has_used_gun {
-                        // TODO: It does not draw the laser line properly (can't be found) so maybe
-                        // position is wrong or something
-                        let rotation = player.rotation - std::f32::consts::PI / 2.;
-
-                        let laser_start = player.position + na::Vector2::new(
-                            rotation.cos() * constants::BULLET_START,
-                            rotation.sin() * constants::BULLET_START,
-                        );
-                    
-                        let laser_end = player.position + na::Vector2::new(
-                            rotation.cos() * constants::LASER_RANGE,
-                            rotation.sin() * constants::LASER_RANGE,
-                        );
-
-                        let laser_line_mesh = graphics::Mesh::new_line(
-                            ctx, &[laser_start, laser_end], 5., graphics::Color::new(0., 0., 1., 1.)
-                        ).unwrap();
-
-                        graphics::draw(ctx, &laser_line_mesh, graphics::DrawParam::default()).unwrap();
-                    }
                 }
             }
         }
@@ -226,6 +224,9 @@ impl Map {
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
         bullet_sb: &mut spritebatch::SpriteBatch,
         smoke_sb: &mut spritebatch::SpriteBatch,
+        laser_charge_sb: &mut spritebatch::SpriteBatch,
+        laser_sb: &mut spritebatch::SpriteBatch,
+        laser_decay_sbs: &mut [spritebatch::SpriteBatch],
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>
     ) {
@@ -249,6 +250,42 @@ impl Map {
                     .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
                     .offset(na::Point2::new(0.5, 0.5))
             );
+
+            player.laser_charge_progress().map(|p| {
+                laser_charge_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .rotation(player.rotation)
+                        .scale(na::Vector2::new(1.0, 1.0))
+                        .offset(na::Point2::new(0.5, 1.0))
+                        .color(Color::new(1., 1., 1., p))
+                );
+            });
+        }
+
+        for laser in &game_state.lasers {
+            let position = na::Point2::new(
+                laser.position.x - camera_position.x,
+                laser.position.y - camera_position.y,
+            ) + offset;
+            if laser.is_dealing_damage() {
+                laser_sb.add(
+                    graphics::DrawParam::default()
+                        .dest(position)
+                        .rotation(laser.angle)
+                        .offset(na::Point2::new(0.5, 1.0)));
+            }
+            else {
+                let decay_index =
+                    (laser.decay_progress() * laser_decay_sbs.len() as f32) as usize;
+                    // .min(laser_decay_sbs.len())
+                    // .max(0);
+                laser_decay_sbs[decay_index].add(
+                        graphics::DrawParam::default()
+                            .dest(position)
+                            .rotation(laser.angle)
+                            .offset(na::Point2::new(0.5, 1.0)));
+            }
         }
 
         for bullet in &game_state.bullets {

@@ -20,8 +20,14 @@ pub const BULLET_START: f32 = 30.;
 pub const PLAYER_COOLDOWN: f32 = 0.2;
 pub const BULLET_ARM_TIME: f32 = 0.03;
 
-pub const LASER_COOLDOWN: f32 = 900.0;
-pub const LASER_RANGE: f32 = 2000.;
+// Time between laser charge start and fire
+pub const LASER_FIRE_TIME: f32 = 0.5;
+// Durationi of laser damage
+pub const LASER_ACTIVE_TIME: f32 = 0.1;
+// Time at which the beam lingors while not doing any damage
+pub const LASER_DECAY_TIME: f32 = 0.3;
+// Distance at which the laser is effective
+pub const LASER_RANGE: f32 = 300.;
 
 pub const WINDOW_SIZE: f32 = 700.;
 

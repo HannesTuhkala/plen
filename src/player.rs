@@ -5,7 +5,7 @@ use serde_derive::{Serialize, Deserialize};
 use ggez::graphics;
 use ggez;
 use crate::constants;
-use crate::bullet;
+use crate::bullet::{self, LaserBeam};
 use crate::assets::Assets;
 use crate::math;
 
@@ -120,6 +120,9 @@ pub struct Player {
     pub color: Color,
     pub name: String,
     pub has_used_gun: bool,
+    // Time until laser burst
+    pub laser_charge_time: Option<f32>,
+    pub lasering_this_frame: bool,
 }
 
 
@@ -133,18 +136,26 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Laser)),
             position: position,
             cooldown: 0.,
             planetype: plane_type,
             color: color,
             name: name,
             has_used_gun: false,
+            laser_charge_time: None,
+            lasering_this_frame: false,
         }
     }
 
     pub fn update(&mut self, x_input: f32, y_input: f32, delta_time: f32) {
         self.cooldown = (self.cooldown - delta_time).max(0.);
+        self.laser_charge_time = self.laser_charge_time.map(|t| t-delta_time);
+        self.lasering_this_frame = self.laser_charge_time
+            .map(|t| t < 0.)
+            .unwrap_or(false);
+        self.laser_charge_time =
+            if self.lasering_this_frame {None} else {self.laser_charge_time};
 
         let velocity = self.final_velocity();
 
@@ -171,6 +182,7 @@ impl Player {
         self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
     }
 
+
     fn weapon_is_wielded(&self, kind: PowerUpKind) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == kind)
     }
@@ -192,17 +204,13 @@ impl Player {
 
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
         if self.weapon_is_wielded(PowerUpKind::Laser) {
-            if !self.has_used_gun {
-                self.has_used_gun = true;
-                self.cooldown = constants::LASER_COOLDOWN;
-            } else {
-                if self.cooldown <= 0. {
-                    // TODO: Shoot the actual fucking laser
-                    self.powerups.retain(|powerup|powerup.kind != PowerUpKind::Laser);
-                    self.powerups.push(AppliedPowerup::new(PowerUpKind::Gun));
-                    self.has_used_gun = false;
-                }
+            // Start charging the laser
+            if let None = self.laser_charge_time {
+                self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
             }
+        }
+        else {
+            self.laser_charge_time = None;
         }
         if self.cooldown <= 0. && !self.invincibility_is_on() {
             let dir = self.rotation - std::f32::consts::PI / 2.;
@@ -219,6 +227,18 @@ impl Player {
                 self.planetype.firepower(),
             ))
         } else {
+            None
+        }
+    }
+
+    pub fn laser_charge_progress(&self) -> Option<f32> {
+        self.laser_charge_time.map(|t| 1.-(t / constants::LASER_FIRE_TIME))
+    }
+    pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
+        if self.lasering_this_frame {
+            Some(LaserBeam::new(self.position, self.rotation, 100))
+        }
+        else {
             None
         }
     }
