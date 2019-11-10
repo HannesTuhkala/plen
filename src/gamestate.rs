@@ -4,7 +4,7 @@ use nalgebra as na;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
-use crate::bullet::Bullet;
+use crate::bullet::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -12,6 +12,7 @@ pub struct GameState {
     pub players: Vec<Player>,
     pub bullets: Vec<Bullet>,
     pub powerups: Vec<PowerUp>,
+    pub lasers: Vec<LaserBeam>,
 }
 
 impl GameState {
@@ -20,12 +21,14 @@ impl GameState {
             players: Vec::new(),
             bullets: Vec::new(),
             powerups: Vec::new(),
+            lasers: Vec::new(),
         }
     }
 
     pub fn update(&mut self, delta: f32) {
         self.handle_powerups();
         self.handle_bullets();
+        self.handle_lasers(delta);
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -91,5 +94,19 @@ impl GameState {
         self.bullets.retain(
             |bullet| !bullets_to_remove.contains(&bullet.id)
         )
+    }
+
+    pub fn handle_lasers(&mut self, delta: f32) {
+        for laser in &mut self.lasers {
+            laser.update(delta);
+        }
+        let mut new_lasers = vec!();
+        for player in &self.players {
+            player.maybe_get_laser().map(|l| {
+                new_lasers.push(l);
+            });
+        }
+        self.lasers.append(&mut new_lasers);
+        self.lasers.retain(|l| !l.should_be_removed());
     }
 }

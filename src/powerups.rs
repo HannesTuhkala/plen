@@ -32,7 +32,7 @@ impl PowerUpKind {
             PowerUpKind::Afterburner => false,
             PowerUpKind::Health => false,
             PowerUpKind::Invincibility => false,
-            PowerUpKind::Gun => false,
+            PowerUpKind::Gun => true,
         }
     }
 

@@ -18,6 +18,9 @@ pub struct Assets {
     pub yeehaw_1: Image,
     pub yeehaw_2: Image,
     pub smoke: Image,
+    pub laser_charge: Image,
+    pub laser_firing: Image,
+    pub laser_decay: [Image; 3],
 }
 
 impl Assets {
@@ -65,6 +68,18 @@ impl Assets {
                 expect("Could not find secret 2!"),
             smoke: Image::new(ctx, "/smoke.png")
                 .expect("Could not find smoke image"),
+            laser_charge: Image::new(ctx, "/lasercharge.png")
+                .expect("Could not find laser charge image"),
+            laser_firing: Image::new(ctx, "/laser.png")
+                .expect("Failed to load laser"),
+            laser_decay: [
+                Image::new(ctx, "/laserdecay_1.png")
+                    .expect("Failed to load laser decay 1"),
+                Image::new(ctx, "/laserdecay_2.png")
+                    .expect("Failed to load laser decay 2"),
+                Image::new(ctx, "/laserdecay_3.png")
+                    .expect("Failed to load laser decay 3"),
+            ]
         }
     }
 }
