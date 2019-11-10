@@ -21,7 +21,7 @@ impl PowerUpKind {
             PowerUpKind::Health => None,
             PowerUpKind::Invincibility => Some(10.),
             PowerUpKind::Gun => None,
-            PowerUpKind::SlowTime => Some(10.),
+            PowerUpKind::SlowTime => Some(5.),
         }
     }
 
@@ -38,12 +38,23 @@ impl PowerUpKind {
 
     pub fn is_instant(&self) -> bool {
         match self {
-            PowerUpKind::Laser => false,
-            PowerUpKind::Afterburner => false,
-            PowerUpKind::Health => true,
-            PowerUpKind::Invincibility => false,
+            PowerUpkind::Laser => false,
+            PowerUpkind::Afterburner => false,
+            PowerUpkind::Health => true,
+            PowerUpkind::Invincibility => false,
             PowerUpKind::Gun => false,
-            PowerUpKind::SlowTime => false,
+            PowerUpkind::Slowtime => false,
+        }
+    }
+
+    pub fn get_likelyhood(&self) -> f32 {
+        match self {
+            PowerUpkind::Laser => 0.6,
+            PowerUpkind::Afterburner => 0.4,
+            PowerUpkind::Health => 0.4,
+            PowerUpkind::Invincibility => 0.3,
+            PowerUpKind::Gun => 0.7,
+            PowerUpkind::Slowtime => 0.1,
         }
     }
 }
