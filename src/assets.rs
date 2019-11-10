@@ -48,7 +48,7 @@ impl Assets {
              .expect("Could not load invincibility powerup asset")),
             (PowerUpKind::Gun, Image::new(ctx, "/powerups/gun.png")
              .expect("Could not load gun powerup asset")),
-            (PowerUpKind::SlowTime, Image::new(ctx, "powerups/invincibility.png")
+            (PowerUpKind::SlowTime, Image::new(ctx, "/powerups/slowtime.png")
              .expect("Could not load slowtime asset")),
         });
 
