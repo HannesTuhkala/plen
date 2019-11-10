@@ -137,7 +137,7 @@ impl Player {
             angular_velocity: 0.,
             speed: 0.,
             health: plane_type.health(),
-            powerups: vec!(AppliedPowerup::new(PowerUpKind::Laser)),
+            powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
             position: position,
             cooldown: 0.,
             planetype: plane_type,
@@ -187,7 +187,7 @@ impl Player {
         }
     }
 
-    fn invincibility_is_on(&self) -> bool {
+    pub fn invincibility_is_on(&self) -> bool {
         self.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::Invincibility)
     }
 

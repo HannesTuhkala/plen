@@ -138,8 +138,7 @@ impl<'a> EndState<'a> {
 
 impl<'a> event::EventHandler for EndState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return)
-            || keyboard::is_key_pressed(ctx, keyboard::KeyCode::Space) {
+        if keyboard::is_key_pressed(ctx, keyboard::KeyCode::Return) {
             ctx.continuing = false;
         }
         Ok(())
