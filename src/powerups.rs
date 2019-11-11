@@ -19,7 +19,7 @@ impl PowerUpKind {
             PowerUpKind::Laser => None,
             PowerUpKind::Afterburner => Some(5.),
             PowerUpKind::Health => None,
-            PowerUpKind::Invincibility => Some(10.),
+            PowerUpKind::Invincibility => Some(7.),
             PowerUpKind::Gun => None,
             PowerUpKind::SlowTime => Some(1.5),
         }
