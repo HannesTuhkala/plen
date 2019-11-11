@@ -58,10 +58,10 @@ impl PlaneType {
 
     pub fn health(&self) -> i16 {
         match self {
-            PlaneType::SukaBlyat => constants::DEFAULT_HEALTH * 1.1 as i16,
-            PlaneType::HowdyCowboy => constants::DEFAULT_HEALTH * 1.3 as i16,
-            PlaneType::ElPolloRomero => constants::DEFAULT_HEALTH * 1.2 as i16,
-            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_HEALTH * 1.2 as i16,
+            PlaneType::SukaBlyat => (constants::DEFAULT_HEALTH as f32 * 1.1) as i16,
+            PlaneType::HowdyCowboy => (constants::DEFAULT_HEALTH as f32 * 1.3) as i16,
+            PlaneType::ElPolloRomero => (constants::DEFAULT_HEALTH as f32 * 1.2) as i16,
+            PlaneType::AchtungBlitzKrieg => (constants::DEFAULT_HEALTH as f32 * 1.2) as i16,
         }
     }
 
