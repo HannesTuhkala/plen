@@ -7,6 +7,7 @@ mod constants;
 mod messages;
 mod powerups;
 mod math;
+mod menu;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
@@ -25,22 +26,7 @@ use ears::AudioController;
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
 
-use whoami;
-
-const PLANES: [player::PlaneType; 4] = [
-    player::PlaneType::SukaBlyat,
-    player::PlaneType::HowdyCowboy,
-    player::PlaneType::ElPolloRomero,
-    player::PlaneType::AchtungBlitzKrieg,
-];
-
-const COLORS: [player::Color; 5] = [
-    player::Color::Red,
-    player::Color::Green,
-    player::Color::Blue,
-    player::Color::Yellow,
-    player::Color::Purple,
-];
+use menu::MenuState;
 
 struct KeyStates {
     forward: ElementState,
@@ -83,15 +69,6 @@ struct MainState<'a> {
     powerup_rotation: f32,
 }
 
-struct MenuState<'a> {
-    plane: player::PlaneType,
-    name: String,
-    color: player::Color,
-    assets: &'a Assets,
-    color_selection: usize,
-    plane_selection: usize
-}
-
 struct EndState<'a> {
     assets: &'a Assets
 }
@@ -112,19 +89,6 @@ impl<'a> MainState<'a> {
             powerup_rotation: 0.,
         };
         Ok(s)
-    }
-}
-
-impl<'a> MenuState<'a> {
-    fn new(assets: &Assets) -> MenuState {
-        MenuState {
-            name: String::from(whoami::username()),
-            plane: player::PlaneType::SukaBlyat,
-            color: player::Color::Red,
-            assets: assets,
-            color_selection: 0,
-            plane_selection: 0
-        }
     }
 }
 
@@ -163,140 +127,6 @@ impl<'a> event::EventHandler for EndState<'a> {
                     ),)).unwrap();
         graphics::present(ctx)?;
         Ok(())
-    }
-}
-
-impl<'a> event::EventHandler for MenuState<'a> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        self.plane = PLANES[self.plane_selection].clone();
-        self.color = COLORS[self.color_selection].clone();
-        Ok(())
-    }
-
-    fn key_down_event(
-        &mut self,
-        ctx: &mut ggez::Context,
-        keycode: keyboard::KeyCode,
-        _keymod: keyboard::KeyMods,
-        repeat: bool
-    ) {
-        if (keycode == keyboard::KeyCode::Return ||
-            keycode == keyboard::KeyCode::Space) && !repeat {
-            ctx.continuing = false;
-        }
-    }
-    
-    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        graphics::draw(ctx, &self.assets.menu_background,
-                       (na::Point2::new(0., 0.),)).unwrap();
-        self.draw_selected_plane(ctx, self.assets);
-        self.draw_selected_color(ctx, self.assets);
-        self.draw_player_name(ctx, self.assets);
-        graphics::present(ctx)?;
-        Ok(())
-    }
-
-    fn mouse_button_down_event(&mut self, _ctx: &mut ggez::Context,
-                               _button: ggez::input::mouse::MouseButton,
-                               x: f32, y: f32) {
-        let (px, py) = constants::PLANE_SELECTION_POS;
-        let s = constants::PLANE_SELECTION_SIZE;
-        if x > px && x < px + s * 1.25 && y > py && y < py + s {
-            self.plane_selection = (self.plane_selection + 1) % 4;
-        }
-
-        let (cx, cy) = constants::COLOR_SELECTION_POS;
-        let s = constants::COLOR_SELECTION_SIZE;
-        if x > cx && x < cx + s && y > cy && y < cy + s {
-            self.color_selection = (self.color_selection + 1) % 5;
-        }
-    }
-}
-
-impl<'a> MenuState<'a> {
-    fn draw_player_name(&mut self, ctx: &mut ggez::Context, assets: &Assets) {
-        let (nx, ny) = constants::NAME_POS;
-        let mut text = graphics::Text::new(format!(
-            "Helo comrade {}", self.name.clone())
-        );
-        text.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &text,
-                       (na::Point2::new(nx + 10., ny + 10.),)).unwrap();
-    }
-
-    fn draw_selected_plane(&mut self, ctx: &mut ggez::Context,
-                           assets: &Assets) {
-        let sprite = assets.planes[&self.plane].clone();
-        let text = self.plane.name();
-        let (px, py) = constants::PLANE_SELECTION_POS;
-        let mut ggez_text = graphics::Text::new(text);
-        ggez_text.set_font(assets.font, graphics::Scale::uniform(15.));
-        let background_rect = &graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(
-                px, py,
-                constants::PLANE_SELECTION_SIZE*1.25,
-                constants::PLANE_SELECTION_SIZE
-                ),
-            [0., 0., 0., 0.5].into()
-        ).unwrap();
-        graphics::draw(
-            ctx, background_rect,
-            (na::Point2::new(0., 0.),)
-        ).unwrap();
-        graphics::draw(ctx, &ggez_text,
-                       (na::Point2::new(px + 10., py + 10.),)).unwrap();
-        let mut instruction = graphics::Text::new("click to change plane blyat:");
-        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &instruction,
-                       (na::Point2::new(px, py - 20.),)).unwrap();
-        graphics::draw(ctx, &sprite,
-                       (na::Point2::new(
-                               px
-                               + constants::PLANE_SELECTION_SIZE/3.
-                               - (constants::PLANE_SIZE as f32)*2.,
-                               py
-                               + constants::PLANE_SELECTION_SIZE/2.
-                               - constants::PLANE_SIZE as f32,
-                       ),)).unwrap();
-
-        let mut plane_specs = graphics::Text::new(format!(
-            "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
-            self.plane.agility(),
-            self.plane.firepower(),
-            self.plane.acceleration().trunc(),
-            self.plane.health(),
-            self.plane.resilience()));
-        plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &plane_specs,
-                       (na::Point2::new(
-                               px + constants::PLANE_SELECTION_SIZE/2.4,
-                               py + constants::PLANE_SELECTION_SIZE/3.),))
-            .unwrap();
-    }
-
-    fn draw_selected_color(
-        &mut self, ctx: &mut ggez::Context, assets: &Assets
-        ) {
-        let (cx, cy) = constants::COLOR_SELECTION_POS;
-        let background_rect = &graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(
-                cx, cy,
-                constants::COLOR_SELECTION_SIZE,
-                constants::COLOR_SELECTION_SIZE
-                ),
-            self.color.rgba().into()
-        ).unwrap();
-        graphics::draw(
-            ctx, background_rect, (na::Point2::new(0., 0.),)).unwrap();
-        let mut instruction = graphics::Text::new("click to change color:");
-        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &instruction,
-                       (na::Point2::new(cx, cy - 20.),)).unwrap();
     }
 }
 
