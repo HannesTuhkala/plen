@@ -7,6 +7,9 @@ use crate::player::Player;
 use crate::bullet::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::math::wrap_around;
+use rand::Rng;
+
+use strum::IntoEnumIterator;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
@@ -74,9 +77,26 @@ impl GameState {
             let x = random::<f32>() * constants::WORLD_SIZE as f32;
             let y = random::<f32>() * constants::WORLD_SIZE as f32;
             self.powerups.push(
-                PowerUp::new(random::<PowerUpKind>(), na::Point2::new(x, y))
+                PowerUp::new(Self::create_powerup(), na::Point2::new(x, y))
             )
         }
+    }
+
+    fn create_powerup() -> PowerUpKind {
+        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelyhood()).sum();
+        let mut rand_number = rand::thread_rng().gen_range(1, max_number);
+        let mut powerup = PowerUpKind::Gun;
+
+        for mut powerup in PowerUpKind::iter() {
+            if (rand_number <= 0) {
+                return powerup;
+            }
+
+            rand_number -= powerup.get_likelyhood();
+            powerup = powerup;
+        }
+
+        powerup
     }
 
     pub fn handle_bullets(&mut self) {

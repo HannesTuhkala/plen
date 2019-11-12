@@ -4,7 +4,12 @@ use serde_derive::{Serialize, Deserialize};
 
 use rand_derive::Rand;
 
-#[derive(Serialize, Deserialize, Clone, Hash, PartialEq, Eq, Rand)]
+extern crate strum;
+extern crate strum_macros;
+use strum_macros::{Display, EnumIter};
+use strum::IntoEnumIterator;
+
+#[derive(Serialize, Deserialize, EnumIter, Clone, Hash, PartialEq, Eq, Rand, Debug)]
 pub enum PowerUpKind {
     Afterburner,
     Laser,
@@ -47,14 +52,14 @@ impl PowerUpKind {
         }
     }
 
-    pub fn get_likelyhood(&self) -> f32 {
+    pub fn get_likelyhood(&self) -> i32 {
         match self {
-            PowerUpKind::Laser => 0.6,
-            PowerUpKind::Afterburner => 0.4,
-            PowerUpKind::Health => 0.4,
-            PowerUpKind::Invincibility => 0.3,
-            PowerUpKind::Gun => 0.7,
-            PowerUpKind::SlowTime => 0.1,
+            PowerUpKind::Laser => 60,
+            PowerUpKind::Afterburner => 40,
+            PowerUpKind::Health => 40,
+            PowerUpKind::Invincibility => 30,
+            PowerUpKind::Gun => 70,
+            PowerUpKind::SlowTime => 10,
         }
     }
 }
