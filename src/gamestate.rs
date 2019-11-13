@@ -6,7 +6,11 @@ use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
 use crate::bullet::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
+use crate::killfeed::KillFeed;
 use crate::math::wrap_around;
+use rand::Rng;
+
+use strum::IntoEnumIterator;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
@@ -14,6 +18,7 @@ pub struct GameState {
     pub bullets: Vec<Bullet>,
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
+    pub killfeed: KillFeed,
 }
 
 impl GameState {
@@ -23,6 +28,7 @@ impl GameState {
             bullets: Vec::new(),
             powerups: Vec::new(),
             lasers: Vec::new(),
+            killfeed: KillFeed::new(),
         }
     }
 
@@ -34,11 +40,14 @@ impl GameState {
         let hit_players = self.handle_bullets();
         self.handle_lasers(delta);
         self.handle_player_collisions(delta);
+        self.killfeed.manage_killfeed(delta);
         hit_players
     }
 
     pub fn add_player(&mut self, player: Player) {
-        self.players.push(player)
+        self.players.push(player.clone());
+        let msg = player.name + " has joined the game.";
+        self.killfeed.add_message(&msg);
     }
 
     pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
@@ -78,9 +87,26 @@ impl GameState {
             let x = random::<f32>() * constants::WORLD_SIZE as f32;
             let y = random::<f32>() * constants::WORLD_SIZE as f32;
             self.powerups.push(
-                PowerUp::new(random::<PowerUpKind>(), na::Point2::new(x, y))
+                PowerUp::new(Self::create_powerup(), na::Point2::new(x, y))
             )
         }
+    }
+
+    fn create_powerup() -> PowerUpKind {
+        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelyhood()).sum();
+        let mut rand_number = rand::thread_rng().gen_range(1, max_number);
+        let mut powerup = PowerUpKind::Gun;
+
+        for mut powerup in PowerUpKind::iter() {
+            if (rand_number <= 0) {
+                return powerup;
+            }
+
+            rand_number -= powerup.get_likelyhood();
+            powerup = powerup;
+        }
+
+        powerup
     }
 
     pub fn handle_bullets(&mut self) -> Vec<u64> {
@@ -88,11 +114,18 @@ impl GameState {
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
-        for player in &mut self.players {
-            for bullet in &mut self.bullets {
+        for bullet in &mut self.bullets.clone() {
+            let killer = self.get_player_by_id(bullet.owner).unwrap().name.clone();
+            
+            for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();
                 if distance < hit_radius as f32 && bullet.is_armed() {
                     player.damage_player(bullet.damage);
+                    if player.did_i_die() {
+                        let msg = killer.clone() + " killed " + 
+                            &player.name + " using a Gun.";
+                        self.killfeed.add_message(&msg);
+                    }
                     bullets_to_remove.push(bullet.id);
                     hit_players.push(player.id);
                 }
@@ -114,8 +147,10 @@ impl GameState {
         self.lasers.append(&mut new_lasers);
         self.lasers.retain(|l| !l.should_be_removed());
 
-        for laser in &mut self.lasers {
+        for laser in &mut self.lasers.clone() {
             laser.update(delta);
+
+            let killer = self.get_player_by_id(laser.owner).unwrap().name.clone();
 
             // Check collision
             let direction = na::Vector2::new(
@@ -139,6 +174,13 @@ impl GameState {
                     if distance < hit_radius as f32 {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
+
+                        if player.did_i_die() {
+                            let msg = killer.clone() + " killed " +
+                                &player.name + " using a Laser.";
+                            self.killfeed.add_message(&msg);
+                        }
+
                         break;
                     }
                 }

@@ -57,6 +57,8 @@ pub const COLLISION_DAMAGE: i16 = 30;
 pub const COLLISION_GRACE_PERIOD: f32 = 1.;
 
 pub const HIT_SEQUENCE_AMOUNT: f32 = 0.7;
+pub const MAX_RED_ALPHA: f32 = 0.7;
 pub const HIT_SEQUENCE_RATE: f32 = 0.015;
 pub const HIT_SHAKE_SPEED: f32 = 55.;
 pub const HIT_SHAKE_MAGNITUDE: f32 = 7.;
+

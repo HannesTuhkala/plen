@@ -14,10 +14,11 @@ pub struct Bullet {
     pub traveled_distance: f32,
     pub damage: i16,
     pub lifetime: f32,
+    pub owner: u64,
 }
 
 impl Bullet {
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: i16)
+    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: i16, owner: u64)
         -> Bullet
     {
         let mut rng = rand::thread_rng();
@@ -28,6 +29,7 @@ impl Bullet {
             traveled_distance: 0.,
             damage,
             lifetime: 0.,
+            owner,
         }
     }
 
@@ -39,6 +41,10 @@ impl Bullet {
 
     pub fn is_armed(&mut self) -> bool {
         self.lifetime > constants::BULLET_ARM_TIME
+    }
+
+    pub fn get_shooter(&mut self) -> u64 {
+        self.owner
     }
 }
 

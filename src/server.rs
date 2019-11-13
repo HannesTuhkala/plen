@@ -6,6 +6,7 @@ mod gamestate;
 mod constants;
 mod math;
 mod powerups;
+mod killfeed;
 
 use std::io;
 use std::vec;

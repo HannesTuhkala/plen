@@ -1,6 +1,7 @@
 use crate::player;
 use crate::constants;
 use crate::gamestate::GameState;
+use crate::killfeed::KillFeed;
 
 use ggez;
 use ggez::event;
@@ -214,12 +215,12 @@ impl Map {
             }
         }
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs, ctx, assets);
 
         // the offset which causes the camera to shake upon getting hit
-        let mut hit_offset = na::Vector2::new(0., 0.);
+        let mut hit_offset = na::Point2::new(0., 0.);
         if hit_effect_timer > 0. {
-            hit_offset = na::Vector2::new(
+            hit_offset = na::Point2::new(
                 (hit_effect_timer*constants::HIT_SHAKE_SPEED*0.9).sin()
                     *constants::HIT_SHAKE_MAGNITUDE*hit_effect_timer,
                 (hit_effect_timer*constants::HIT_SHAKE_SPEED*1.1).sin()
@@ -227,20 +228,23 @@ impl Map {
                 );
         }
 
-        graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
-        graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
+        let camera_offset = hit_offset;
+
+        graphics::draw(ctx, &background_sb, (camera_offset,)).unwrap();
+        graphics::draw(ctx, &smoke_sb, (camera_offset,)).unwrap();
         for sb in plane_sbs.values() {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
+            graphics::draw(ctx, sb, (camera_offset,)).unwrap();
         }
 
         for sb in powerup_sbs.values() {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
+            graphics::draw(ctx, sb, (camera_offset,)) .unwrap();
         }
-        graphics::draw(ctx, &laser_charge_sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
-        graphics::draw(ctx, &laser_sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
+        graphics::draw(ctx, &laser_charge_sb, (camera_offset,)) .unwrap();
+        graphics::draw(ctx, &laser_sb, (camera_offset,)) .unwrap();
         for sb in &laser_decay_sbs {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
+            graphics::draw(ctx, sb, (camera_offset,)) .unwrap();
         }
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 for player in &game_state.players {
@@ -275,9 +279,9 @@ impl Map {
                     let green_mesh = graphics::Mesh::new_rectangle(
                         ctx, graphics::DrawMode::fill(), green_rect, graphics::Color::new(0., 1., 0., 1.)
                     ).unwrap();
-                    graphics::draw(ctx, &red_mesh, (na::Point2::new(0., 0.) + hit_offset,))
+                    graphics::draw(ctx, &red_mesh, (camera_offset,))
                         .unwrap();
-                    graphics::draw(ctx, &green_mesh, (na::Point2::new(0., 0.) + hit_offset,))
+                    graphics::draw(ctx, &green_mesh, (camera_offset,))
                         .unwrap();
 
                 }
@@ -292,8 +296,9 @@ impl Map {
         }
 
         graphics::draw_queued_text(
-            ctx, (na::Point2::new(0., 0.) + hit_offset,), None, graphics::FilterMode::Linear);
+            ctx, (camera_offset,), None, graphics::FilterMode::Linear);
         
+        Self::draw_killfeed(ctx, assets, game_state);
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, ctx: &mut ggez::Context) {
@@ -307,7 +312,8 @@ impl Map {
                     constants::WINDOW_SIZE,
                     constants::WINDOW_SIZE,
                     ),
-                [0.8, 0., 0., hit_effect_timer].into()
+                [0.8, 0., 0., hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
+                    * constants::MAX_RED_ALPHA].into()
             ).unwrap();
             graphics::draw(
                 ctx, rect,
@@ -462,6 +468,8 @@ impl Map {
         my_id: u64,
         game_state: &GameState,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
+        ctx: &mut ggez::Context,
+        assets: &Assets,
     ) {
         let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
         let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
@@ -478,6 +486,25 @@ impl Map {
                     x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
                 }
             });
+    }
+
+    fn draw_killfeed(ctx: &mut ggez::Context, assets: &Assets, game_state: &GameState) {
+        let mut i: f32 = 0.;
+        let mut kf = game_state.killfeed.clone();
+        let mut messages = kf.get_messages().clone();
+        for message in messages.iter() {
+            let mut kfm = graphics::Text::new(message.message.clone());
+            kfm.set_font(assets.font, graphics::Scale::uniform(20.));
+            let width = kfm.width(ctx) as f32;
+            
+            graphics::queue_text(
+                ctx, &kfm,
+                na::Point2::new(constants::WINDOW_SIZE - 700., -constants::WINDOW_SIZE/2. + 30. * i),
+                Some(graphics::Color::new(1., 0., 0., 1.))
+            );
+
+            i += 1.;
+        }
     }
 
     fn draw_mini_map(
