@@ -10,7 +10,7 @@ impl Message {
     pub fn new(message: String) -> Self {
         Message {
             message,
-            duration_left: Some(5.),
+            duration_left: Some(3.5),
         }
     }
 }
