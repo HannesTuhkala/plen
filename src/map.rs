@@ -150,6 +150,7 @@ impl Map {
         game_state: &GameState,
         assets: &Assets,
         powerup_rotation: f32,
+        hit_effect_timer: f32,
     ) {
         let mut background_sb = spritebatch::SpriteBatch::new(
             assets.background.clone()
@@ -215,19 +216,30 @@ impl Map {
 
         Self::draw_ui(my_id, game_state, &mut powerup_sbs);
 
-        graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
-        graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
+        // the offset which causes the camera to shake upon getting hit
+        let mut hit_offset = na::Vector2::new(0., 0.);
+        if hit_effect_timer > 0. {
+            hit_offset = na::Vector2::new(
+                (hit_effect_timer*constants::HIT_SHAKE_SPEED*0.9).sin()
+                    *constants::HIT_SHAKE_MAGNITUDE*hit_effect_timer,
+                (hit_effect_timer*constants::HIT_SHAKE_SPEED*1.1).sin()
+                    *constants::HIT_SHAKE_MAGNITUDE*hit_effect_timer,
+                );
+        }
+
+        graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
+        graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
         for sb in plane_sbs.values() {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)).unwrap();
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)).unwrap();
         }
 
         for sb in powerup_sbs.values() {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
         }
-        graphics::draw(ctx, &laser_charge_sb, (na::Point2::new(0., 0.),)) .unwrap();
-        graphics::draw(ctx, &laser_sb, (na::Point2::new(0., 0.),)) .unwrap();
+        graphics::draw(ctx, &laser_charge_sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
+        graphics::draw(ctx, &laser_sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
         for sb in &laser_decay_sbs {
-            graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
+            graphics::draw(ctx, sb, (na::Point2::new(0., 0.) + hit_offset,)) .unwrap();
         }
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
@@ -263,12 +275,16 @@ impl Map {
                     let green_mesh = graphics::Mesh::new_rectangle(
                         ctx, graphics::DrawMode::fill(), green_rect, graphics::Color::new(0., 1., 0., 1.)
                     ).unwrap();
-                    graphics::draw(ctx, &red_mesh, graphics::DrawParam::default()).unwrap();
-                    graphics::draw(ctx, &green_mesh, graphics::DrawParam::default()).unwrap();
+                    graphics::draw(ctx, &red_mesh, (na::Point2::new(0., 0.) + hit_offset,))
+                        .unwrap();
+                    graphics::draw(ctx, &green_mesh, (na::Point2::new(0., 0.) + hit_offset,))
+                        .unwrap();
 
                 }
             }
         }
+
+        Self::draw_red_hit_effect(hit_effect_timer, ctx);
 
         graphics::draw(ctx, &bullet_sb, (na::Point2::new(0., 0.),)).unwrap();
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -276,7 +292,27 @@ impl Map {
         }
 
         graphics::draw_queued_text(
-            ctx, (na::Point2::new(0., 0.),), None, graphics::FilterMode::Linear);
+            ctx, (na::Point2::new(0., 0.) + hit_offset,), None, graphics::FilterMode::Linear);
+        
+    }
+
+    fn draw_red_hit_effect(hit_effect_timer: f32, ctx: &mut ggez::Context) {
+        if hit_effect_timer > 0. {
+            let rect = &graphics::Mesh::new_rectangle(
+                ctx,
+                graphics::DrawMode::fill(),
+                graphics::Rect::new(
+                    -constants::WINDOW_SIZE/2.,
+                    -constants::WINDOW_SIZE/2.,
+                    constants::WINDOW_SIZE,
+                    constants::WINDOW_SIZE,
+                    ),
+                [0.8, 0., 0., hit_effect_timer].into()
+            ).unwrap();
+            graphics::draw(
+                ctx, rect,
+                (na::Point2::new(0., 0.),)).unwrap();
+        }
     }
 
     fn place_world_at(
@@ -442,7 +478,6 @@ impl Map {
                     x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
                 }
             });
-
     }
 
     fn draw_mini_map(

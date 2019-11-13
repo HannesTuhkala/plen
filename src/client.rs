@@ -67,6 +67,7 @@ struct MainState<'a> {
     key_states: KeyStates,
     last_time: Instant,
     powerup_rotation: f32,
+    hit_effect_timer: f32,
 }
 
 struct EndState<'a> {
@@ -87,6 +88,7 @@ impl<'a> MainState<'a> {
             key_states: KeyStates::new(),
             last_time: Instant::now(),
             powerup_rotation: 0.,
+            hit_effect_timer: 0.,
         };
         Ok(s)
     }
@@ -132,6 +134,8 @@ impl<'a> event::EventHandler for EndState<'a> {
 
 impl<'a> event::EventHandler for MainState<'a> {
     fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        self.update_hit_sequence();
+
         let elapsed = self.last_time.elapsed();
         self.last_time = Instant::now();
 
@@ -159,6 +163,13 @@ impl<'a> event::EventHandler for MainState<'a> {
                 }
                 ServerMessage::YouDied => {
                     ctx.continuing = false
+                }
+                ServerMessage::PlayerHit(id) => {
+                    // TODO handle if it's someone elses id, for example
+                    // for sound effects and stuff
+                    if id == self.my_id {
+                        self.start_hit_sequence();
+                    }
                 }
             }
         }
@@ -205,10 +216,33 @@ impl<'a> event::EventHandler for MainState<'a> {
             &self.game_state,
             &self.assets,
             self.powerup_rotation,
+            self.hit_effect_timer,
         );
         graphics::present(ctx)?;
         Ok(())
     }
+}
+
+impl<'a> MainState<'a> {
+    
+    fn start_hit_sequence(&mut self) {
+        self.hit_effect_timer = constants::HIT_SEQUENCE_AMOUNT;
+    }
+
+    /**
+     * Updates the hit sequence timer. Returns true if the hit effect timer is 0,
+     * otherwise false.
+     */
+    fn update_hit_sequence(&mut self) -> bool {
+        if self.hit_effect_timer <= 0. {
+            self.hit_effect_timer = 0.;
+            true
+        } else {
+            self.hit_effect_timer -= constants::HIT_SEQUENCE_RATE;
+            false
+        }
+    }
+
 }
 
 pub fn main() -> ggez::GameResult {
