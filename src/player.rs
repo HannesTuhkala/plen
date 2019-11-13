@@ -210,6 +210,10 @@ impl Player {
         }
     }
 
+    pub fn did_i_die(&mut self) -> bool {
+        self.health == 0
+    }
+
     pub fn shoot(&mut self) -> Option<bullet::Bullet> {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
@@ -235,6 +239,7 @@ impl Player {
                         dir.sin() * constants::BULLET_VELOCITY,
                     ),
                     self.planetype.firepower(),
+                    self.id,
                 ))
             } else {
                 None

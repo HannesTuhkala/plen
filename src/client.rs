@@ -8,6 +8,7 @@ mod messages;
 mod powerups;
 mod math;
 mod menu;
+mod killfeed;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
@@ -25,7 +26,7 @@ use ears::AudioController;
 
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-
+use crate::killfeed::KillFeed;
 use menu::MenuState;
 
 struct KeyStates {
@@ -67,6 +68,7 @@ struct MainState<'a> {
     key_states: KeyStates,
     last_time: Instant,
     powerup_rotation: f32,
+    killfeed: KillFeed,
 }
 
 struct EndState<'a> {
@@ -87,6 +89,7 @@ impl<'a> MainState<'a> {
             key_states: KeyStates::new(),
             last_time: Instant::now(),
             powerup_rotation: 0.,
+            killfeed: KillFeed::new(),
         };
         Ok(s)
     }

@@ -6,6 +6,7 @@ use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
 use crate::bullet::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
+use crate::killfeed::KillFeed;
 use crate::math::wrap_around;
 use rand::Rng;
 
@@ -17,6 +18,7 @@ pub struct GameState {
     pub bullets: Vec<Bullet>,
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
+    pub killfeed: KillFeed,
 }
 
 impl GameState {
@@ -26,6 +28,7 @@ impl GameState {
             bullets: Vec::new(),
             powerups: Vec::new(),
             lasers: Vec::new(),
+            killfeed: KillFeed::new(),
         }
     }
 
@@ -34,10 +37,13 @@ impl GameState {
         self.handle_bullets();
         self.handle_lasers(delta);
         self.handle_player_collisions(delta);
+        self.killfeed.manage_killfeed(delta);
     }
 
     pub fn add_player(&mut self, player: Player) {
-        self.players.push(player)
+        self.players.push(player.clone());
+        let msg = player.name + " has joined the game.";
+        self.killfeed.add_message(&msg);
     }
 
     pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
@@ -103,11 +109,18 @@ impl GameState {
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
-        for player in &mut self.players {
-            for bullet in &mut self.bullets {
+        for bullet in &mut self.bullets.clone() {
+            let killer = self.get_player_by_id(bullet.owner).unwrap().name.clone();
+            
+            for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();
                 if distance < hit_radius as f32 && bullet.is_armed() {
                     player.damage_player(bullet.damage);
+                    if player.did_i_die() {
+                        let msg = killer.clone() + " killed " + 
+                            &player.name + " using a Gun.";
+                        self.killfeed.add_message(&msg);
+                    }
                     bullets_to_remove.push(bullet.id);
                 }
             }
@@ -127,8 +140,10 @@ impl GameState {
         self.lasers.append(&mut new_lasers);
         self.lasers.retain(|l| !l.should_be_removed());
 
-        for laser in &mut self.lasers {
+        for laser in &mut self.lasers.clone() {
             laser.update(delta);
+
+            let killer = self.get_player_by_id(laser.owner).unwrap().name.clone();
 
             // Check collision
             let direction = na::Vector2::new(
@@ -152,6 +167,13 @@ impl GameState {
                     if distance < hit_radius as f32 {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
+
+                        if player.did_i_die() {
+                            let msg = killer.clone() + " killed " +
+                                &player.name + " using a Laser.";
+                            self.killfeed.add_message(&msg);
+                        }
+
                         break;
                     }
                 }

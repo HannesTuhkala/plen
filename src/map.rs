@@ -1,6 +1,7 @@
 use crate::player;
 use crate::constants;
 use crate::gamestate::GameState;
+use crate::killfeed::KillFeed;
 
 use ggez;
 use ggez::event;
@@ -213,7 +214,7 @@ impl Map {
             }
         }
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs);
+        Self::draw_ui(my_id, game_state, &mut powerup_sbs, ctx, assets);
 
         graphics::draw(ctx, &background_sb, (na::Point2::new(0., 0.),)).unwrap();
         graphics::draw(ctx, &smoke_sb, (na::Point2::new(0., 0.),)).unwrap();
@@ -229,6 +230,7 @@ impl Map {
         for sb in &laser_decay_sbs {
             graphics::draw(ctx, sb, (na::Point2::new(0., 0.),)) .unwrap();
         }
+
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 for player in &game_state.players {
@@ -277,6 +279,8 @@ impl Map {
 
         graphics::draw_queued_text(
             ctx, (na::Point2::new(0., 0.),), None, graphics::FilterMode::Linear);
+
+        Self::draw_killfeed(ctx, assets, game_state);
     }
 
     fn place_world_at(
@@ -426,6 +430,8 @@ impl Map {
         my_id: u64,
         game_state: &GameState,
         powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
+        ctx: &mut ggez::Context,
+        assets: &Assets,
     ) {
         let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
         let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
@@ -442,7 +448,25 @@ impl Map {
                     x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
                 }
             });
+    }
 
+    fn draw_killfeed(ctx: &mut ggez::Context, assets: &Assets, game_state: &GameState) {
+        let mut i: f32 = 0.;
+        let mut kf = game_state.killfeed.clone();
+        let mut messages = kf.get_messages().clone();
+        for message in messages.iter() {
+            let mut kfm = graphics::Text::new(message.message.clone());
+            kfm.set_font(assets.font, graphics::Scale::uniform(20.));
+            let width = kfm.width(ctx) as f32;
+            
+            graphics::queue_text(
+                ctx, &kfm,
+                na::Point2::new(constants::WINDOW_SIZE - 700., -constants::WINDOW_SIZE/2. + 30. * i),
+                Some(graphics::Color::new(1., 0., 0., 1.))
+            );
+
+            i += 1.;
+        }
     }
 
     fn draw_mini_map(

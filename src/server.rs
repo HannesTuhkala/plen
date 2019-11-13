@@ -6,6 +6,7 @@ mod gamestate;
 mod constants;
 mod math;
 mod powerups;
+mod killfeed;
 
 use std::io;
 use std::vec;
@@ -90,7 +91,6 @@ impl Server {
 
     pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
-        //let delta_time = 1./100.;
         let delta_time = self.get_delta_time();
         let dt_duration = std::time::Duration::from_millis(10);
         if elapsed < dt_duration {
