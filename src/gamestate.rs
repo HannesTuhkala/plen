@@ -32,12 +32,16 @@ impl GameState {
         }
     }
 
-    pub fn update(&mut self, delta: f32) {
+    /**
+     *  Updates the gamestate and returns a vec with player ids that got hit with bullets.
+     */
+    pub fn update(&mut self, delta: f32) -> Vec<u64> {
         self.handle_powerups();
-        self.handle_bullets();
+        let hit_players = self.handle_bullets();
         self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
+        hit_players
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -105,7 +109,8 @@ impl GameState {
         powerup
     }
 
-    pub fn handle_bullets(&mut self) {
+    pub fn handle_bullets(&mut self) -> Vec<u64> {
+        let mut hit_players: Vec<u64> = Vec::new();
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
@@ -122,12 +127,14 @@ impl GameState {
                         self.killfeed.add_message(&msg);
                     }
                     bullets_to_remove.push(bullet.id);
+                    hit_players.push(player.id);
                 }
             }
         }
         self.bullets.retain(
             |bullet| !bullets_to_remove.contains(&bullet.id)
-        )
+        );
+        hit_players
     }
 
     pub fn handle_lasers(&mut self, delta: f32) {

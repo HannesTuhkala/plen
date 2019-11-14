@@ -98,9 +98,10 @@ impl Server {
         }
         self.last_time = Instant::now();
 
-        self.state.update(delta_time);
+        let hit_players = self.state.update(delta_time);
+
         self.accept_new_connections();
-        self.update_clients(delta_time);
+        self.update_clients(delta_time, hit_players);
 
         for bullet in &mut self.state.bullets {
             bullet.update(delta_time);
@@ -141,7 +142,7 @@ impl Server {
         }
     }
 
-    fn update_clients(&mut self, delta_time: f32) {
+    fn update_clients(&mut self, delta_time: f32, hit_players: Vec<u64>) {
         // Send data to clients
         let mut clients_to_delete = vec!();
         let mut sounds_to_play = vec!();
@@ -197,6 +198,15 @@ impl Server {
                         self.state.add_player(player);
                     }
                 }
+            }
+
+            // transmit player hit messages
+            for hit_id in &hit_players {
+                let result = send_server_message(
+                    &ServerMessage::PlayerHit(*hit_id),
+                    &mut client.stream
+                );
+                remove_player_on_disconnect!(result, *id);
             }
 
             let mut bullet = None;
