@@ -13,7 +13,6 @@ use std::vec;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
-use serde_json;
 use nalgebra::Point2;
 use nalgebra as na;
 use std::time::Instant;
@@ -24,18 +23,12 @@ use player::Player;
 use powerups::PowerUpKind;
 
 
-fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
-    -> io::Result<()>
-{
-    let mut data = serde_json::to_string(msg)
-        .expect("Failed to encode message");
-    data.push(0 as char);
-    let bytes = data.as_bytes();
+fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
     let mut start = 0;
     loop {
-        match stream.write(&bytes[start..data.len()]) {
+        match stream.write(&bytes[start..bytes.len()]) {
             Ok(n) => {
-                if n < data.len() - start {
+                if n < bytes.len() - start {
                     start = start + n;
                 }
                 else {
@@ -51,6 +44,15 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
             }
         }
     }
+}
+
+fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
+    -> io::Result<()>
+{
+    let data = bincode::serialize(msg).expect("Failed to encode message");
+    let length = data.len() as u16;
+    send_bytes(&length.to_be_bytes(), stream)?;
+    send_bytes(&data, stream)
 }
 
 struct Server {

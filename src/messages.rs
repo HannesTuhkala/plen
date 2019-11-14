@@ -46,27 +46,29 @@ macro_rules! impl_message_reader {
             type Item = $output;
 
             fn next(&mut self) -> Option<Self::Item> {
-                let mut first_null = None;
-                for (i, b) in self.byte_queue.iter().enumerate() {
-                    if *b == '\0' as u8 {
-                        first_null = Some(i);
-                        break;
-                    }
+                // We need two bytes for the length
+                if self.byte_queue.len() < 2 {
+                    return None;
                 }
 
-                let msg_bytes = match first_null {
-                    None => return None,
-                    Some(i) => self.byte_queue.drain(0..i)
-                }.collect::<Vec<u8>>();
-                self.byte_queue.pop_front();
+                let length = u16::from_be_bytes([
+                    self.byte_queue[0],
+                    self.byte_queue[1],
+                ]) as usize;
 
-                let as_str = String::from_utf8_lossy(&msg_bytes);
+                // We will not read a message until a complete message has been
+                // received
+                if self.byte_queue.len() < 2 + length {
+                    return None;
+                }
+
+                self.byte_queue.pop_front().unwrap();
+                self.byte_queue.pop_front().unwrap();
+
+                let msg_bytes: Vec<_> = self.byte_queue.drain(0..length).collect();
 
                 Some(
-                    serde_json::from_str(&as_str)
-                        .map_err(|e| {
-                            println!("Current message: {}", as_str);
-                        })
+                    bincode::deserialize(&msg_bytes)
                         .expect("Failed to decode message")
                 )
             }
