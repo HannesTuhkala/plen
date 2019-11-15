@@ -17,13 +17,13 @@ pub const ANGULAR_FADE: f32 = 0.9;
 
 pub const BULLET_VELOCITY: f32 = 600.0;
 pub const BULLET_DAMAGE: i16 = 10;
-pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.8;
+pub const BULLET_MAX_TRAVEL: f32 = WORLD_SIZE * 0.3;
 pub const BULLET_START: f32 = 30.;
 pub const PLAYER_COOLDOWN: f32 = 0.2;
 pub const BULLET_ARM_TIME: f32 = 0.03;
 
 // Time between laser charge start and fire
-pub const LASER_FIRE_TIME: f32 = 0.5;
+pub const LASER_FIRE_TIME: f32 = 0.8;
 // Durationi of laser damage
 pub const LASER_ACTIVE_TIME: f32 = 0.02;
 // Time at which the beam lingors while not doing any damage
