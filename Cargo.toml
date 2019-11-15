@@ -10,7 +10,7 @@ edition = "2018"
 ggez = "0.5"
 serde = "1.0.102"
 serde_derive = "1.0.102"
-serde_json = "1.0.41"
+bincode = "1.2.0"
 nalgebra = {version = "0.18.1", features = ["serde-serialize"]}
 rand = "0.7.2"
 rand_derive = "0.5.0"

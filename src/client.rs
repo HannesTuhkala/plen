@@ -50,11 +50,11 @@ impl KeyStates {
 }
 
 fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
-    let data = serde_json::to_string(msg)
-        .expect("Failed to encode message");
-    stream.write(data.as_bytes())
-        .expect("Failed to send message to server");
-    stream.write(&[0])
+    let data = bincode::serialize(msg).expect("Failed to encode message");
+    let length = data.len() as u16;
+    stream.write(&length.to_be_bytes())
+        .expect("Failed to send message length to server");
+    stream.write(&data)
         .expect("Failed to send message to server");
 }
 
