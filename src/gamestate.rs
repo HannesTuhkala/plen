@@ -114,7 +114,7 @@ impl GameState {
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
-        for bullet in &mut self.bullets.clone() {
+        for bullet in &mut self.bullets {
             let killer = bullet.owner.clone();
             
             for player in &mut self.players {
@@ -147,7 +147,7 @@ impl GameState {
         self.lasers.append(&mut new_lasers);
         self.lasers.retain(|l| !l.should_be_removed());
 
-        for laser in &mut self.lasers.clone() {
+        for laser in &mut self.lasers {
             laser.update(delta);
 
             let killer = laser.owner_name.clone();
