@@ -115,7 +115,7 @@ impl GameState {
         let mut bullets_to_remove = vec!();
 
         for bullet in &mut self.bullets.clone() {
-            let killer = self.get_player_by_id(bullet.owner).unwrap().name.clone();
+            let killer = bullet.owner.clone();
             
             for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();
@@ -150,7 +150,7 @@ impl GameState {
         for laser in &mut self.lasers.clone() {
             laser.update(delta);
 
-            let killer = self.get_player_by_id(laser.owner).unwrap().name.clone();
+            let killer = laser.owner_name.clone();
 
             // Check collision
             let direction = na::Vector2::new(
