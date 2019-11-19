@@ -239,7 +239,7 @@ impl Player {
                         dir.sin() * constants::BULLET_VELOCITY,
                     ),
                     self.planetype.firepower(),
-                    self.id,
+                    self.name.clone(),
                 ))
             } else {
                 None
@@ -254,7 +254,7 @@ impl Player {
     }
     pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
         if self.lasering_this_frame {
-            Some(LaserBeam::new(self.position, self.rotation, 100, self.id))
+            Some(LaserBeam::new(self.position, self.rotation, 100, self.id, self.name.clone()))
         }
         else {
             None
