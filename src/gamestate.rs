@@ -97,13 +97,13 @@ impl GameState {
         let mut rand_number = rand::thread_rng().gen_range(1, max_number);
         let mut powerup = PowerUpKind::Gun;
 
-        for mut powerup in PowerUpKind::iter() {
+        for p in PowerUpKind::iter() {
             if (rand_number <= 0) {
                 return powerup;
             }
 
-            rand_number -= powerup.get_likelyhood();
-            powerup = powerup;
+            rand_number -= p.get_likelyhood();
+            powerup = p;
         }
 
         powerup
