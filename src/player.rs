@@ -196,7 +196,7 @@ impl Player {
     }
 
     pub fn damage_player(&mut self, damage: i16) {
-        if self.invincibility_is_on() {
+        if self.invincibility_is_on() && damage > 0 {
             return;
         }
 
