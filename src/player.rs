@@ -196,7 +196,7 @@ impl Player {
     }
 
     pub fn damage_player(&mut self, damage: i16) {
-        if self.invincibility_is_on() && damage > 0 {
+        if self.invincibility_is_on() {
             return;
         }
 
@@ -205,12 +205,17 @@ impl Player {
         if self.health <= 0 {
             self.health = 0;
         }
+    }
+
+    pub fn heal_player(&mut self, hp: i16) {
+        self.health += hp;
+
         if self.health > self.max_health() {
             self.health = self.max_health()
         }
     }
 
-    pub fn did_i_die(&mut self) -> bool {
+    pub fn has_died(&mut self) -> bool {
         self.health == 0
     }
 
@@ -270,7 +275,7 @@ impl Player {
         }
         
         if (kind == PowerUpKind::Health) {
-            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
+            self.heal_player(constants::POWERUP_HEALTH_BOOST);
         }
 
         if (!kind.is_instant()) {

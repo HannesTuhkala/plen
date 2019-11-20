@@ -52,7 +52,7 @@ impl PowerUpKind {
         }
     }
 
-    pub fn get_likelyhood(&self) -> i32 {
+    pub fn get_likelihood(&self) -> i32 {
         match self {
             PowerUpKind::Laser => 60,
             PowerUpKind::Afterburner => 40,

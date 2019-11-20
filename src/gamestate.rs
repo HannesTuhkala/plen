@@ -93,7 +93,7 @@ impl GameState {
     }
 
     fn create_powerup() -> PowerUpKind {
-        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelyhood()).sum();
+        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
         let mut rand_number = rand::thread_rng().gen_range(1, max_number);
         let mut powerup = PowerUpKind::Gun;
 
@@ -102,7 +102,7 @@ impl GameState {
                 return powerup;
             }
 
-            rand_number -= p.get_likelyhood();
+            rand_number -= p.get_likelihood();
             powerup = p;
         }
 
@@ -121,7 +121,7 @@ impl GameState {
                 let distance = (bullet.position - player.position).norm();
                 if distance < hit_radius as f32 && bullet.is_armed() {
                     player.damage_player(bullet.damage);
-                    if player.did_i_die() {
+                    if player.has_died() {
                         let msg = killer.clone() + " killed " + 
                             &player.name + " using a Gun.";
                         self.killfeed.add_message(&msg);
@@ -175,7 +175,7 @@ impl GameState {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
 
-                        if player.did_i_die() {
+                        if player.has_died() {
                             let msg = killer.clone() + " killed " +
                                 &player.name + " using a Laser.";
                             self.killfeed.add_message(&msg);
