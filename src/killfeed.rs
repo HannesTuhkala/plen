@@ -46,9 +46,7 @@ impl KillFeed {
     }
 
     pub fn add_message(&mut self, message: &str) {
-        println!("Adding string: {}", message.to_string());
         self.messages.push(Message::new(message.to_string()));
-        println!("Self.size: {}", self.messages.len());
     }
 
     pub fn get_messages(&mut self) -> Vec<Message> {
