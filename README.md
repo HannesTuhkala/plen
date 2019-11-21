@@ -17,7 +17,7 @@ The game client is very slow in debug mode, so it should be run in release mode
 ### Compiling under Windows
 
 SDL2 needs to be added to be able to compile Plen under Windows. You can follow this tutorial https://github.com/Rust-SDL2/rust-sdl2/blob/master/README.md#windows-with-build-script
-or one of the others listed below it.
+(or possibly one of the others listed below it, not tested it myself but should work).
 
 You also need to install SDL2 mixer which can be found here https://www.libsdl.org/projects/SDL_mixer/.
 
