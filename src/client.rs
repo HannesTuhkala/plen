@@ -22,7 +22,6 @@ use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
-use ears::AudioController;
 
 use assets::Assets;
 use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
@@ -153,13 +152,19 @@ impl<'a> event::EventHandler for MainState<'a> {
                 ServerMessage::PlaySound(sound, pos) => {
                     match sound {
                         SoundEffect::Powerup => {
-                            self.assets.powerup.play_at(pos);
+                            sdl2::mixer::Channel::all().play(
+                                &self.assets.powerup, 0
+                            ).unwrap();
                         }
                         SoundEffect::Gun => {
-                            self.assets.gun.play_at(pos);
+                            sdl2::mixer::Channel::all().play(
+                                &self.assets.gun, 0
+                            ).unwrap();
                         }
                         SoundEffect::Explosion => {
-                            self.assets.explosion.play_at(pos);
+                            sdl2::mixer::Channel::all().play(
+                                &self.assets.explosion, 0
+                            ).unwrap();
                             self.map.add_explosion(pos);
                         }
                     }
@@ -176,8 +181,6 @@ impl<'a> event::EventHandler for MainState<'a> {
                 }
             }
         }
-
-        ears::listener::set_position([self.camera_position.x, 0., self.camera_position.y]);
 
         let mut y_input = 0.0;
         if self.key_states.forward == ElementState::Pressed {
@@ -288,6 +291,20 @@ pub fn main() -> ggez::GameResult {
                                  constants::WINDOW_SIZE))
         .add_resource_path(resource_dir)
         .build()?;
+
+    let sdl = sdl2::init().expect("Could not initialize SDL");
+    let _audio = sdl.audio().expect("Could not initialize SDL audio");
+    let frequency = 44_100;
+    let format = sdl2::mixer::AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
+    let channels = sdl2::mixer::DEFAULT_CHANNELS; // Stereo
+    let chunk_size = 1_024;
+    sdl2::mixer::open_audio(frequency, format, channels, chunk_size).expect("Could not open SDL mixer audio");
+    let _mixer_context = sdl2::mixer::init(
+        sdl2::mixer::InitFlag::OGG
+    ).expect("Could not initialize SDL mixer");
+
+    // Allows 16 sounds to play simultaneously
+    sdl2::mixer::allocate_channels(16);
 
     let mut assets = Assets::new(ctx);
 
