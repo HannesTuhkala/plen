@@ -8,6 +8,7 @@ use crate::projectiles::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
 use crate::math::wrap_around;
+use crate::projectiles::{ProjectileKind, Projectile};
 use rand::Rng;
 
 use strum::IntoEnumIterator;
@@ -15,7 +16,7 @@ use strum::IntoEnumIterator;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
     pub players: Vec<Player>,
-    pub bullets: Vec<Bullet>,
+    pub projectiles: Vec<ProjectileKind>,
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
@@ -25,7 +26,7 @@ impl GameState {
     pub fn new() -> GameState {
         GameState {
             players: Vec::new(),
-            bullets: Vec::new(),
+            projectiles: Vec::new(),
             powerups: Vec::new(),
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
@@ -61,8 +62,8 @@ impl GameState {
         None
     }
 
-    pub fn add_bullet(&mut self, bullet: Bullet) {
-        self.bullets.push(bullet)
+    pub fn add_bullet(&mut self, projectile: &ProjectileKind) {
+        self.projectiles.push(ProjectileKind::from(projectile.clone()))
     }
 
     /**
@@ -123,8 +124,8 @@ impl GameState {
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
-        for bullet in &mut self.bullets {
-            let killer = bullet.owner_name.clone();
+        for projectile in &mut self.projectiles {
+            let killer = projectile.owner_name.clone();
             
             for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();

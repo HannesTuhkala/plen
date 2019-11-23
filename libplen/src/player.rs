@@ -227,7 +227,7 @@ impl Player {
             else {
                 self.laser_charge_time = None;
             }
-        
+
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;

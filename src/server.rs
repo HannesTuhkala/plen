@@ -14,6 +14,7 @@ use libplen::player::Player;
 use libplen::powerups::PowerUpKind;
 use libplen::gamestate;
 use libplen::constants;
+use libplen::projectiles::Projectile;
 
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
