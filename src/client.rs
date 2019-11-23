@@ -160,6 +160,17 @@ impl<'a> event::EventHandler for MainState<'a> {
                             ).unwrap();
                             self.map.add_explosion(pos);
                         }
+                        SoundEffect::LaserCharge => {
+                            sdl2::mixer::Channel::all().play(
+                                &self.assets.laser_charge_sound, 0
+                            ).unwrap();
+                        }
+                        SoundEffect::LaserFire => {
+                            sdl2::mixer::Channel::all().play(
+                                &self.assets.laser_fire_sound, 0
+                            ).unwrap();
+                            self.map.add_explosion(pos);
+                        }
                     }
                 }
                 ServerMessage::YouDied => {
