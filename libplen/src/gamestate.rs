@@ -35,16 +35,20 @@ impl GameState {
 
     /**
      *  Updates the gamestate and returns
-     *  (vec with player ids that got hit with bullets,
-     *  vec with positions where powerups where picked up)
+     *  (
+     *  vec with player ids that got hit with bullets,
+     *  vec with positions where powerups where picked up,
+     *  vec with positions where lasers are fired
+     *  )
      */
-    pub fn update(&mut self, delta: f32) -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>) {
+    pub fn update(&mut self, delta: f32)
+        -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>) {
         let hit_powerup_positions = self.handle_powerups();
         let hit_players = self.handle_bullets(delta);
-        self.handle_lasers(delta);
+        let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
-        (hit_players, hit_powerup_positions)
+        (hit_players, hit_powerup_positions, fired_laser_positions)
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -155,11 +159,16 @@ impl GameState {
         hit_players
     }
 
-    pub fn handle_lasers(&mut self, delta: f32) {
+    /**
+     * Returns a vec with positions where lasers are fired.
+     */
+    pub fn handle_lasers(&mut self, delta: f32) -> Vec<na::Point2<f32>> {
         let mut new_lasers = vec!();
+        let mut fired_laser_positions = vec!();
         for player in &self.players {
             player.maybe_get_laser().map(|l| {
                 new_lasers.push(l);
+                fired_laser_positions.push(player.position);
             });
         }
         self.lasers.append(&mut new_lasers);
@@ -207,6 +216,7 @@ impl GameState {
                 }
             }
         }
+        fired_laser_positions
     }
 
     pub fn handle_player_collisions(&mut self, delta: f32) {

@@ -29,6 +29,8 @@ pub struct Assets {
     pub explosion: Chunk,
     pub powerup: Chunk,
     pub gun: Chunk,
+    pub laser_fire_sound: Chunk,
+    pub laser_charge_sound: Chunk,
 }
 
 impl Assets {
@@ -102,6 +104,8 @@ impl Assets {
             powerup: Chunk::from_file("resources/audio/powerup.ogg").unwrap(),
             explosion: Chunk::from_file("resources/audio/explosion.ogg").unwrap(),
             gun: Chunk::from_file("resources/audio/gun.ogg").unwrap(),
+            laser_fire_sound: Chunk::from_file("resources/audio/laserfire.ogg").unwrap(),
+            laser_charge_sound: Chunk::from_file("resources/audio/lasercharge.ogg").unwrap(),
         };
 
         // Volume is on a scale from 0 to 128
