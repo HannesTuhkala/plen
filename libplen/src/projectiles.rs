@@ -12,11 +12,12 @@ pub struct Bullet {
     pub traveled_distance: f32,
     pub damage: i16,
     pub lifetime: f32,
-    pub owner: String,
+    pub owner: u64,
+    pub owner_name: String,
 }
 
 impl Bullet {
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: i16, owner: String)
+    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: i16, owner: u64, owner_name: String)
         -> Bullet
     {
         let mut rng = rand::thread_rng();
@@ -28,6 +29,7 @@ impl Bullet {
             damage,
             lifetime: 0.,
             owner,
+            owner_name,
         }
     }
 
@@ -39,10 +41,6 @@ impl Bullet {
 
     pub fn is_armed(&mut self) -> bool {
         self.lifetime > constants::BULLET_ARM_TIME
-    }
-
-    pub fn get_shooter(&mut self) -> String {
-        self.owner.clone()
     }
 }
 
@@ -62,7 +60,7 @@ impl LaserBeam {
         angle: f32,
         damage: i16,
         owner: u64,
-        owner_name: String
+        owner_name: String,
     ) -> Self {
         Self {
             position,

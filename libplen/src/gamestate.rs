@@ -124,7 +124,7 @@ impl GameState {
         let mut bullets_to_remove = vec!();
 
         for bullet in &mut self.bullets {
-            let killer = bullet.owner.clone();
+            let killer = bullet.owner_name.clone();
             
             for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();
@@ -167,7 +167,7 @@ impl GameState {
                 (laser.angle + std::f32::consts::PI / 2.).sin()
             );
 
-            let hit_radius = PLANE_SIZE + 20;
+            let hit_radius = PLANE_SIZE + constants::LASER_RANGE_EXTRA;
             for player in &mut self.players {
                 if player.id == laser.owner {
                     continue
@@ -180,7 +180,10 @@ impl GameState {
                     if distance < lowest_distance {
                         lowest_distance = distance;
                     }
-                    if distance < hit_radius as f32 {
+
+                    // if laser has lived its full life then it should not damage anymore,
+                    // even though last phase is shown of the laser
+                    if distance < hit_radius as f32 && laser.lifetime > 0. {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
 
