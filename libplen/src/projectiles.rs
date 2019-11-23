@@ -19,9 +19,15 @@ pub enum ProjectileKind {
 #[enum_dispatch(ProjectileKind)]
 pub trait Projectile {
     fn update(&mut self, players: &[Player], delta_time: f32);
+    fn is_done(&self) -> bool;
     fn is_armed(&self) -> bool;
+
+    // Accessor functions
+    fn get_id(&self) -> u64;
     fn get_shooter(&self) -> u64;
     fn get_shooter_name(&self) -> String;
+    fn get_position(&self) -> na::Point2<f32>;
+    fn get_damage(&self) -> i16;
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -64,12 +70,15 @@ impl Projectile for Bullet {
     fn is_armed(&self) -> bool {
         self.lifetime > constants::BULLET_ARM_TIME
     }
-    fn get_shooter(&self) -> u64 {
-        self.owner
+    fn is_done(&self) -> bool {
+        self.traveled_distance < constants::BULLET_MAX_TRAVEL
     }
-    fn get_shooter_name(&self) -> String {
-        self.owner_name.clone()
-    }
+
+    fn get_shooter(&self) -> u64 {self.owner}
+    fn get_shooter_name(&self) -> String {self.owner_name.clone()}
+    fn get_position(&self) -> na::Point2<f32> {self.position}
+    fn get_damage(&self) -> i16 {self.damage}
+    fn get_id(&self) -> u64 {self.id}
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -124,7 +133,7 @@ pub struct Missile {
     pub angle: f32,
     pub position: na::Point2<f32>,
     pub lifetime: f32,
-    pub damage: f32,
+    pub damage: i16,
     pub owner: u64,
     pub owner_name: String,
 }
@@ -133,9 +142,9 @@ impl Missile {
     pub fn new(
         position: na::Point2<f32>,
         angle: f32,
-        damage: f32,
+        damage: i16,
         owner: u64,
-        owner_name: String
+        owner_name: String,
     ) -> Self {
         let mut rng = rand::thread_rng();
         Self {
@@ -198,13 +207,13 @@ impl Projectile for Missile {
             );
         self.position += movement_direction * delta_time;
     }
-    fn is_armed(&self) -> bool {
-        true
+    fn is_armed(&self) -> bool {true}
+    fn is_done(&self) -> bool {
+        self.lifetime > constants::MISSILE_LIFE_TIME
     }
-    fn get_shooter(&self) -> u64 {
-        self.owner
-    }
-    fn get_shooter_name(&self) -> String {
-        self.owner_name.clone()
-    }
+    fn get_shooter(&self) -> u64 {self.owner}
+    fn get_shooter_name(&self) -> String {self.owner_name.clone()}
+    fn get_position(&self) -> na::Point2<f32> {self.position}
+    fn get_damage(&self) -> i16 {self.damage}
+    fn get_id(&self) -> u64 {self.id}
 }

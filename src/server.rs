@@ -98,14 +98,6 @@ impl Server {
 
         self.accept_new_connections();
         self.update_clients(delta_time, &hit_players, &hit_powerup_positions);
-
-        for bullet in &mut self.state.bullets {
-            bullet.update(delta_time);
-        }
-
-        self.state.bullets.retain(
-            |bullet| bullet.traveled_distance < constants::BULLET_MAX_TRAVEL
-        );
     }
 
     fn accept_new_connections(&mut self) {
@@ -240,7 +232,7 @@ impl Server {
             }
 
             if let Some(bullet) = bullet {
-                let pos = bullet.position;
+                let pos = bullet.get_position();
                 self.state.add_bullet(bullet);
                 sounds_to_play.push((SoundEffect::Gun, pos));
             }

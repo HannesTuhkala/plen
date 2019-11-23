@@ -40,7 +40,7 @@ impl GameState {
      */
     pub fn update(&mut self, delta: f32) -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>) {
         let hit_powerup_positions = self.handle_powerups();
-        let hit_players = self.handle_bullets();
+        let hit_players = self.handle_bullets(delta);
         self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
@@ -62,8 +62,8 @@ impl GameState {
         None
     }
 
-    pub fn add_bullet(&mut self, projectile: &ProjectileKind) {
-        self.projectiles.push(ProjectileKind::from(projectile.clone()))
+    pub fn add_bullet(&mut self, projectile: ProjectileKind) {
+        self.projectiles.push(ProjectileKind::from(projectile))
     }
 
     /**
@@ -119,30 +119,38 @@ impl GameState {
         powerup
     }
 
-    pub fn handle_bullets(&mut self) -> Vec<u64> {
+    pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
+        for projectile in &mut self.projectiles {
+            projectile.update(&self.players, delta_time);
+        }
+
+        self.projectiles.retain(
+            |projectile| projectile.is_done()
+        );
+
         let mut hit_players: Vec<u64> = Vec::new();
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
         for projectile in &mut self.projectiles {
-            let killer = projectile.owner_name.clone();
+            let killer = projectile.get_shooter_name().clone();
             
             for player in &mut self.players {
-                let distance = (bullet.position - player.position).norm();
-                if distance < hit_radius as f32 && bullet.is_armed() {
-                    player.damage_player(bullet.damage);
+                let distance = (projectile.get_position() - player.position).norm();
+                if distance < hit_radius as f32 && projectile.is_armed() {
+                    player.damage_player(projectile.get_damage());
                     if player.has_died() {
                         let msg = killer.clone() + " killed " + 
                             &player.name + " using a Gun.";
                         self.killfeed.add_message(&msg);
                     }
-                    bullets_to_remove.push(bullet.id);
+                    bullets_to_remove.push(projectile.get_id());
                     hit_players.push(player.id);
                 }
             }
         }
-        self.bullets.retain(
-            |bullet| !bullets_to_remove.contains(&bullet.id)
+        self.projectiles.retain(
+            |bullet| !bullets_to_remove.contains(&bullet.get_id())
         );
         hit_players
     }

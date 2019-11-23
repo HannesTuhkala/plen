@@ -3,7 +3,7 @@ extern crate rand;
 use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
 use crate::constants;
-use crate::projectiles::{self, LaserBeam};
+use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
@@ -216,7 +216,7 @@ impl Player {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<projectiles::Bullet> {
+    pub fn shoot(&mut self) -> Option<ProjectileKind> {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
@@ -231,7 +231,7 @@ impl Player {
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
-                Some(projectiles::Bullet::new(
+                let new_bullet = projectiles::Bullet::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
                         dir.sin() * constants::BULLET_START,
@@ -243,7 +243,8 @@ impl Player {
                     self.planetype.firepower(),
                     self.id,
                     self.name.clone(),
-                ))
+                );
+                Some(ProjectileKind::from(new_bullet))
             } else {
                 None
             }
