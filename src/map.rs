@@ -108,6 +108,10 @@ impl Map {
             let mut rng = rand::thread_rng();
             self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
             for player in &game_state.players {
+                if player.is_invisible() {
+                    // don't draw player if invisible
+                    continue;
+                }
                 let random_offset = na::Vector2::new(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
@@ -211,6 +215,7 @@ impl Map {
                     camera_position,
                     offset,
                     powerup_rotation,
+                    my_id,
                 );
             }
         }
@@ -337,6 +342,7 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
+        my_id: u64,
     ) {
         let background_position = na::Point2::new(
             -camera_position.x,
@@ -347,6 +353,11 @@ impl Map {
                 .dest(background_position)
         );
         for player in &game_state.players {
+            if player.is_invisible() && player.id != my_id {
+                // don't draw player if invisible
+                continue;
+            }
+            let opacity = if player.is_invisible() {0.5} else {1.};
             let position = na::Point2::new(
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
@@ -357,6 +368,7 @@ impl Map {
                     .rotation(player.rotation)
                     .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
                     .offset(na::Point2::new(0.5, 0.5))
+                    .color([1., 1., 1., opacity].into())
             );
 
             let mut nametag = graphics::Text::new(player.name.clone());

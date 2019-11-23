@@ -17,7 +17,9 @@ pub enum PowerUpKind {
     Invincibility,
     Gun,
     SlowTime,
+    Invisible,
 }
+
 impl PowerUpKind {
     pub fn starting_duration(&self) -> Option<f32> {
         match self {
@@ -27,6 +29,7 @@ impl PowerUpKind {
             PowerUpKind::Invincibility => Some(7.),
             PowerUpKind::Gun => None,
             PowerUpKind::SlowTime => Some(1.5),
+            PowerUpKind::Invisible => Some(7.),
         }
     }
 
@@ -38,6 +41,7 @@ impl PowerUpKind {
             PowerUpKind::Invincibility => false,
             PowerUpKind::Gun => true,
             PowerUpKind::SlowTime => false,
+            PowerUpKind::Invisible => false,
         }
     }
 
@@ -49,6 +53,7 @@ impl PowerUpKind {
             PowerUpKind::Invincibility => false,
             PowerUpKind::Gun => false,
             PowerUpKind::SlowTime => false,
+            PowerUpKind::Invisible => false,
         }
     }
 
@@ -60,6 +65,7 @@ impl PowerUpKind {
             PowerUpKind::Invincibility => 30,
             PowerUpKind::Gun => 70,
             PowerUpKind::SlowTime => 10,
+            PowerUpKind::Invisible => 60,
         }
     }
 }
