@@ -19,10 +19,10 @@ pub enum PlaneType {
 impl PlaneType {
     pub fn speed(&self) -> f32 {
         match self {
-            PlaneType::SukaBlyat => 1.1,
-            PlaneType::HowdyCowboy => 1.05,
+            PlaneType::SukaBlyat => 1.05,
+            PlaneType::HowdyCowboy => 1.,
             PlaneType::ElPolloRomero => 1.1,
-            PlaneType::AchtungBlitzKrieg => 1.05,
+            PlaneType::AchtungBlitzKrieg => 1.,
         }
     }
 
@@ -39,7 +39,7 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 4.5,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 5.,
             PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 4.,
         }
     }
