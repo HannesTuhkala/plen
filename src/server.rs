@@ -6,7 +6,6 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
 use nalgebra::Point2;
-use nalgebra as na;
 use std::time::Instant;
 use rand::Rng;
 
