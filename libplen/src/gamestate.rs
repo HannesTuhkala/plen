@@ -50,14 +50,14 @@ impl GameState {
         self.killfeed.add_message(&msg);
     }
 
-    /*pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
+    pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
         for player in &self.players {
             if player.id == id {
                 return Some(player);
             }
         }
         None
-    }*/
+    }
 
     pub fn add_bullet(&mut self, bullet: Bullet) {
         self.bullets.push(bullet)
