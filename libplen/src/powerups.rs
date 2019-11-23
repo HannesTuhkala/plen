@@ -59,7 +59,7 @@ impl PowerUpKind {
     pub fn get_likelihood(&self) -> i32 {
         match self {
             PowerUpKind::Laser => 60,
-            PowerUpKind::Afterburner => 40,
+            PowerUpKind::Afterburner => 70,
             PowerUpKind::Health => 40,
             PowerUpKind::Invincibility => 30,
             PowerUpKind::Gun => 70,

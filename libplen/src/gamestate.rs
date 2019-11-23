@@ -158,7 +158,7 @@ impl GameState {
                 (laser.angle + std::f32::consts::PI / 2.).sin()
             );
 
-            let hit_radius = PLANE_SIZE + 20;
+            let hit_radius = PLANE_SIZE;
             for player in &mut self.players {
                 if player.id == laser.owner {
                     continue
