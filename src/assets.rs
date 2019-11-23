@@ -46,6 +46,8 @@ impl Assets {
              .expect("Could not load gun powerup asset")),
             (PowerUpKind::SlowTime, Image::new(ctx, "/powerups/slowtime.png")
              .expect("Could not load slowtime asset")),
+            (PowerUpKind::Invisible, Image::new(ctx, "/powerups/invisible.png")
+             .expect("Could not load invisible asset")),
         });
 
         let planes = HashMap::from_iter(vec!{
