@@ -35,8 +35,11 @@ impl GameState {
 
     /**
      *  Updates the gamestate and returns
-     *  (vec with player ids that got hit with bullets,
-     *  vec with positions where powerups where picked up)
+     *  (
+     *  vec with player ids that got hit with bullets,
+     *  vec with positions where powerups where picked up,
+     *  vec with positions where lasers are fired
+     *  )
      */
     pub fn update(&mut self, delta: f32)
         -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>) {
@@ -156,6 +159,9 @@ impl GameState {
         hit_players
     }
 
+    /**
+     * Returns a vec with positions where lasers are fired.
+     */
     pub fn handle_lasers(&mut self, delta: f32) -> Vec<na::Point2<f32>> {
         let mut new_lasers = vec!();
         let mut fired_laser_positions = vec!();

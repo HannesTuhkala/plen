@@ -216,12 +216,17 @@ impl Player {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<ProjectileKind> {
+    /**
+     * Fires a weapon, returns (Option on the bullet that may have been fired, 
+     * whether a laser started charging)
+     */
+    pub fn shoot(&mut self) -> (Option<ProjectileKind>, bool) {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
                 if let None = self.laser_charge_time {
-                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
+                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME);
+                    return (None, true);
                 }
             }
             else {
@@ -244,12 +249,12 @@ impl Player {
                     self.id,
                     self.name.clone(),
                 );
-                Some(ProjectileKind::from(new_bullet))
+                (Some(ProjectileKind::from(new_bullet)), false)
             } else {
-                None
+                (None, false)
             }
         } else {
-            None
+            (None, false)
         }
     }
 

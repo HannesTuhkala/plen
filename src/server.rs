@@ -219,7 +219,11 @@ impl Server {
                     );
 
                     if player_shooting {
-                        bullet = player.shoot();
+                        let (b, start_charging_laser) = player.shoot();
+                        bullet = b;
+                        if start_charging_laser {
+                            sounds_to_play.push((SoundEffect::LaserCharge, player.position));
+                        }
                     }
 
                     if player.health <= 0 {

@@ -31,7 +31,6 @@ pub struct Assets {
     pub gun: Chunk,
     pub laser_fire_sound: Chunk,
     pub laser_charge_sound: Chunk,
-
 }
 
 impl Assets {
