@@ -3,7 +3,7 @@ extern crate rand;
 use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
 use crate::constants;
-use crate::bullet::{self, LaserBeam};
+use crate::ammo::{self, LaserBeam};
 use crate::math;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
