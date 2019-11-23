@@ -308,7 +308,7 @@ pub fn main() -> ggez::GameResult {
     ).expect("Could not initialize SDL mixer");
 
     // Allows 16 sounds to play simultaneously
-    sdl2::mixer::allocate_channels(16);
+    sdl2::mixer::allocate_channels(32);
 
     let mut assets = Assets::new(ctx);
 
