@@ -1594,17 +1594,12 @@ dependencies = [
 name = "rust-network-game"
 version = "0.1.0"
 dependencies = [
- "bincode 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ggez 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libplen 0.1.0",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand_derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sdl2 0.32.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
- "strum 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "strum_macros 0.16.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "whoami 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

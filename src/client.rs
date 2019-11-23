@@ -19,7 +19,6 @@ use assets::Assets;
 use menu::MenuState;
 
 use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-use libplen::killfeed::KillFeed;
 
 use libplen::gamestate;
 use libplen::constants;
@@ -64,7 +63,6 @@ struct MainState<'a> {
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
-    killfeed: KillFeed,
 }
 
 struct EndState<'a> {
@@ -86,7 +84,6 @@ impl<'a> MainState<'a> {
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
-            killfeed: KillFeed::new(),
         };
         Ok(s)
     }
@@ -101,7 +98,7 @@ impl<'a> EndState<'a> {
 }
 
 impl<'a> event::EventHandler for EndState<'a> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+    fn update(&mut self, _ctx: &mut ggez::Context) -> ggez::GameResult {
         Ok(())
     }
 

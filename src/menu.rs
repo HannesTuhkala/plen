@@ -1,10 +1,11 @@
+#![allow(unused_variables)]
+
 use crate::assets::Assets;
 use libplen::player;
 use libplen::constants;
 
 use ggez;
-use ggez::event::{self, EventHandler};
-use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
+use ggez::event;
 use ggez::graphics;
 use ggez::nalgebra as na;
 use ggez::input::keyboard;
