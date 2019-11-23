@@ -197,7 +197,7 @@ impl Player {
             return;
         }
 
-        self.health -= damage * self.planetype.resilience();
+        self.health -= (damage * self.planetype.resilience()) as i16;
 
         if self.health <= 0 {
             self.health = 0;
