@@ -12,7 +12,7 @@ pub const MIN_SPEED: f32 = 50.;
 pub const DEFAULT_ACCELERATION: f32 = 200.;
 pub const DEFAULT_HEALTH: i16 = 150;
 
-pub const DEFAULT_AGILITY: f32 = 1.;
+pub const DEFAULT_AGILITY: f32 = 100.;
 pub const ANGULAR_FADE: f32 = 0.9;
 
 pub const BULLET_VELOCITY: f32 = 600.0;

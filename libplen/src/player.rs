@@ -164,7 +164,7 @@ impl Player {
             self.position + velocity * delta_time
         );
 
-        let angular_acceleration = x_input * self.planetype.agility()/10.;
+        let angular_acceleration = x_input * self.planetype.agility()/10. * delta_time;
         self.angular_velocity += angular_acceleration;
         self.angular_velocity *= constants::ANGULAR_FADE;
         if self.angular_velocity > self.planetype.agility() {
