@@ -30,7 +30,7 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 2.,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 3.5,
             PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 5.,
         }
     }
@@ -164,7 +164,7 @@ impl Player {
             self.position + velocity * delta_time
         );
 
-        let angular_acceleration = x_input * self.planetype.agility()/10.;
+        let angular_acceleration = x_input * self.planetype.agility()/10. * delta_time;
         self.angular_velocity += angular_acceleration;
         self.angular_velocity *= constants::ANGULAR_FADE;
         if self.angular_velocity > self.planetype.agility() {
@@ -197,7 +197,7 @@ impl Player {
             return;
         }
 
-        self.health -= damage;
+        self.health -= (damage as f32 * self.planetype.resilience()) as i16;
 
         if self.health <= 0 {
             self.health = 0;
@@ -241,6 +241,7 @@ impl Player {
                         dir.sin() * constants::BULLET_VELOCITY,
                     ),
                     self.planetype.firepower(),
+                    self.id,
                     self.name.clone(),
                 ))
             } else {
@@ -256,7 +257,7 @@ impl Player {
     }
     pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
         if self.lasering_this_frame {
-            Some(LaserBeam::new(self.position, self.rotation, 100, self.id, self.name.clone()))
+            Some(LaserBeam::new(self.position, self.rotation, constants::LASER_DAMAGE, self.id, self.name.clone()))
         }
         else {
             None
@@ -282,7 +283,7 @@ impl Player {
     }
 
     pub fn manage_powerups(&mut self, delta: f32) {
-        let new_powerups = self.powerups.iter_mut()
+        self.powerups.iter_mut()
             .for_each(|p| {
                 // Decrease the powerup time left
                 p.duration_left = p.duration_left
@@ -300,7 +301,7 @@ impl Player {
     pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if has_speed_boost {1.8} else {1.};
+        let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
 
         if self.speed > constants::MAX_SPEED {
             self.speed = constants::MAX_SPEED;

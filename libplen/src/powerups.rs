@@ -6,8 +6,7 @@ use rand_derive::Rand;
 
 extern crate strum;
 extern crate strum_macros;
-use strum_macros::{Display, EnumIter};
-use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 #[derive(Serialize, Deserialize, EnumIter, Clone, Hash, PartialEq, Eq, Rand, Debug)]
 pub enum PowerUpKind {
@@ -60,7 +59,7 @@ impl PowerUpKind {
     pub fn get_likelihood(&self) -> i32 {
         match self {
             PowerUpKind::Laser => 60,
-            PowerUpKind::Afterburner => 40,
+            PowerUpKind::Afterburner => 70,
             PowerUpKind::Health => 40,
             PowerUpKind::Invincibility => 30,
             PowerUpKind::Gun => 70,
