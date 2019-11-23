@@ -71,7 +71,7 @@ impl Projectile for Bullet {
         self.lifetime > constants::BULLET_ARM_TIME
     }
     fn is_done(&self) -> bool {
-        self.traveled_distance < constants::BULLET_MAX_TRAVEL
+        self.traveled_distance > constants::BULLET_MAX_TRAVEL
     }
 
     fn get_shooter(&self) -> u64 {self.owner}
@@ -205,7 +205,8 @@ impl Projectile for Missile {
                 self.angle.cos(),
                 self.angle.sin(),
             );
-        self.position += movement_direction * delta_time;
+        println!("{}", self.position);
+        // self.position += movement_direction * delta_time;
     }
     fn is_armed(&self) -> bool {true}
     fn is_done(&self) -> bool {

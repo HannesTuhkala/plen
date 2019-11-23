@@ -63,6 +63,7 @@ impl GameState {
     }
 
     pub fn add_bullet(&mut self, projectile: ProjectileKind) {
+        println!("Adding bullet");
         self.projectiles.push(ProjectileKind::from(projectile))
     }
 
