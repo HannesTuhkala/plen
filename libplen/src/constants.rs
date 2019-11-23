@@ -33,6 +33,7 @@ pub const LASER_DECAY_TIME: f32 = 0.3;
 pub const LASER_RANGE: f32 = 300.;
 // Damage of laser hit
 pub const LASER_DAMAGE: i16 = 200;
+pub const LASER_RANGE_EXTRA: u32 = 5;
 
 pub const WINDOW_SIZE: f32 = 700.;
 
