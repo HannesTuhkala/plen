@@ -28,10 +28,10 @@ impl PlaneType {
 
     pub fn max_speed(&self) -> f32 {
         match self {
-            PlaneType::SukaBlyat => constants::MAX_SPEED * 1.3 ,
-            PlaneType::HowdyCowboy => constants::MAX_SPEED * 1.2,
-            PlaneType::ElPolloRomero => constants::MAX_SPEED * 1.4,
-            PlaneType::AchtungBlitzKrieg => constants::MAX_SPEED * 1.1,
+            PlaneType::SukaBlyat => constants::MAX_SPEED * 1.1 ,
+            PlaneType::HowdyCowboy => constants::MAX_SPEED * 1.0,
+            PlaneType::ElPolloRomero => constants::MAX_SPEED * 1.2,
+            PlaneType::AchtungBlitzKrieg => constants::MAX_SPEED * 1.0,
         }
     }
 
