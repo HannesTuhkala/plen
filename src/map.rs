@@ -426,7 +426,6 @@ impl Map {
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset;
-            println!("drawing {}", position);
             bullet_sb.add(
                 graphics::DrawParam::default()
                     .dest(position)

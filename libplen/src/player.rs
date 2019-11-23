@@ -230,6 +230,7 @@ impl Player {
 
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
+                /*
                 self.cooldown = constants::PLAYER_COOLDOWN;
                 let new_bullet = projectiles::Bullet::new(
                     self.position + na::Vector2::new(
@@ -244,19 +245,18 @@ impl Player {
                     self.id,
                     self.name.clone(),
                 );
-                /*
+                */
                 self.cooldown = constants::PLAYER_COOLDOWN;
                 let new_bullet = projectiles::Missile::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
                         dir.sin() * constants::BULLET_START,
                     ),
-                    self.rotation,
+                    dir,
                     self.planetype.firepower(),
                     self.id,
                     self.name.clone(),
                 );
-                */
                 Some(ProjectileKind::from(new_bullet))
             } else {
                 None

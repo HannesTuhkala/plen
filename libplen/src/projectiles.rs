@@ -61,7 +61,7 @@ impl Bullet {
 }
 
 impl Projectile for Bullet {
-    fn update(&mut self, players: &[Player], delta_time: f32) {
+    fn update(&mut self, _players: &[Player], delta_time: f32) {
         self.position = math::wrap_around(self.position + self.velocity * delta_time);
         self.traveled_distance += self.velocity.norm() * delta_time;
         self.lifetime += delta_time;
@@ -170,7 +170,7 @@ impl Projectile for Missile {
         // Check if there are players in the line of sight of the missile
         let to_track = players.iter()
             // Don't track the shooter
-            .filter(|p| p.id == self.owner)
+            .filter(|p| p.id != self.owner)
             // Calculate the angle to the missile
             .map(|p| {
                 let direction_to = (p.position - self.position).normalize();
@@ -182,9 +182,9 @@ impl Projectile for Missile {
 
                 (direction_to, angle_to)
             })
-            .filter(|(_, angle_to)| {
-                 *angle_to > constants::MISSILE_LOCK_ANGLE
-            })
+            // .filter(|(_, angle_to)| {
+            //      *angle_to > constants::MISSILE_LOCK_ANGLE
+            // })
             .min_by_key(|(direction_to, _)| direction_to.norm() as i32);
 
         let target_angle = if let Some((_, angle)) = to_track {
@@ -192,21 +192,20 @@ impl Projectile for Missile {
         }
         else {
             self.angle
+            // 0.
         };
 
         self.angular_velocity +=
             constants::MISSILE_KEO_P
-            * target_angle
-            * self.angular_velocity
+            * (target_angle - self.angle)
             * delta_time;
 
         self.angle += self.angular_velocity * delta_time;
-        let movement_direction = na::Vector2::new(
+        let new_direction = na::Vector2::new(
                 self.angle.cos(),
                 self.angle.sin(),
             );
-        println!("{}", self.position);
-        // self.position += movement_direction * delta_time;
+        self.position += new_direction * constants::MISSILE_SPEED * delta_time;
     }
     fn is_armed(&self) -> bool {true}
     fn is_done(&self) -> bool {

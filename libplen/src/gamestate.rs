@@ -4,7 +4,7 @@ use nalgebra as na;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
-use crate::projectiles::{LaserBeam, Bullet};
+use crate::projectiles::{LaserBeam};
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
 use crate::math::wrap_around;
@@ -63,7 +63,6 @@ impl GameState {
     }
 
     pub fn add_bullet(&mut self, projectile: ProjectileKind) {
-        println!("Adding bullet");
         self.projectiles.push(ProjectileKind::from(projectile))
     }
 
@@ -126,7 +125,7 @@ impl GameState {
         }
 
         self.projectiles.retain(
-            |projectile| projectile.is_done()
+            |projectile| !projectile.is_done()
         );
 
         let mut hit_players: Vec<u64> = Vec::new();
