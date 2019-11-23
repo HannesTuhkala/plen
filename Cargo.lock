@@ -1594,6 +1594,7 @@ dependencies = [
 name = "rust-network-game"
 version = "0.1.0"
 dependencies = [
+ "bincode 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ggez 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libplen 0.1.0",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",

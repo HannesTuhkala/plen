@@ -93,12 +93,12 @@ impl GameState {
     }
 
     fn create_powerup() -> PowerUpKind {
-        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
+        let max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
         let mut rand_number = rand::thread_rng().gen_range(1, max_number);
         let mut powerup = PowerUpKind::Gun;
 
         for p in PowerUpKind::iter() {
-            if (rand_number <= 0) {
+            if rand_number <= 0 {
                 return powerup;
             }
 
