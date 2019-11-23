@@ -282,7 +282,7 @@ impl Player {
     }
 
     pub fn manage_powerups(&mut self, delta: f32) {
-        let new_powerups = self.powerups.iter_mut()
+        self.powerups.iter_mut()
             .for_each(|p| {
                 // Decrease the powerup time left
                 p.duration_left = p.duration_left

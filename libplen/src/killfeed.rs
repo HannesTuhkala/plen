@@ -29,7 +29,7 @@ impl KillFeed {
 
     pub fn manage_killfeed(&mut self, delta: f32) {
         // Decrease the messages time left
-        let new_messages = self.messages.iter_mut()
+        self.messages.iter_mut()
             .for_each(|m| {
                 // Decrease the time left
                 m.duration_left = m.duration_left

@@ -6,8 +6,7 @@ use rand_derive::Rand;
 
 extern crate strum;
 extern crate strum_macros;
-use strum_macros::{Display, EnumIter};
-use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 #[derive(Serialize, Deserialize, EnumIter, Clone, Hash, PartialEq, Eq, Rand, Debug)]
 pub enum PowerUpKind {
