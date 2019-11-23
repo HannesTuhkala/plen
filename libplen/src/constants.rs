@@ -25,12 +25,14 @@ pub const BULLET_ARM_TIME: f32 = 0.03;
 
 // Time between laser charge start and fire
 pub const LASER_FIRE_TIME: f32 = 0.8;
-// Durationi of laser damage
+// Duration of laser damage
 pub const LASER_ACTIVE_TIME: f32 = 0.02;
-// Time at which the beam lingors while not doing any damage
+// Time at which the beam lingers while not doing any damage
 pub const LASER_DECAY_TIME: f32 = 0.3;
 // Distance at which the laser is effective
 pub const LASER_RANGE: f32 = 300.;
+// Damage of laser hit
+pub const LASER_DAMAGE: i16 = 200;
 
 pub const WINDOW_SIZE: f32 = 700.;
 

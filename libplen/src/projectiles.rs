@@ -42,10 +42,6 @@ impl Bullet {
     pub fn is_armed(&mut self) -> bool {
         self.lifetime > constants::BULLET_ARM_TIME
     }
-
-    /*pub fn get_shooter(&mut self) -> String {
-        self.owner_name.clone()
-    }*/
 }
 
 #[derive(Serialize, Deserialize, Clone)]
