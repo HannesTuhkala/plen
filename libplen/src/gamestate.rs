@@ -4,7 +4,7 @@ use nalgebra as na;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
-use crate::bullet::{LaserBeam, Bullet};
+use crate::projectiles::{LaserBeam, Bullet};
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
 use crate::math::wrap_around;

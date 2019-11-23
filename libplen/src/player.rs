@@ -1,12 +1,9 @@
 extern crate rand;
 
-use ggez::nalgebra as na;
+use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
-use ggez::graphics;
-use ggez;
 use crate::constants;
-use crate::bullet::{self, LaserBeam};
-use crate::assets::Assets;
+use crate::projectiles::{self, LaserBeam};
 use crate::math;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
@@ -175,7 +172,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = (self.rotation + self.angular_velocity * delta_time);
+        self.rotation = self.rotation + self.angular_velocity * delta_time;
 
         self.manage_powerups(delta_time);
     }
@@ -219,7 +216,7 @@ impl Player {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<bullet::Bullet> {
+    pub fn shoot(&mut self) -> Option<projectiles::Bullet> {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
@@ -234,7 +231,7 @@ impl Player {
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
-                Some(bullet::Bullet::new(
+                Some(projectiles::Bullet::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
                         dir.sin() * constants::BULLET_START,
@@ -274,11 +271,11 @@ impl Player {
             self.powerups.retain(|p| p.kind != kind)
         }
         
-        if (kind == PowerUpKind::Health) {
+        if kind == PowerUpKind::Health {
             self.heal_player(constants::POWERUP_HEALTH_BOOST);
         }
 
-        if (!kind.is_instant()) {
+        if !kind.is_instant() {
             // Remove duplicates, only allow one weapon
             self.powerups.push(AppliedPowerup::new(kind))
         }
@@ -303,7 +300,7 @@ impl Player {
     pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if(has_speed_boost) {1.8} else {1.};
+        let speed_boost = if has_speed_boost {1.8} else {1.};
 
         if self.speed > constants::MAX_SPEED {
             self.speed = constants::MAX_SPEED;
@@ -319,5 +316,9 @@ impl Player {
 
     pub fn max_health(&self) -> i16 {
         self.planetype.health()
+    }
+
+    pub fn is_invisible(&self) -> bool {
+        self.powerups.iter().any(|p| p.kind == PowerUpKind::Invisible)
     }
 }

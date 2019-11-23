@@ -1,14 +1,6 @@
-mod player;
 mod assets;
 mod map;
-mod bullet;
-mod gamestate;
-mod constants;
-mod messages;
-mod powerups;
-mod math;
 mod menu;
-mod killfeed;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
@@ -24,9 +16,12 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 use assets::Assets;
-use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-use crate::killfeed::KillFeed;
 use menu::MenuState;
+
+use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
+
+use libplen::gamestate;
+use libplen::constants;
 
 struct KeyStates {
     forward: ElementState,
@@ -68,7 +63,6 @@ struct MainState<'a> {
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
-    killfeed: KillFeed,
 }
 
 struct EndState<'a> {
@@ -90,7 +84,6 @@ impl<'a> MainState<'a> {
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
-            killfeed: KillFeed::new(),
         };
         Ok(s)
     }
@@ -105,7 +98,7 @@ impl<'a> EndState<'a> {
 }
 
 impl<'a> event::EventHandler for EndState<'a> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+    fn update(&mut self, _ctx: &mut ggez::Context) -> ggez::GameResult {
         Ok(())
     }
 

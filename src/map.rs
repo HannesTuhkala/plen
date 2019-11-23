@@ -1,20 +1,19 @@
-use crate::player;
-use crate::constants;
-use crate::gamestate::GameState;
-use crate::killfeed::KillFeed;
+#![allow(unused_variables)]
+
+use libplen::player;
+use libplen::constants;
+use libplen::gamestate::GameState;
 
 use ggez;
-use ggez::event;
 use ggez::graphics;
 use ggez::graphics::spritebatch;
 use ggez::graphics::Color;
 use ggez::nalgebra as na;
-use ggez::input::keyboard;
 use rand::prelude::*;
 
 use crate::assets::Assets;
-use crate::powerups::PowerUpKind;
-use crate::player::PlaneType;
+use libplen::powerups::PowerUpKind;
+use libplen::player::PlaneType;
 
 use std::collections::HashMap;
 
@@ -55,7 +54,6 @@ impl ExplosionParticle {
 }
 
 pub struct Map {
-    scan_angle: f32,
     smoke_particles: Vec<SmokeParticle>,
     explosion_particles: Vec<ExplosionParticle>,
     smoke_timer: f32,
@@ -64,7 +62,6 @@ pub struct Map {
 impl Map {
     pub fn new() -> Map {
         Map {
-            scan_angle: 0.,
             smoke_particles: vec![SmokeParticle::new(); 200],
             explosion_particles: vec![ExplosionParticle::new(); 200],
             smoke_timer: 0.
@@ -108,6 +105,10 @@ impl Map {
             let mut rng = rand::thread_rng();
             self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
             for player in &game_state.players {
+                if player.is_invisible() {
+                    // don't draw player if invisible
+                    continue;
+                }
                 let random_offset = na::Vector2::new(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
@@ -211,6 +212,7 @@ impl Map {
                     camera_position,
                     offset,
                     powerup_rotation,
+                    my_id,
                 );
             }
         }
@@ -296,9 +298,10 @@ impl Map {
         }
 
         graphics::draw_queued_text(
-            ctx, (camera_offset,), None, graphics::FilterMode::Linear);
-        
-        Self::draw_killfeed(ctx, assets, game_state);
+            ctx, (camera_offset,), None, graphics::FilterMode::Linear)
+            .expect("Failed to draw queued text");
+
+        Self::draw_killfeed(ctx, assets, game_state)
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, ctx: &mut ggez::Context) {
@@ -337,6 +340,7 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
+        my_id: u64,
     ) {
         let background_position = na::Point2::new(
             -camera_position.x,
@@ -347,6 +351,11 @@ impl Map {
                 .dest(background_position)
         );
         for player in &game_state.players {
+            if player.is_invisible() && player.id != my_id {
+                // don't draw player if invisible
+                continue;
+            }
+            let opacity = if player.is_invisible() {0.5} else {1.};
             let position = na::Point2::new(
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
@@ -357,6 +366,7 @@ impl Map {
                     .rotation(player.rotation)
                     .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
                     .offset(na::Point2::new(0.5, 0.5))
+                    .color([1., 1., 1., opacity].into())
             );
 
             let mut nametag = graphics::Text::new(player.name.clone());
@@ -491,7 +501,7 @@ impl Map {
     fn draw_killfeed(ctx: &mut ggez::Context, assets: &Assets, game_state: &GameState) {
         let mut i: f32 = 0.;
         let mut kf = game_state.killfeed.clone();
-        let mut messages = kf.get_messages().clone();
+        let messages = kf.get_messages().clone();
         for message in messages.iter() {
             let mut kfm = graphics::Text::new(message.message.clone());
             kfm.set_font(assets.font, graphics::Scale::uniform(20.));

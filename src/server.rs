@@ -1,12 +1,4 @@
-mod messages;
-mod assets;
-mod player;
-mod bullet;
-mod gamestate;
-mod constants;
-mod math;
-mod powerups;
-mod killfeed;
+// mod assets;
 
 use std::io;
 use std::vec;
@@ -14,13 +6,14 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
 use nalgebra::Point2;
-use nalgebra as na;
 use std::time::Instant;
 use rand::Rng;
 
-use messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
-use player::Player;
-use powerups::PowerUpKind;
+use libplen::messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
+use libplen::player::Player;
+use libplen::powerups::PowerUpKind;
+use libplen::gamestate;
+use libplen::constants;
 
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
