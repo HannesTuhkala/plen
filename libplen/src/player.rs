@@ -216,7 +216,7 @@ impl Player {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<bullet::Bullet> {
+    pub fn shoot(&mut self) -> Option<projectiles::Bullet> {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
@@ -231,7 +231,7 @@ impl Player {
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
-                Some(bullet::Bullet::new(
+                Some(projectiles::Bullet::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
                         dir.sin() * constants::BULLET_START,
