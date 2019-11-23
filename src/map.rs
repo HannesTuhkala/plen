@@ -1,15 +1,14 @@
+#![allow(unused_variables)]
+
 use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
-use libplen::killfeed::KillFeed;
 
 use ggez;
-use ggez::event;
 use ggez::graphics;
 use ggez::graphics::spritebatch;
 use ggez::graphics::Color;
 use ggez::nalgebra as na;
-use ggez::input::keyboard;
 use rand::prelude::*;
 
 use crate::assets::Assets;
@@ -55,7 +54,6 @@ impl ExplosionParticle {
 }
 
 pub struct Map {
-    scan_angle: f32,
     smoke_particles: Vec<SmokeParticle>,
     explosion_particles: Vec<ExplosionParticle>,
     smoke_timer: f32,
@@ -64,7 +62,6 @@ pub struct Map {
 impl Map {
     pub fn new() -> Map {
         Map {
-            scan_angle: 0.,
             smoke_particles: vec![SmokeParticle::new(); 200],
             explosion_particles: vec![ExplosionParticle::new(); 200],
             smoke_timer: 0.
@@ -301,9 +298,10 @@ impl Map {
         }
 
         graphics::draw_queued_text(
-            ctx, (camera_offset,), None, graphics::FilterMode::Linear);
-        
-        Self::draw_killfeed(ctx, assets, game_state);
+            ctx, (camera_offset,), None, graphics::FilterMode::Linear)
+            .expect("Failed to draw queued text");
+
+        Self::draw_killfeed(ctx, assets, game_state)
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, ctx: &mut ggez::Context) {
@@ -503,7 +501,7 @@ impl Map {
     fn draw_killfeed(ctx: &mut ggez::Context, assets: &Assets, game_state: &GameState) {
         let mut i: f32 = 0.;
         let mut kf = game_state.killfeed.clone();
-        let mut messages = kf.get_messages().clone();
+        let messages = kf.get_messages().clone();
         for message in messages.iter() {
             let mut kfm = graphics::Text::new(message.message.clone());
             kfm.set_font(assets.font, graphics::Scale::uniform(20.));
