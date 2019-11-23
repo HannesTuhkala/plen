@@ -4,7 +4,7 @@ pub const PLANE_SIZE: u32 = 20;
 pub const BULLET_RADIUS: u32 = 1;
 pub const POWERUP_RADIUS: u32 = 20;
 pub const POWERUP_SPEED: f32 = 0.03;
-pub const POWERUP_SPEED_BOOST: f32 = 1.8;
+pub const POWERUP_SPEED_BOOST: f32 = 1.5;
 pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
