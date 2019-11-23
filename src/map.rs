@@ -332,9 +332,9 @@ impl Map {
                 na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0)
             )?;
 
-            let nametag = assets.font.render(
-                &player.name
-            ).blended(player.color.rgba()).expect("Could not render text");
+            let nametag = assets.font.render(&player.name)
+                .blended(player.color.rgba())
+                .expect("Could not render text");
 
             let texture_creator = canvas.texture_creator();
             let nametag_texture = texture_creator.create_texture_from_surface(nametag).unwrap();
@@ -434,14 +434,13 @@ impl Map {
     }
 
     fn draw_killfeed(canvas: &mut Canvas<Window>, assets: &Assets, game_state: &GameState) -> Result<(), String> {
-        let mut i = 0;
         let mut kill_feed = game_state.killfeed.clone();
         let messages = kill_feed.get_messages().clone();
 
-        for message in messages.iter() {
-            let kill_feed_message = assets.font.render(
-                &message.message
-            ).blended((255, 0, 0)).expect("Could not render text");
+        for (i, message) in messages.iter().enumerate() {
+            let kill_feed_message = assets.font.render(&message.message)
+                .blended((255, 0, 0))
+                .expect("Could not render text");
 
             let texture_creator = canvas.texture_creator();
             let kill_feed_message_texture =
@@ -456,8 +455,6 @@ impl Map {
                     30. * i as f32
                 ),
             )?;
-
-            i += 1;
         }
 
         Ok(())

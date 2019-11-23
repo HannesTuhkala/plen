@@ -47,9 +47,9 @@ impl MenuState {
 impl MenuState {
     fn draw_player_name(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
         let (nx, ny) = constants::NAME_POS;
-        let text = assets.font.render(&format!(
-            "Helo comrade {}", self.name
-        )).blended((255, 255, 255)).expect("Could not render text");
+        let text = assets.font.render(&format!("Helo comrade {}", self.name))
+            .blended((255, 255, 255))
+            .expect("Could not render text");
 
         let texture_creator = canvas.texture_creator();
         let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
@@ -72,15 +72,15 @@ impl MenuState {
 
         let texture_creator = canvas.texture_creator();
 
-        let text = assets.font.render(
-            self.plane.name()
-        ).blended((255, 255, 255)).expect("Could not render text");
+        let text = assets.font.render(self.plane.name())
+            .blended((255, 255, 255))
+            .expect("Could not render text");
         let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
         draw_texture(canvas, &text_texture, na::Point2::new(px + 10., py + 10.))?;
 
-        let instruction = assets.font.render(
-            "click to change plane blyat:"
-        ).blended((255, 255, 255)).expect("Could not render text");
+        let instruction = assets.font.render("click to change plane blyat:")
+            .blended((255, 255, 255))
+            .expect("Could not render text");
         let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
 
         draw_texture(canvas, &instruction_texture, na::Point2::new(px, py - 20.))?;
@@ -97,14 +97,17 @@ impl MenuState {
                     - constants::PLANE_SIZE as f32,
             ))?;
 
-        let plane_specs = assets.font.render(&format!(
+        let specs_string = format!(
             "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
             self.plane.agility(),
             self.plane.firepower(),
             self.plane.acceleration().trunc(),
             self.plane.health(),
-            self.plane.resilience())
-        ).blended_wrapped((255, 255, 255), 1000).expect("Could not render text");
+            self.plane.resilience()
+        );
+        let plane_specs = assets.font.render(&specs_string)
+            .blended_wrapped((255, 255, 255), 1000)
+            .expect("Could not render text");
         let specs_texture = texture_creator.create_texture_from_surface(plane_specs).unwrap();
 
         draw_texture(
@@ -128,9 +131,9 @@ impl MenuState {
         canvas.set_draw_color(self.color.rgba());
         canvas.fill_rect(background_rect)?;
 
-        let instruction = assets.font.render(
-            "click to change color:"
-        ).blended((255, 255, 255)).expect("Could not render text");
+        let instruction = assets.font.render("click to change color:")
+            .blended((255, 255, 255))
+            .expect("Could not render text");
         let texture_creator = canvas.texture_creator();
         let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
 
