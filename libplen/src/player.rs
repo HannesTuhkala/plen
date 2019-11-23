@@ -241,6 +241,7 @@ impl Player {
                         dir.sin() * constants::BULLET_VELOCITY,
                     ),
                     self.planetype.firepower(),
+                    self.id,
                     self.name.clone(),
                 ))
             } else {

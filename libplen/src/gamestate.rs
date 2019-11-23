@@ -50,14 +50,14 @@ impl GameState {
         self.killfeed.add_message(&msg);
     }
 
-    pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
+    /*pub fn get_player_by_id(&self, id: u64) -> Option<&Player> {
         for player in &self.players {
             if player.id == id {
                 return Some(player);
             }
         }
         None
-    }
+    }*/
 
     pub fn add_bullet(&mut self, bullet: Bullet) {
         self.bullets.push(bullet)
@@ -115,7 +115,7 @@ impl GameState {
         let mut bullets_to_remove = vec!();
 
         for bullet in &mut self.bullets {
-            let killer = bullet.owner.clone();
+            let killer = bullet.owner_name.clone();
             
             for player in &mut self.players {
                 let distance = (bullet.position - player.position).norm();
@@ -171,7 +171,10 @@ impl GameState {
                     if distance < lowest_distance {
                         lowest_distance = distance;
                     }
-                    if distance < hit_radius as f32 {
+
+                    // if laser has lived its full life then it should not damage anymore,
+                    // even though last phase is shown of the laser
+                    if distance < hit_radius as f32 && laser.lifetime > 0. {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
 
