@@ -30,7 +30,7 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 2.,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 3.5,
             PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 5.,
         }
     }
@@ -197,7 +197,7 @@ impl Player {
             return;
         }
 
-        self.health -= damage;
+        self.health -= (damage as f32 * self.planetype.resilience()) as i16;
 
         if self.health <= 0 {
             self.health = 0;
@@ -300,7 +300,7 @@ impl Player {
     pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if has_speed_boost {1.8} else {1.};
+        let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
 
         if self.speed > constants::MAX_SPEED {
             self.speed = constants::MAX_SPEED;
