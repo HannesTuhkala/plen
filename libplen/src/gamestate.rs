@@ -4,10 +4,11 @@ use nalgebra as na;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
-use crate::bullet::{LaserBeam, Bullet};
+use crate::projectiles::LaserBeam;
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
 use crate::math::wrap_around;
+use crate::projectiles::{ProjectileKind, Projectile};
 use rand::Rng;
 
 use strum::IntoEnumIterator;
@@ -15,7 +16,7 @@ use strum::IntoEnumIterator;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
     pub players: Vec<Player>,
-    pub bullets: Vec<Bullet>,
+    pub projectiles: Vec<ProjectileKind>,
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
@@ -25,7 +26,7 @@ impl GameState {
     pub fn new() -> GameState {
         GameState {
             players: Vec::new(),
-            bullets: Vec::new(),
+            projectiles: Vec::new(),
             powerups: Vec::new(),
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
@@ -33,15 +34,21 @@ impl GameState {
     }
 
     /**
-     *  Updates the gamestate and returns a vec with player ids that got hit with bullets.
+     *  Updates the gamestate and returns
+     *  (
+     *  vec with player ids that got hit with bullets,
+     *  vec with positions where powerups where picked up,
+     *  vec with positions where lasers are fired
+     *  )
      */
-    pub fn update(&mut self, delta: f32) -> Vec<u64> {
-        self.handle_powerups();
-        let hit_players = self.handle_bullets();
-        self.handle_lasers(delta);
+    pub fn update(&mut self, delta: f32)
+        -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>) {
+        let hit_powerup_positions = self.handle_powerups();
+        let hit_players = self.handle_bullets(delta);
+        let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
-        hit_players
+        (hit_players, hit_powerup_positions, fired_laser_positions)
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -59,12 +66,17 @@ impl GameState {
         None
     }
 
-    pub fn add_bullet(&mut self, bullet: Bullet) {
-        self.bullets.push(bullet)
+    pub fn add_bullet(&mut self, projectile: ProjectileKind) {
+        self.projectiles.push(ProjectileKind::from(projectile))
     }
 
-    pub fn handle_powerups(&mut self) {
+    /**
+     * Updates the powerups and handles collision detection of them.
+     * Returns a vector with (player ids of players who picked up powerups, their positions)
+     */
+    pub fn handle_powerups(&mut self) -> Vec<(u64, na::Point2<f32>)> {
         let mut new_powerups = self.powerups.clone();
+        let mut hit_powerup_positions = vec!();
         for player in &mut self.players {
             new_powerups = new_powerups.into_iter()
                 .filter_map(|powerup| {
@@ -72,6 +84,7 @@ impl GameState {
                     if (powerup.position - player.position).norm() < hit_radius as f32 {
                         // Apply the powerup
                         player.apply_powerup(powerup.kind);
+                        hit_powerup_positions.push((player.id, player.position));
                         None
                     }
                     else {
@@ -90,58 +103,72 @@ impl GameState {
                 PowerUp::new(Self::create_powerup(), na::Point2::new(x, y))
             )
         }
+        hit_powerup_positions
     }
 
     fn create_powerup() -> PowerUpKind {
-        let mut max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelyhood()).sum();
+        let max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
         let mut rand_number = rand::thread_rng().gen_range(1, max_number);
         let mut powerup = PowerUpKind::Gun;
 
-        for mut powerup in PowerUpKind::iter() {
-            if (rand_number <= 0) {
+        for p in PowerUpKind::iter() {
+            if rand_number <= 0 {
                 return powerup;
             }
 
-            rand_number -= powerup.get_likelyhood();
-            powerup = powerup;
+            rand_number -= p.get_likelihood();
+            powerup = p;
         }
 
         powerup
     }
 
-    pub fn handle_bullets(&mut self) -> Vec<u64> {
+    pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
+        for projectile in &mut self.projectiles {
+            projectile.update(&self.players, delta_time);
+        }
+
+        self.projectiles.retain(
+            |projectile| projectile.is_done()
+        );
+
         let mut hit_players: Vec<u64> = Vec::new();
         let hit_radius = PLANE_SIZE * BULLET_RADIUS;
         let mut bullets_to_remove = vec!();
 
-        for bullet in &mut self.bullets {
-            let killer = bullet.owner.clone();
+        for projectile in &mut self.projectiles {
+            let killer = projectile.get_shooter_name().clone();
             
             for player in &mut self.players {
-                let distance = (bullet.position - player.position).norm();
-                if distance < hit_radius as f32 && bullet.is_armed() {
-                    player.damage_player(bullet.damage);
-                    if player.did_i_die() {
+                let distance = (projectile.get_position() - player.position).norm();
+                if distance < hit_radius as f32 && projectile.is_armed() {
+                    player.damage_player(projectile.get_damage());
+                    if player.has_died() {
                         let msg = killer.clone() + " killed " + 
                             &player.name + " using a Gun.";
                         self.killfeed.add_message(&msg);
                     }
-                    bullets_to_remove.push(bullet.id);
+                    bullets_to_remove.push(projectile.get_id());
                     hit_players.push(player.id);
                 }
             }
         }
-        self.bullets.retain(
-            |bullet| !bullets_to_remove.contains(&bullet.id)
+        self.projectiles.retain(
+            |bullet| !bullets_to_remove.contains(&bullet.get_id())
         );
         hit_players
     }
 
-    pub fn handle_lasers(&mut self, delta: f32) {
+    /**
+     * Returns a vec with positions where lasers are fired.
+     */
+    pub fn handle_lasers(&mut self, delta: f32) -> Vec<na::Point2<f32>> {
         let mut new_lasers = vec!();
+        let mut fired_laser_positions = vec!();
         for player in &self.players {
             player.maybe_get_laser().map(|l| {
                 new_lasers.push(l);
+                fired_laser_positions.push(player.position);
             });
         }
         self.lasers.append(&mut new_lasers);
@@ -158,7 +185,7 @@ impl GameState {
                 (laser.angle + std::f32::consts::PI / 2.).sin()
             );
 
-            let hit_radius = PLANE_SIZE + 20;
+            let hit_radius = PLANE_SIZE + constants::LASER_RANGE_EXTRA;
             for player in &mut self.players {
                 if player.id == laser.owner {
                     continue
@@ -171,11 +198,14 @@ impl GameState {
                     if distance < lowest_distance {
                         lowest_distance = distance;
                     }
-                    if distance < hit_radius as f32 {
+
+                    // if laser has lived its full life then it should not damage anymore,
+                    // even though last phase is shown of the laser
+                    if distance < hit_radius as f32 && laser.lifetime > 0. {
                         // bullets_to_remove.push(bullet.id);
                         player.damage_player(laser.damage);
 
-                        if player.did_i_die() {
+                        if player.has_died() {
                             let msg = killer.clone() + " killed " +
                                 &player.name + " using a Laser.";
                             self.killfeed.add_message(&msg);
@@ -186,6 +216,7 @@ impl GameState {
                 }
             }
         }
+        fired_laser_positions
     }
 
     pub fn handle_player_collisions(&mut self, delta: f32) {

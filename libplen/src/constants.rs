@@ -1,7 +1,10 @@
+use std::f32::consts::PI;
+
 pub const PLANE_SIZE: u32 = 20;
 pub const BULLET_RADIUS: u32 = 1;
 pub const POWERUP_RADIUS: u32 = 20;
 pub const POWERUP_SPEED: f32 = 1.8;
+pub const POWERUP_SPEED_BOOST: f32 = 1.5;
 pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
@@ -12,7 +15,7 @@ pub const MIN_SPEED: f32 = 50.;
 pub const DEFAULT_ACCELERATION: f32 = 200.;
 pub const DEFAULT_HEALTH: i16 = 150;
 
-pub const DEFAULT_AGILITY: f32 = 1.;
+pub const DEFAULT_AGILITY: f32 = 100.;
 pub const ANGULAR_FADE: f32 = 0.9;
 
 pub const BULLET_VELOCITY: f32 = 600.0;
@@ -24,12 +27,20 @@ pub const BULLET_ARM_TIME: f32 = 0.03;
 
 // Time between laser charge start and fire
 pub const LASER_FIRE_TIME: f32 = 0.8;
-// Durationi of laser damage
+// Duration of laser damage
 pub const LASER_ACTIVE_TIME: f32 = 0.02;
-// Time at which the beam lingors while not doing any damage
+// Time at which the beam lingers while not doing any damage
 pub const LASER_DECAY_TIME: f32 = 0.3;
 // Distance at which the laser is effective
 pub const LASER_RANGE: f32 = 300.;
+// Damage of laser hit
+pub const LASER_DAMAGE: i16 = 200;
+pub const LASER_RANGE_EXTRA: u32 = 5;
+
+pub const MISSILE_LOCK_ANGLE: f32 = PI/2.;
+pub const MISSILE_KEO_P: f32 = 5.;
+pub const MISSILE_SPEED: f32 = 500.;
+pub const MISSILE_LIFE_TIME: f32 = 5.;
 
 pub const WINDOW_SIZE: f32 = 700.;
 
@@ -48,7 +59,7 @@ pub const NAME_POS: (f32, f32) = (50., 150.);
 
 pub const PARTICLE_SPAWN_RATE: f32 = 0.05;
 
-pub const COLLISION_DAMAGE: i16 = 30;
+pub const COLLISION_DAMAGE: i16 = 40;
 pub const COLLISION_GRACE_PERIOD: f32 = 1.;
 
 pub const HIT_SEQUENCE_AMOUNT: f32 = 0.7;

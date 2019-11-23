@@ -1,18 +1,14 @@
-use std::collections::HashMap;
-
 use nalgebra as na;
 use rand::prelude::*;
-use sdl2::render::{Canvas, Texture};
+use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::gfx::primitives::DrawRenderer;
 
-use crate::player;
-use crate::constants;
-use crate::gamestate::GameState;
-use crate::killfeed::KillFeed;
+use libplen::player;
+use libplen::constants;
+use libplen::gamestate::GameState;
+use libplen::projectiles::Projectile;
 use crate::assets::Assets;
-use crate::powerups::PowerUpKind;
-use crate::player::PlaneType;
 use crate::rendering::{
     draw_texture,
     draw_texture_centered,
@@ -57,7 +53,6 @@ impl ExplosionParticle {
 }
 
 pub struct Map {
-    scan_angle: f32,
     smoke_particles: Vec<SmokeParticle>,
     explosion_particles: Vec<ExplosionParticle>,
     smoke_timer: f32,
@@ -66,7 +61,6 @@ pub struct Map {
 impl Map {
     pub fn new() -> Map {
         Map {
-            scan_angle: 0.,
             smoke_particles: vec![SmokeParticle::new(); 200],
             explosion_particles: vec![ExplosionParticle::new(); 200],
             smoke_timer: 0.
@@ -110,6 +104,10 @@ impl Map {
             let mut rng = rand::thread_rng();
             self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
             for player in &game_state.players {
+                if player.is_invisible() {
+                    // don't draw player if invisible
+                    continue;
+                }
                 let random_offset = na::Vector2::new(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
@@ -200,9 +198,14 @@ impl Map {
                     camera_position + hit_offset,
                     offset,
                     powerup_rotation,
+                    my_id
                 )?;
 
                 for player in &game_state.players {
+                    if player.is_invisible() && my_id != player.id {
+                        // don't draw player if invisible
+                        continue;
+                    }
                     let offset = na::Vector2::new(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
@@ -271,6 +274,7 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
+        my_id: u64,
     ) -> Result<(), String> {
         let screen_center = na::Vector2::new(
             constants::WINDOW_SIZE * 0.5,
@@ -308,13 +312,21 @@ impl Map {
         }
 
         for player in &game_state.players {
+            if player.is_invisible() && player.id != my_id {
+                // don't draw player if invisible
+                continue;
+            }
+            let opacity = if player.is_invisible() {128} else {255};
             let position = na::Point2::new(
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
             ) + offset + screen_center;
+            let texture = assets.planes.get_mut(&player.planetype).expect("Missing plane asset");
+
+            texture.set_alpha_mod(opacity);
             draw_texture_rotated_and_scaled(
                 canvas,
-                assets.planes.get(&player.planetype).expect("Missing plane asset"),
+                texture,
                 position,
                 player.rotation,
                 na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0)
@@ -334,9 +346,13 @@ impl Map {
             )?;
 
             if let Some(p) = player.laser_charge_progress() {
-                // TODO .offset(na::Point2::new(0.5, 1.0))
+                let h_offset = assets.laser_charge.query().height as f32 * 0.5;
+                let laser_pos = position + na::Vector2::new(
+                    player.rotation.sin() * h_offset,
+                    -player.rotation.cos() * h_offset
+                );
                 assets.laser_charge.set_alpha_mod((p * 255.) as u8);
-                draw_texture_rotated(canvas, &assets.laser_charge, position + screen_center, player.rotation)?;
+                draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
                 assets.laser_charge.set_alpha_mod(255);
             }
         }
@@ -346,26 +362,30 @@ impl Map {
                 laser.position.x - camera_position.x,
                 laser.position.y - camera_position.y,
             ) + offset + screen_center;
+            let h_offset = assets.laser_charge.query().height as f32 * 0.5;
+            let laser_pos = position + na::Vector2::new(
+                laser.angle.sin() * h_offset,
+                -laser.angle.cos() * h_offset
+            );
+
             if laser.is_dealing_damage() {
-                // TODO .offset(na::Point2::new(0.5, 1.0)));
-                draw_texture_rotated(canvas, &assets.laser_firing, position, laser.angle)?;
+                draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
             }
             else {
-                // TODO .offset(na::Point2::new(0.5, 1.0)));
                 let decay_index =
                     ((laser.decay_progress() * assets.laser_decay.len() as f32) as usize)
                         .min(assets.laser_decay.len()-1)
                     .max(0);
                 draw_texture_rotated(
-                    canvas, &assets.laser_decay[decay_index], position, laser.angle
+                    canvas, &assets.laser_decay[decay_index], laser_pos, laser.angle
                 )?;
             }
         }
 
-        for bullet in &game_state.bullets {
+        for projectile in &game_state.projectiles {
             let position = na::Point2::new(
-                bullet.position.x - camera_position.x,
-                bullet.position.y - camera_position.y,
+                projectile.get_position().x - camera_position.x,
+                projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
             draw_texture_centered(canvas, &assets.bullet, position)?;
         }
@@ -396,8 +416,8 @@ impl Map {
         canvas: &mut Canvas<Window>,
         assets: &Assets,
     ) -> Result<(), String> {
-        let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
-        let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
+        let mut x_pos = 40.;
+        let y_pos = constants::WINDOW_SIZE - 20. - constants::POWERUP_RADIUS as f32;
 
         if let Some(p) = game_state.get_player_by_id(my_id) {
             for powerup in p.powerups.iter() {
@@ -417,6 +437,7 @@ impl Map {
         let mut i = 0;
         let mut kill_feed = game_state.killfeed.clone();
         let messages = kill_feed.get_messages().clone();
+
         for message in messages.iter() {
             let kill_feed_message = assets.font.render(
                 &message.message
@@ -427,7 +448,7 @@ impl Map {
                 texture_creator.create_texture_from_surface(kill_feed_message).unwrap();
             let width = kill_feed_message_texture.query().width as f32;
             
-            draw_texture_centered(
+            draw_texture(
                 canvas,
                 &kill_feed_message_texture,
                 na::Point2::new(
@@ -465,6 +486,10 @@ impl Map {
                 let scale = constants::MINI_MAP_SIZE
                     / constants::WORLD_SIZE;
                 for player in &game_state.players {
+                    if player.is_invisible() && my_player.id != player.id {
+                        // don't draw player if invisible
+                        continue;
+                    }
                     let position = na::Point2::new(
                         (player.position.x - my_pos.x)*scale,
                         (player.position.y - my_pos.y)*scale,

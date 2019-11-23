@@ -6,8 +6,8 @@ use sdl2::render::{Texture, TextureCreator};
 use sdl2::video::WindowContext;
 use sdl2::mixer::Chunk;
 
-use crate::powerups::PowerUpKind;
-use crate::player::PlaneType;
+use libplen::powerups::PowerUpKind;
+use libplen::player::PlaneType;
 
 pub struct Assets<'ttf, 'r> {
     pub font: sdl2::ttf::Font<'ttf, 'r>,
@@ -31,6 +31,8 @@ pub struct Assets<'ttf, 'r> {
     pub explosion: Chunk,
     pub powerup: Chunk,
     pub gun: Chunk,
+    pub laser_fire_sound: Chunk,
+    pub laser_charge_sound: Chunk,
 }
 
 impl<'ttf, 'r> Assets<'ttf, 'r> {
@@ -49,6 +51,7 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
             (PowerUpKind::Invincibility, load_tex("resources/powerups/invincibility.png")),
             (PowerUpKind::Gun, load_tex("resources/powerups/gun.png")),
             (PowerUpKind::SlowTime, load_tex("resources/powerups/slowtime.png")),
+            (PowerUpKind::Invisible, load_tex("resources/powerups/invisible.png")),
         });
 
         let planes = HashMap::from_iter(vec!{
@@ -86,6 +89,8 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
             powerup: Chunk::from_file("resources/audio/powerup.ogg").unwrap(),
             explosion: Chunk::from_file("resources/audio/explosion.ogg").unwrap(),
             gun: Chunk::from_file("resources/audio/gun.ogg").unwrap(),
+            laser_fire_sound: Chunk::from_file("resources/audio/laserfire.ogg").unwrap(),
+            laser_charge_sound: Chunk::from_file("resources/audio/lasercharge.ogg").unwrap(),
         };
 
         // Volume is on a scale from 0 to 128

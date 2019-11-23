@@ -1,20 +1,10 @@
-mod player;
 mod assets;
 mod map;
-mod bullet;
-mod gamestate;
-mod constants;
-mod messages;
-mod powerups;
-mod math;
 mod menu;
-mod killfeed;
 mod rendering;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::env;
-use std::path;
 use std::time::Instant;
 
 use nalgebra as na;
@@ -23,30 +13,11 @@ use sdl2::video::Window;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 
+use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
+use libplen::gamestate;
+use libplen::constants;
 use assets::Assets;
-use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-use crate::killfeed::KillFeed;
 use menu::MenuState;
-
-struct KeyStates {
-    forward: bool,
-    back: bool,
-    left: bool,
-    right: bool,
-    shooting: bool,
-}
-
-impl KeyStates {
-    fn new() -> Self {
-        KeyStates {
-            forward: false,
-            back: false,
-            left: false,
-            right: false,
-            shooting: false,
-        }
-    }
-}
 
 fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
     let data = bincode::serialize(msg).expect("Failed to encode message");
@@ -68,7 +39,6 @@ struct MainState {
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
-    killfeed: KillFeed,
 }
 
 impl MainState {
@@ -81,7 +51,6 @@ impl MainState {
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
-            killfeed: KillFeed::new(),
         }
     }
 
@@ -119,6 +88,17 @@ impl MainState {
                         SoundEffect::Explosion => {
                             sdl2::mixer::Channel::all().play(
                                 &assets.explosion, 0
+                            ).unwrap();
+                            self.map.add_explosion(pos);
+                        }
+                        SoundEffect::LaserCharge => {
+                            sdl2::mixer::Channel::all().play(
+                                &assets.laser_charge_sound, 0
+                            ).unwrap();
+                        }
+                        SoundEffect::LaserFire => {
+                            sdl2::mixer::Channel::all().play(
+                                &assets.laser_fire_sound, 0
                             ).unwrap();
                             self.map.add_explosion(pos);
                         }
@@ -217,14 +197,6 @@ impl EndState {
 }
 
 pub fn main() {
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
-
     let host = std::env::var("SERVER")
         .unwrap_or(String::from("localhost:4444"));
     let stream = TcpStream::connect(host).expect("Could not connect to server");
@@ -269,7 +241,7 @@ pub fn main() {
     ).expect("Could not initialize SDL mixer");
 
     // Allows 16 sounds to play simultaneously
-    sdl2::mixer::allocate_channels(16);
+    sdl2::mixer::allocate_channels(64);
 
     let ttf_context = sdl2::ttf::init().expect("Could not initialize SDL ttf");
 

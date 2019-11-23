@@ -5,7 +5,6 @@
 .Trash-*
 .nfs*
 
-
 ### Rust
 
 /target
@@ -13,3 +12,8 @@
 
 ### Krita
 *.kra-autosave.kra
+
+### Windows SDL2
+/*.dll
+/gnu-mingw
+/msvc

@@ -1,6 +1,6 @@
 use crate::assets::Assets;
-use crate::player;
-use crate::constants;
+use libplen::player;
+use libplen::constants;
 use crate::rendering::draw_texture;
 
 use nalgebra as na;

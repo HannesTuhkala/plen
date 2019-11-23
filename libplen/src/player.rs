@@ -4,8 +4,7 @@ use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
-use crate::bullet::{self, LaserBeam};
-use crate::assets::Assets;
+use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
@@ -19,12 +18,21 @@ pub enum PlaneType {
 }
 
 impl PlaneType {
-    pub fn speed(&self) -> f64 {
+    pub fn speed(&self) -> f32 {
         match self {
-            PlaneType::SukaBlyat => 5.4,
-            PlaneType::HowdyCowboy => 3.2,
-            PlaneType::ElPolloRomero => 6.1,
-            PlaneType::AchtungBlitzKrieg => 4.3,
+            PlaneType::SukaBlyat => 1.05,
+            PlaneType::HowdyCowboy => 1.,
+            PlaneType::ElPolloRomero => 1.1,
+            PlaneType::AchtungBlitzKrieg => 1.,
+        }
+    }
+
+    pub fn max_speed(&self) -> f32 {
+        match self {
+            PlaneType::SukaBlyat => constants::MAX_SPEED * 0.9 ,
+            PlaneType::HowdyCowboy => constants::MAX_SPEED * 0.8,
+            PlaneType::ElPolloRomero => constants::MAX_SPEED * 1.0,
+            PlaneType::AchtungBlitzKrieg => constants::MAX_SPEED * 0.8,
         }
     }
 
@@ -32,16 +40,16 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 2.,
-            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 4.,
         }
     }
 
     pub fn firepower(&self) -> i16 {
         match self {
             PlaneType::SukaBlyat => constants::BULLET_DAMAGE * 5 as i16,
-            PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 2. as i16,
-            PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 2. as i16,
+            PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 3. as i16,
+            PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 3. as i16,
             PlaneType::AchtungBlitzKrieg => constants::BULLET_DAMAGE * 4. as i16,
         }
     }
@@ -166,7 +174,7 @@ impl Player {
             self.position + velocity * delta_time
         );
 
-        let angular_acceleration = x_input * self.planetype.agility()/10.;
+        let angular_acceleration = x_input * self.planetype.agility()/10. * delta_time;
         self.angular_velocity += angular_acceleration;
         self.angular_velocity *= constants::ANGULAR_FADE;
         if self.angular_velocity > self.planetype.agility() {
@@ -174,7 +182,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        self.rotation = (self.rotation + self.angular_velocity * delta_time);
+        self.rotation = self.rotation + self.angular_velocity * delta_time;
 
         self.manage_powerups(delta_time);
     }
@@ -199,36 +207,46 @@ impl Player {
             return;
         }
 
-        self.health -= damage;
+        self.health -= (damage as f32 * self.planetype.resilience()) as i16;
 
         if self.health <= 0 {
             self.health = 0;
         }
+    }
+
+    pub fn heal_player(&mut self, hp: i16) {
+        self.health += hp;
+
         if self.health > self.max_health() {
             self.health = self.max_health()
         }
     }
 
-    pub fn did_i_die(&mut self) -> bool {
+    pub fn has_died(&mut self) -> bool {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<bullet::Bullet> {
+    /**
+     * Fires a weapon, returns (Option on the bullet that may have been fired, 
+     * whether a laser started charging)
+     */
+    pub fn shoot(&mut self) -> (Option<ProjectileKind>, bool) {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
                 if let None = self.laser_charge_time {
-                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
+                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME);
+                    return (None, true);
                 }
             }
             else {
                 self.laser_charge_time = None;
             }
-        
+
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
-                Some(bullet::Bullet::new(
+                let new_bullet = projectiles::Bullet::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
                         dir.sin() * constants::BULLET_START,
@@ -238,13 +256,15 @@ impl Player {
                         dir.sin() * constants::BULLET_VELOCITY,
                     ),
                     self.planetype.firepower(),
+                    self.id,
                     self.name.clone(),
-                ))
+                );
+                (Some(ProjectileKind::from(new_bullet)), false)
             } else {
-                None
+                (None, false)
             }
         } else {
-            None
+            (None, false)
         }
     }
 
@@ -253,7 +273,7 @@ impl Player {
     }
     pub fn maybe_get_laser(&self) -> Option<LaserBeam> {
         if self.lasering_this_frame {
-            Some(LaserBeam::new(self.position, self.rotation, 100, self.id, self.name.clone()))
+            Some(LaserBeam::new(self.position, self.rotation, constants::LASER_DAMAGE, self.id, self.name.clone()))
         }
         else {
             None
@@ -268,18 +288,18 @@ impl Player {
             self.powerups.retain(|p| p.kind != kind)
         }
         
-        if (kind == PowerUpKind::Health) {
-            self.damage_player(-constants::POWERUP_HEALTH_BOOST);
+        if kind == PowerUpKind::Health {
+            self.heal_player(constants::POWERUP_HEALTH_BOOST);
         }
 
-        if (!kind.is_instant()) {
+        if !kind.is_instant() {
             // Remove duplicates, only allow one weapon
             self.powerups.push(AppliedPowerup::new(kind))
         }
     }
 
     pub fn manage_powerups(&mut self, delta: f32) {
-        let new_powerups = self.powerups.iter_mut()
+        self.powerups.iter_mut()
             .for_each(|p| {
                 // Decrease the powerup time left
                 p.duration_left = p.duration_left
@@ -297,21 +317,25 @@ impl Player {
     pub fn final_velocity(&mut self) -> na::Vector2<f32> {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if(has_speed_boost) {1.8} else {1.};
+        let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
 
-        if self.speed > constants::MAX_SPEED {
-            self.speed = constants::MAX_SPEED;
+        if self.speed > self.planetype.max_speed() {
+            self.speed = self.planetype.max_speed();
         }
         if self.speed < constants::MIN_SPEED {
             self.speed = constants::MIN_SPEED;
         }
 
-        let dx = self.speed * (self.rotation - std::f32::consts::PI/2.).cos();
-        let dy = self.speed * (self.rotation - std::f32::consts::PI/2.).sin();
+        let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
+        let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
         na::Vector2::new(dx, dy) * speed_boost
     }
 
     pub fn max_health(&self) -> i16 {
         self.planetype.health()
+    }
+
+    pub fn is_invisible(&self) -> bool {
+        self.powerups.iter().any(|p| p.kind == PowerUpKind::Invisible)
     }
 }

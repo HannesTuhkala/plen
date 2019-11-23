@@ -1,12 +1,4 @@
-mod messages;
-mod assets;
-mod player;
-mod bullet;
-mod gamestate;
-mod constants;
-mod math;
-mod powerups;
-mod killfeed;
+// mod assets;
 
 use std::io;
 use std::vec;
@@ -14,13 +6,15 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
 use nalgebra::Point2;
-use nalgebra as na;
 use std::time::Instant;
 use rand::Rng;
 
-use messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
-use player::Player;
-use powerups::PowerUpKind;
+use libplen::messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
+use libplen::player::Player;
+use libplen::powerups::PowerUpKind;
+use libplen::gamestate;
+use libplen::constants;
+use libplen::projectiles::Projectile;
 
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
@@ -100,17 +94,12 @@ impl Server {
         }
         self.last_time = Instant::now();
 
-        let hit_players = self.state.update(delta_time);
+        let (hit_players, hit_powerup_positions, fired_laser_positions) = 
+            self.state.update(delta_time);
 
         self.accept_new_connections();
-        self.update_clients(delta_time, hit_players);
-
-        for bullet in &mut self.state.bullets {
-            bullet.update(delta_time);
-        }
-
-        self.state.bullets.retain(
-            |bullet| bullet.traveled_distance < constants::BULLET_MAX_TRAVEL
+        self.update_clients(
+            delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
         );
     }
 
@@ -144,7 +133,12 @@ impl Server {
         }
     }
 
-    fn update_clients(&mut self, delta_time: f32, hit_players: Vec<u64>) {
+    fn update_clients(
+        &mut self, delta_time: f32,
+        hit_players: &[u64],
+        hit_powerup_positions: &[(u64, Point2<f32>)],
+        fired_laser_positions: &[Point2<f32>],
+    ) {
         // Send data to clients
         let mut clients_to_delete = vec!();
         let mut sounds_to_play = vec!();
@@ -202,8 +196,12 @@ impl Server {
                 }
             }
 
+            for position in fired_laser_positions {
+                sounds_to_play.push((SoundEffect::LaserFire, *position));
+            }
+
             // transmit player hit messages
-            for hit_id in &hit_players {
+            for hit_id in hit_players {
                 let result = send_server_message(
                     &ServerMessage::PlayerHit(*hit_id),
                     &mut client.stream
@@ -221,7 +219,11 @@ impl Server {
                     );
 
                     if player_shooting {
-                        bullet = player.shoot();
+                        let (b, start_charging_laser) = player.shoot();
+                        bullet = b;
+                        if start_charging_laser {
+                            sounds_to_play.push((SoundEffect::LaserCharge, player.position));
+                        }
                     }
 
                     if player.health <= 0 {
@@ -242,9 +244,20 @@ impl Server {
             }
 
             if let Some(bullet) = bullet {
-                let pos = bullet.position;
+                let pos = bullet.get_position();
                 self.state.add_bullet(bullet);
                 sounds_to_play.push((SoundEffect::Gun, pos));
+            }
+
+            // play powerup sound effects
+            for (player_id, position) in hit_powerup_positions {
+                if player_id == id {
+                    let result = send_server_message(
+                        &ServerMessage::PlaySound(SoundEffect::Powerup, *position),
+                        &mut client.stream
+                    );
+                    remove_player_on_disconnect!(result, *id);
+                }
             }
         }
 
