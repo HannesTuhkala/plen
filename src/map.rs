@@ -14,6 +14,7 @@ use rand::prelude::*;
 use crate::assets::Assets;
 use libplen::powerups::PowerUpKind;
 use libplen::player::PlaneType;
+use libplen::projectiles::Projectile;
 
 use std::collections::HashMap;
 
@@ -420,10 +421,10 @@ impl Map {
             }
         }
 
-        for bullet in &game_state.bullets {
+        for projectile in &game_state.projectiles {
             let position = na::Point2::new(
-                bullet.position.x - camera_position.x,
-                bullet.position.y - camera_position.y,
+                projectile.get_position().x - camera_position.x,
+                projectile.get_position().y - camera_position.y,
             ) + offset;
             bullet_sb.add(
                 graphics::DrawParam::default()
