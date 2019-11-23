@@ -93,10 +93,10 @@ impl Server {
         }
         self.last_time = Instant::now();
 
-        let hit_players = self.state.update(delta_time);
+        let (hit_players, hit_powerup_positions) = self.state.update(delta_time);
 
         self.accept_new_connections();
-        self.update_clients(delta_time, hit_players);
+        self.update_clients(delta_time, &hit_players, &hit_powerup_positions);
 
         for bullet in &mut self.state.bullets {
             bullet.update(delta_time);
@@ -137,7 +137,11 @@ impl Server {
         }
     }
 
-    fn update_clients(&mut self, delta_time: f32, hit_players: Vec<u64>) {
+    fn update_clients(
+        &mut self, delta_time: f32,
+        hit_players: &[u64],
+        hit_powerup_positions: &[(u64, Point2<f32>)]
+    ) {
         // Send data to clients
         let mut clients_to_delete = vec!();
         let mut sounds_to_play = vec!();
@@ -196,7 +200,7 @@ impl Server {
             }
 
             // transmit player hit messages
-            for hit_id in &hit_players {
+            for hit_id in hit_players {
                 let result = send_server_message(
                     &ServerMessage::PlayerHit(*hit_id),
                     &mut client.stream
@@ -238,6 +242,17 @@ impl Server {
                 let pos = bullet.position;
                 self.state.add_bullet(bullet);
                 sounds_to_play.push((SoundEffect::Gun, pos));
+            }
+
+            // play powerup sound effects
+            for (player_id, position) in hit_powerup_positions {
+                if player_id == id {
+                    let result = send_server_message(
+                        &ServerMessage::PlaySound(SoundEffect::Powerup, *position),
+                        &mut client.stream
+                    );
+                    remove_player_on_disconnect!(result, *id);
+                }
             }
         }
 

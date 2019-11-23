@@ -33,15 +33,17 @@ impl GameState {
     }
 
     /**
-     *  Updates the gamestate and returns a vec with player ids that got hit with bullets.
+     *  Updates the gamestate and returns
+     *  (vec with player ids that got hit with bullets,
+     *  vec with positions where powerups where picked up)
      */
-    pub fn update(&mut self, delta: f32) -> Vec<u64> {
-        self.handle_powerups();
+    pub fn update(&mut self, delta: f32) -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>) {
+        let hit_powerup_positions = self.handle_powerups();
         let hit_players = self.handle_bullets();
         self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
-        hit_players
+        (hit_players, hit_powerup_positions)
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -63,8 +65,13 @@ impl GameState {
         self.bullets.push(bullet)
     }
 
-    pub fn handle_powerups(&mut self) {
+    /**
+     * Updates the powerups and handles collision detection of them.
+     * Returns a vector with (player ids of players who picked up powerups, their positions)
+     */
+    pub fn handle_powerups(&mut self) -> Vec<(u64, na::Point2<f32>)> {
         let mut new_powerups = self.powerups.clone();
+        let mut hit_powerup_positions = vec!();
         for player in &mut self.players {
             new_powerups = new_powerups.into_iter()
                 .filter_map(|powerup| {
@@ -72,6 +79,7 @@ impl GameState {
                     if (powerup.position - player.position).norm() < hit_radius as f32 {
                         // Apply the powerup
                         player.apply_powerup(powerup.kind);
+                        hit_powerup_positions.push((player.id, player.position));
                         None
                     }
                     else {
@@ -90,6 +98,7 @@ impl GameState {
                 PowerUp::new(Self::create_powerup(), na::Point2::new(x, y))
             )
         }
+        hit_powerup_positions
     }
 
     fn create_powerup() -> PowerUpKind {
