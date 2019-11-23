@@ -1,27 +1,29 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use ggez::graphics::{Image, Font};
+use sdl2::image::LoadTexture;
+use sdl2::render::{Texture, TextureCreator};
+use sdl2::video::WindowContext;
 use sdl2::mixer::Chunk;
 
 use crate::powerups::PowerUpKind;
 use crate::player::PlaneType;
 
-pub struct Assets {
-    pub font: Font,
-    pub planes: HashMap<PlaneType, Image>,
-    pub miniplane: Image,
-    pub background: Image,
-    pub powerups: HashMap<PowerUpKind, Image>,
-    pub bullet: Image,
-    pub menu_background: Image,
-    pub end_background: Image,
-    pub yeehaw_1: Image,
-    pub yeehaw_2: Image,
-    pub smoke: Image,
-    pub laser_charge: Image,
-    pub laser_firing: Image,
-    pub laser_decay: [Image; 3],
+pub struct Assets<'ttf, 'r> {
+    pub font: sdl2::ttf::Font<'ttf, 'r>,
+    pub planes: HashMap<PlaneType, Texture<'r>>,
+    pub miniplane: Texture<'r>,
+    pub background: Texture<'r>,
+    pub powerups: HashMap<PowerUpKind, Texture<'r>>,
+    pub bullet: Texture<'r>,
+    pub menu_background: Texture<'r>,
+    pub end_background: Texture<'r>,
+    pub yeehaw_1: Texture<'r>,
+    pub yeehaw_2: Texture<'r>,
+    pub smoke: Texture<'r>,
+    pub laser_charge: Texture<'r>,
+    pub laser_firing: Texture<'r>,
+    pub laser_decay: [Texture<'r>; 3],
     pub achtung_blitzkrieg_engine: Chunk,
     pub el_pollo_romero_engine: Chunk,
     pub howdy_cowboy_engine: Chunk,
@@ -31,66 +33,50 @@ pub struct Assets {
     pub gun: Chunk,
 }
 
-impl Assets {
-    pub fn new(ctx: &mut ggez::Context) -> Assets {
+impl<'ttf, 'r> Assets<'ttf, 'r> {
+    pub fn new(texture_creator: &'r TextureCreator<WindowContext>, ttf_context: &'ttf sdl2::ttf::Sdl2TtfContext) -> Assets<'ttf, 'r> {
+        let load_tex = |path: &str| {
+            let mut tex = texture_creator.load_texture(path)
+                .expect(&format!("Could not load {}", path));
+            tex.set_blend_mode(sdl2::render::BlendMode::Blend);
+            tex
+        };
+
         let powerups = HashMap::from_iter(vec!{
-            (PowerUpKind::Afterburner, Image::new(ctx, "/powerups/afterburner.png")
-             .expect("Could not load missile powerup asset")),
-            (PowerUpKind::Laser, Image::new(ctx, "/powerups/laser.png")
-             .expect("Could not load laser powerup asset")),
-            (PowerUpKind::Health, Image::new(ctx, "/powerups/heal.png")
-             .expect("Could not load health powerup asset")),
-            (PowerUpKind::Invincibility, Image::new(ctx, "/powerups/invincibility.png")
-             .expect("Could not load invincibility powerup asset")),
-            (PowerUpKind::Gun, Image::new(ctx, "/powerups/gun.png")
-             .expect("Could not load gun powerup asset")),
-            (PowerUpKind::SlowTime, Image::new(ctx, "/powerups/slowtime.png")
-             .expect("Could not load slowtime asset")),
+            (PowerUpKind::Afterburner, load_tex("resources/powerups/afterburner.png")),
+            (PowerUpKind::Laser, load_tex("resources/powerups/laser.png")),
+            (PowerUpKind::Health, load_tex("resources/powerups/heal.png")),
+            (PowerUpKind::Invincibility, load_tex("resources/powerups/invincibility.png")),
+            (PowerUpKind::Gun, load_tex("resources/powerups/gun.png")),
+            (PowerUpKind::SlowTime, load_tex("resources/powerups/slowtime.png")),
         });
 
         let planes = HashMap::from_iter(vec!{
-            (PlaneType::SukaBlyat, Image::new(ctx, "/fishbed.png")
-             .expect("Failed to load fishbed")),
-            (PlaneType::AchtungBlitzKrieg, Image::new(ctx, "/messersmitt.png")
-             .expect("Failed to load messersmitt")),
-            (PlaneType::ElPolloRomero, Image::new(ctx, "/cessna.png")
-             .expect("Failed to load spanish")),
-            (PlaneType::HowdyCowboy, Image::new(ctx, "/jasgripen.png")
-             .expect("Failed to load jasgipen")),
+            (PlaneType::SukaBlyat, load_tex("resources/fishbed.png")),
+            (PlaneType::AchtungBlitzKrieg, load_tex("resources/messersmitt.png")),
+            (PlaneType::ElPolloRomero, load_tex("resources/cessna.png")),
+            (PlaneType::HowdyCowboy, load_tex("resources/jasgripen.png")),
         });
         
         let mut assets = Assets {
-            font: Font::new(ctx, "/yoster.ttf")
+            font: ttf_context.load_font("resources/yoster.ttf", 15)
                 .expect("Could not find font!"),
             planes,
-            background: Image::new(ctx, "/background.png")
-                .expect("Could not find background image!"),
-            miniplane: Image::new(ctx, "/miniplane.png")
-                .expect("Could not find miniplane image!"),
+            background: load_tex("resources/background.png"),
+            miniplane: load_tex("resources/miniplane.png"),
             powerups,
-            bullet: Image::new(ctx, "/bullet.png")
-                .expect("Could not find bullet image!"),
-            menu_background: Image::new(ctx, "/menu_background.png").
-                expect("Could not find bullet image!"),
-            end_background: Image::new(ctx, "/endscreen.png").
-                expect("Could not find bullet image!"),
-            yeehaw_1: Image::new(ctx, "/yeehaw.png").
-                expect("Could not find secret 1!"),
-            yeehaw_2: Image::new(ctx, "/yeehawman.png").
-                expect("Could not find secret 2!"),
-            smoke: Image::new(ctx, "/smoke.png")
-                .expect("Could not find smoke image"),
-            laser_charge: Image::new(ctx, "/lasercharge.png")
-                .expect("Could not find laser charge image"),
-            laser_firing: Image::new(ctx, "/laser.png")
-                .expect("Failed to load laser"),
+            bullet: load_tex("resources/bullet.png"),
+            menu_background: load_tex("resources/menu_background.png"),
+            end_background: load_tex("resources/endscreen.png"),
+            yeehaw_1: load_tex("resources/yeehaw.png"),
+            yeehaw_2: load_tex("resources/yeehawman.png"),
+            smoke: load_tex("resources/smoke.png"),
+            laser_charge: load_tex("resources/lasercharge.png"),
+            laser_firing: load_tex("resources/laser.png"),
             laser_decay: [
-                Image::new(ctx, "/laserdecay_1.png")
-                    .expect("Failed to load laser decay 1"),
-                Image::new(ctx, "/laserdecay_2.png")
-                    .expect("Failed to load laser decay 2"),
-                Image::new(ctx, "/laserdecay_3.png")
-                    .expect("Failed to load laser decay 3"),
+                load_tex("resources/laserdecay_1.png"),
+                load_tex("resources/laserdecay_2.png"),
+                load_tex("resources/laserdecay_3.png"),
             ],
 
             achtung_blitzkrieg_engine: Chunk::from_file("resources/audio/achtungblitzkrieg-engine.ogg").unwrap(),

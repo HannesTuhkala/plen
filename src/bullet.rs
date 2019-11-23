@@ -1,7 +1,5 @@
-use ggez::nalgebra as na;
+use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
-use ggez::graphics;
-use ggez;
 use crate::constants;
 use crate::math;
 use rand::Rng;

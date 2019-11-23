@@ -1,7 +1,7 @@
 pub const PLANE_SIZE: u32 = 20;
 pub const BULLET_RADIUS: u32 = 1;
 pub const POWERUP_RADIUS: u32 = 20;
-pub const POWERUP_SPEED: f32 = 0.03;
+pub const POWERUP_SPEED: f32 = 1.8;
 pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
@@ -32,11 +32,6 @@ pub const LASER_DECAY_TIME: f32 = 0.3;
 pub const LASER_RANGE: f32 = 300.;
 
 pub const WINDOW_SIZE: f32 = 700.;
-
-pub const SCANCODE_W: u32 = 17;
-pub const SCANCODE_A: u32 = 30;
-pub const SCANCODE_S: u32 = 31;
-pub const SCANCODE_D: u32 = 32;
 
 pub const POWERUP_AMOUNT: u32 = 10;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;

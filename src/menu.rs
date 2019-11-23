@@ -1,13 +1,11 @@
 use crate::assets::Assets;
 use crate::player;
 use crate::constants;
+use crate::rendering::draw_texture;
 
-use ggez;
-use ggez::event::{self, EventHandler};
-use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
-use ggez::graphics;
-use ggez::nalgebra as na;
-use ggez::input::keyboard;
+use nalgebra as na;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 use whoami;
 
@@ -26,148 +24,137 @@ const COLORS: [player::Color; 5] = [
     player::Color::Purple,
 ];
 
-pub struct MenuState<'a> {
+pub struct MenuState {
     pub plane: player::PlaneType,
     pub name: String,
     pub color: player::Color,
     pub color_selection: usize,
     pub plane_selection: usize,
-    assets: &'a Assets,
 }
 
-impl<'a> MenuState<'a> {
-    pub fn new(assets: &Assets) -> MenuState {
+impl MenuState {
+    pub fn new() -> MenuState {
         MenuState {
             name: String::from(whoami::username()),
             plane: player::PlaneType::SukaBlyat,
             color: player::Color::Red,
             color_selection: 0,
             plane_selection: 0,
-            assets: assets,
         }
     }
 }
 
-impl<'a> MenuState<'a> {
-    fn draw_player_name(&mut self, ctx: &mut ggez::Context, assets: &Assets) {
+impl MenuState {
+    fn draw_player_name(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
         let (nx, ny) = constants::NAME_POS;
-        let mut text = graphics::Text::new(format!(
-            "Helo comrade {}", self.name.clone())
-        );
-        text.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &text,
-                       (na::Point2::new(nx + 10., ny + 10.),)).unwrap();
+        let text = assets.font.render(&format!(
+            "Helo comrade {}", self.name
+        )).blended((255, 255, 255)).expect("Could not render text");
+
+        let texture_creator = canvas.texture_creator();
+        let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
+
+        draw_texture(canvas, &text_texture, na::Point2::new(nx + 10., ny + 10.))
     }
 
-    fn draw_selected_plane(&mut self, ctx: &mut ggez::Context,
-                           assets: &Assets) {
-        let sprite = assets.planes[&self.plane].clone();
-        let text = self.plane.name();
+    fn draw_selected_plane(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
         let (px, py) = constants::PLANE_SELECTION_POS;
-        let mut ggez_text = graphics::Text::new(text);
-        ggez_text.set_font(assets.font, graphics::Scale::uniform(15.));
-        let background_rect = &graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(
-                px, py,
-                constants::PLANE_SELECTION_SIZE*1.25,
-                constants::PLANE_SELECTION_SIZE
-                ),
-            [0., 0., 0., 0.5].into()
-        ).unwrap();
-        graphics::draw(
-            ctx, background_rect,
-            (na::Point2::new(0., 0.),)
-        ).unwrap();
-        graphics::draw(ctx, &ggez_text,
-                       (na::Point2::new(px + 10., py + 10.),)).unwrap();
-        let mut instruction = graphics::Text::new("click to change plane blyat:");
-        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &instruction,
-                       (na::Point2::new(px, py - 20.),)).unwrap();
-        graphics::draw(ctx, &sprite,
-                       (na::Point2::new(
-                               px
-                               + constants::PLANE_SELECTION_SIZE/3.
-                               - (constants::PLANE_SIZE as f32)*2.,
-                               py
-                               + constants::PLANE_SELECTION_SIZE/2.
-                               - constants::PLANE_SIZE as f32,
-                       ),)).unwrap();
 
-        let mut plane_specs = graphics::Text::new(format!(
+        let background_rect = sdl2::rect::Rect::new(
+            px as i32,
+            py as i32,
+            (constants::PLANE_SELECTION_SIZE * 1.25) as u32,
+            constants::PLANE_SELECTION_SIZE as u32
+        );
+
+        canvas.set_draw_color((0, 0, 0, 128));
+        canvas.fill_rect(background_rect)?;
+
+        let texture_creator = canvas.texture_creator();
+
+        let text = assets.font.render(
+            self.plane.name()
+        ).blended((255, 255, 255)).expect("Could not render text");
+        let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
+        draw_texture(canvas, &text_texture, na::Point2::new(px + 10., py + 10.))?;
+
+        let instruction = assets.font.render(
+            "click to change plane blyat:"
+        ).blended((255, 255, 255)).expect("Could not render text");
+        let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
+
+        draw_texture(canvas, &instruction_texture, na::Point2::new(px, py - 20.))?;
+
+        draw_texture(
+            canvas,
+            &assets.planes[&self.plane],
+            na::Point2::new(
+                px
+                    + constants::PLANE_SELECTION_SIZE/3.
+                    - (constants::PLANE_SIZE as f32)*2.,
+                py
+                    + constants::PLANE_SELECTION_SIZE/2.
+                    - constants::PLANE_SIZE as f32,
+            ))?;
+
+        let plane_specs = assets.font.render(&format!(
             "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
             self.plane.agility(),
             self.plane.firepower(),
             self.plane.acceleration().trunc(),
             self.plane.health(),
-            self.plane.resilience()));
-        plane_specs.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &plane_specs,
-                       (na::Point2::new(
-                               px + constants::PLANE_SELECTION_SIZE/2.4,
-                               py + constants::PLANE_SELECTION_SIZE/3.),))
-            .unwrap();
+            self.plane.resilience())
+        ).blended_wrapped((255, 255, 255), 1000).expect("Could not render text");
+        let specs_texture = texture_creator.create_texture_from_surface(plane_specs).unwrap();
+
+        draw_texture(
+            canvas,
+            &specs_texture,
+            na::Point2::new(
+                px + constants::PLANE_SELECTION_SIZE/2.4,
+                py + constants::PLANE_SELECTION_SIZE/3.
+            )
+        )
     }
 
-    fn draw_selected_color(
-        &mut self, ctx: &mut ggez::Context, assets: &Assets
-        ) {
+    fn draw_selected_color(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
         let (cx, cy) = constants::COLOR_SELECTION_POS;
-        let background_rect = &graphics::Mesh::new_rectangle(
-            ctx,
-            graphics::DrawMode::fill(),
-            graphics::Rect::new(
-                cx, cy,
-                constants::COLOR_SELECTION_SIZE,
-                constants::COLOR_SELECTION_SIZE
-                ),
-            self.color.rgba().into()
-        ).unwrap();
-        graphics::draw(
-            ctx, background_rect, (na::Point2::new(0., 0.),)).unwrap();
-        let mut instruction = graphics::Text::new("click to change color:");
-        instruction.set_font(assets.font, graphics::Scale::uniform(15.));
-        graphics::draw(ctx, &instruction,
-                       (na::Point2::new(cx, cy - 20.),)).unwrap();
-    }
-}
+        let background_rect = sdl2::rect::Rect::new(
+            cx as i32,
+            cy as i32,
+            constants::COLOR_SELECTION_SIZE as u32,
+            constants::COLOR_SELECTION_SIZE as u32
+        );
+        canvas.set_draw_color(self.color.rgba());
+        canvas.fill_rect(background_rect)?;
 
-impl<'a> event::EventHandler for MenuState<'a> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        let instruction = assets.font.render(
+            "click to change color:"
+        ).blended((255, 255, 255)).expect("Could not render text");
+        let texture_creator = canvas.texture_creator();
+        let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
+
+        draw_texture(
+            canvas,
+            &instruction_texture,
+            na::Point2::new(cx, cy - 20.)
+        )
+    }
+
+    pub fn update(&mut self) {
         self.plane = PLANES[self.plane_selection].clone();
         self.color = COLORS[self.color_selection].clone();
+    }
+
+    pub fn draw(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
+        draw_texture(canvas, &assets.menu_background, na::Point2::new(0., 0.))?;
+        self.draw_selected_plane(canvas, assets)?;
+        self.draw_selected_color(canvas, assets)?;
+        self.draw_player_name(canvas, assets)?;
         Ok(())
     }
 
-    fn key_down_event(
-        &mut self,
-        ctx: &mut ggez::Context,
-        keycode: keyboard::KeyCode,
-        _keymod: keyboard::KeyMods,
-        repeat: bool
-    ) {
-        if (keycode == keyboard::KeyCode::Return ||
-            keycode == keyboard::KeyCode::Space) && !repeat {
-            ctx.continuing = false;
-        }
-    }
-    
-    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        graphics::draw(ctx, &self.assets.menu_background,
-                       (na::Point2::new(0., 0.),)).unwrap();
-        self.draw_selected_plane(ctx, self.assets);
-        self.draw_selected_color(ctx, self.assets);
-        self.draw_player_name(ctx, self.assets);
-        graphics::present(ctx)?;
-        Ok(())
-    }
-
-    fn mouse_button_down_event(&mut self, _ctx: &mut ggez::Context,
-                               _button: ggez::input::mouse::MouseButton,
-                               x: f32, y: f32) {
+    pub fn mouse_button_down_event(&mut self, x: f32, y: f32) {
         let (px, py) = constants::PLANE_SELECTION_POS;
         let s = constants::PLANE_SELECTION_SIZE;
         if x > px && x < px + s * 1.25 && y > py && y < py + s {
