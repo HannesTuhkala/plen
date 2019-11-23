@@ -1,5 +1,5 @@
 pub mod player;
-pub mod bullet;
+pub mod ammo;
 pub mod constants;
 pub mod math;
 pub mod powerups;
