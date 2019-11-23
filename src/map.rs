@@ -250,6 +250,10 @@ impl Map {
         for tile_x in [-1., 0., 1.].iter() {
             for tile_y in [-1., 0., 1.].iter() {
                 for player in &game_state.players {
+                    if player.is_invisible() && my_id != player.id {
+                        // don't draw player if invisible
+                        continue;
+                    }
                     let offset = na::Vector2::new(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
@@ -542,6 +546,10 @@ impl Map {
                 let scale = constants::MINI_MAP_SIZE
                     / constants::WORLD_SIZE;
                 for player in &game_state.players {
+                    if player.is_invisible() && my_player.id != player.id {
+                        // don't draw player if invisible
+                        continue;
+                    }
                     let position = na::Point2::new(
                         (player.position.x - my_pos.x)*scale,
                         (player.position.y - my_pos.y)*scale,
