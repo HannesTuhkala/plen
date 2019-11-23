@@ -1,14 +1,6 @@
-mod player;
 mod assets;
 mod map;
-mod bullet;
-mod gamestate;
-mod constants;
-mod messages;
-mod powerups;
-mod math;
 mod menu;
-mod killfeed;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
@@ -24,9 +16,13 @@ use ggez::nalgebra as na;
 use ggez::input::keyboard;
 
 use assets::Assets;
-use messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-use crate::killfeed::KillFeed;
 use menu::MenuState;
+
+use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
+use libplen::killfeed::KillFeed;
+
+use libplen::gamestate;
+use libplen::constants;
 
 struct KeyStates {
     forward: ElementState,
