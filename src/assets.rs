@@ -4,8 +4,8 @@ use std::iter::FromIterator;
 use ggez::graphics::{Image, Font};
 use sdl2::mixer::Chunk;
 
-use crate::powerups::PowerUpKind;
-use crate::player::PlaneType;
+use libplen::powerups::PowerUpKind;
+use libplen::player::PlaneType;
 
 pub struct Assets {
     pub font: Font,

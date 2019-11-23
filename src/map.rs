@@ -1,7 +1,7 @@
-use crate::player;
-use crate::constants;
-use crate::gamestate::GameState;
-use crate::killfeed::KillFeed;
+use libplen::player;
+use libplen::constants;
+use libplen::gamestate::GameState;
+use libplen::killfeed::KillFeed;
 
 use ggez;
 use ggez::event;
@@ -13,8 +13,8 @@ use ggez::input::keyboard;
 use rand::prelude::*;
 
 use crate::assets::Assets;
-use crate::powerups::PowerUpKind;
-use crate::player::PlaneType;
+use libplen::powerups::PowerUpKind;
+use libplen::player::PlaneType;
 
 use std::collections::HashMap;
 

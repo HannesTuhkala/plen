@@ -1,6 +1,6 @@
 use crate::assets::Assets;
-use crate::player;
-use crate::constants;
+use libplen::player;
+use libplen::constants;
 
 use ggez;
 use ggez::event::{self, EventHandler};
