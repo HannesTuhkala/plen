@@ -338,11 +338,10 @@ impl Map {
 
             let texture_creator = canvas.texture_creator();
             let nametag_texture = texture_creator.create_texture_from_surface(nametag).unwrap();
-            let width = nametag_texture.query().width as f32;
             draw_texture_centered(
                 canvas,
                 &nametag_texture,
-                na::Point2::new(position.x - width/2., position.y + 30.),
+                na::Point2::new(position.x, position.y + 30.),
             )?;
 
             if let Some(p) = player.laser_charge_progress() {
