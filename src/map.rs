@@ -2,7 +2,6 @@ use nalgebra as na;
 use rand::prelude::*;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use sdl2::gfx::primitives::DrawRenderer;
 
 use libplen::player;
 use libplen::constants;
@@ -465,7 +464,14 @@ impl Map {
         assets: &mut Assets,
         my_player: &player::Player,
     ) -> Result<(), String> {
-        Map::draw_mini_map_background(canvas)?;
+        draw_texture(
+            canvas,
+            &assets.minimap_background,
+            na::Point2::new(
+                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+            )
+        )?;
 
         let my_pos = my_player.position;
         let mini_map_center = na::Vector2::new(
@@ -513,11 +519,10 @@ impl Map {
                                 + (position.y + offset.y).powi(2)).sqrt();
                     if dist <= constants::MINI_MAP_SIZE/2. {
                         let pos = position + offset + mini_map_center;
-                        canvas.filled_circle(
-                            pos.x as i16,
-                            pos.y as i16,
-                            2,
-                            (128, 255, 128, 180)
+                        draw_texture_centered(
+                            canvas,
+                            &assets.minimap_powerup,
+                            pos
                         )?;
                     }
                 }
@@ -525,41 +530,5 @@ impl Map {
         }
 
         Ok(())
-    }
-
-    fn draw_mini_map_background(canvas: &mut Canvas<Window>) -> Result<(), String> {
-        let green_color = sdl2::pixels::Color::RGBA(0, 255, 0, 200);
-        let bg_color = sdl2::pixels::Color::RGBA(0, 0, 0, 200);
-
-        canvas.filled_circle(
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::MINI_MAP_SIZE * 0.5) as i16,
-            bg_color
-        )?;
-        canvas.aa_circle(
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::MINI_MAP_SIZE * 0.45) as i16,
-            green_color
-        )?;
-        canvas.aa_circle(
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::MINI_MAP_SIZE * 0.225) as i16,
-            green_color
-        )?;
-        canvas.hline(
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE) as i16,
-            constants::WINDOW_SIZE as i16,
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            green_color
-        )?;
-        canvas.vline(
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5) as i16,
-            (constants::WINDOW_SIZE - constants::MINI_MAP_SIZE) as i16,
-            constants::WINDOW_SIZE as i16,
-            green_color
-        )
     }
 }
