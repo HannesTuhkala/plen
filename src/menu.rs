@@ -1,7 +1,7 @@
 use crate::assets::Assets;
+use crate::rendering;
 use libplen::player;
 use libplen::constants;
-use crate::rendering::draw_texture;
 
 use nalgebra as na;
 use sdl2::render::Canvas;
@@ -54,11 +54,16 @@ impl MenuState {
         let texture_creator = canvas.texture_creator();
         let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
 
-        draw_texture(canvas, &text_texture, na::Point2::new(nx + 10., ny + 10.))
+        let res_offset = rendering::calculate_resolution_offset(canvas);
+        rendering::draw_texture(
+            canvas, &text_texture, na::Point2::new(nx + 10., ny + 10.) + res_offset
+        )
     }
 
     fn draw_selected_plane(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
+        let res_offset = rendering::calculate_resolution_offset(canvas);
         let (px, py) = constants::PLANE_SELECTION_POS;
+        let (px, py) = (px + res_offset.x, py + res_offset.y);
 
         let background_rect = sdl2::rect::Rect::new(
             px as i32,
@@ -76,16 +81,16 @@ impl MenuState {
             .blended((255, 255, 255))
             .expect("Could not render text");
         let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
-        draw_texture(canvas, &text_texture, na::Point2::new(px + 10., py + 10.))?;
+        rendering::draw_texture(canvas, &text_texture, na::Point2::new(px + 10., py + 10.))?;
 
         let instruction = assets.font.render("click to change plane blyat:")
             .blended((255, 255, 255))
             .expect("Could not render text");
         let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
 
-        draw_texture(canvas, &instruction_texture, na::Point2::new(px, py - 20.))?;
+        rendering::draw_texture(canvas, &instruction_texture, na::Point2::new(px, py - 20.))?;
 
-        draw_texture(
+        rendering::draw_texture(
             canvas,
             &assets.planes[&self.plane],
             na::Point2::new(
@@ -110,7 +115,7 @@ impl MenuState {
             .expect("Could not render text");
         let specs_texture = texture_creator.create_texture_from_surface(plane_specs).unwrap();
 
-        draw_texture(
+        rendering::draw_texture(
             canvas,
             &specs_texture,
             na::Point2::new(
@@ -121,7 +126,10 @@ impl MenuState {
     }
 
     fn draw_selected_color(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
+        let res_offset = rendering::calculate_resolution_offset(canvas);
         let (cx, cy) = constants::COLOR_SELECTION_POS;
+        let (cx, cy) = (cx + res_offset.x, cy + res_offset.y);
+
         let background_rect = sdl2::rect::Rect::new(
             cx as i32,
             cy as i32,
@@ -137,7 +145,7 @@ impl MenuState {
         let texture_creator = canvas.texture_creator();
         let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
 
-        draw_texture(
+        rendering::draw_texture(
             canvas,
             &instruction_texture,
             na::Point2::new(cx, cy - 20.)
@@ -150,21 +158,38 @@ impl MenuState {
     }
 
     pub fn draw(&mut self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
-        draw_texture(canvas, &assets.menu_background, na::Point2::new(0., 0.))?;
+        let (width, height) = canvas.logical_size();
+        canvas.set_draw_color(constants::MENU_BACKGROUND_COLOR);
+        canvas.clear();
+
+        rendering::draw_texture_centered(
+            canvas,
+            &assets.menu_background,
+            na::Point2::new(
+                width as f32 * 0.5,
+                height as f32 * 0.5
+            )
+        )?;
         self.draw_selected_plane(canvas, assets)?;
         self.draw_selected_color(canvas, assets)?;
         self.draw_player_name(canvas, assets)?;
+
+        canvas.present();
         Ok(())
     }
 
-    pub fn mouse_button_down_event(&mut self, x: f32, y: f32) {
+    pub fn mouse_button_down_event(&mut self, x: f32, y: f32, canvas: &Canvas<Window>) {
         let (px, py) = constants::PLANE_SELECTION_POS;
+        let res_offset = rendering::calculate_resolution_offset(canvas);
+        let (px, py) = (px + res_offset.x, py + res_offset.y);
+
         let s = constants::PLANE_SELECTION_SIZE;
         if x > px && x < px + s * 1.25 && y > py && y < py + s {
             self.plane_selection = (self.plane_selection + 1) % 4;
         }
 
         let (cx, cy) = constants::COLOR_SELECTION_POS;
+        let (cx, cy) = (cx + res_offset.x, cy + res_offset.y);
         let s = constants::COLOR_SELECTION_SIZE;
         if x > cx && x < cx + s && y > cy && y < cy + s {
             self.color_selection = (self.color_selection + 1) % 5;

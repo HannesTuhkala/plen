@@ -191,17 +191,23 @@ struct EndState {
 
 impl EndState {
     fn draw(&self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
-        rendering::draw_texture(
+        canvas.set_draw_color(constants::MENU_BACKGROUND_COLOR);
+        canvas.clear();
+
+        let (width, height) = canvas.logical_size();
+        rendering::draw_texture_centered(
             canvas,
             &assets.end_background,
-            na::Point2::new(0., 0.)
+            na::Point2::new(width as f32 * 0.5, height as f32 * 0.5)
         )?;
+
+        canvas.present();
 
         Ok(())
     }
 }
 
-pub fn main() {
+pub fn main() -> Result<(), String> {
     let host = std::env::var("SERVER")
         .unwrap_or(String::from("localhost:4444"));
     let stream = TcpStream::connect(host).expect("Could not connect to server");
@@ -229,6 +235,7 @@ pub fn main() {
 
     let window = video_subsystem
         .window("plen", constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32)
+        .resizable()
         .build()
         .expect("Could not create window");
 
@@ -275,20 +282,16 @@ pub fn main() {
                         }
                     },
                     Event::MouseButtonDown {x, y, ..} => {
-                        menu_state.mouse_button_down_event(x as f32, y as f32);
+                        menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
                     }
                     _ => {}
                 }
             }
+            rendering::setup_coordinates(&mut canvas)?;
 
             menu_state.update();
 
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
-            canvas.clear();
-
             menu_state.draw(&mut canvas, &assets).unwrap();
-
-            canvas.present();
         }
 
         send_client_message(
@@ -308,6 +311,7 @@ pub fn main() {
                     _ => {}
                 }
             }
+            rendering::setup_coordinates(&mut canvas)?;
 
             canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
             canvas.clear();
@@ -336,12 +340,13 @@ pub fn main() {
                     _ => {}
                 }
             }
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
-            canvas.clear();
+            rendering::setup_coordinates(&mut canvas)?;
 
             end_state.draw(&mut canvas, &assets).unwrap();
 
             canvas.present();
         }
     }
+
+    Ok(())
 }
