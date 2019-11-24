@@ -1,5 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
 
+use crate::constants;
+
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Message {
     pub message: String,
