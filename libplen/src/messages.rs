@@ -80,7 +80,7 @@ impl_message_reader!(ServerMessage);
 impl_message_reader!(ClientMessage);
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
-pub enum SoundEffect { Powerup, Explosion, Gun }
+pub enum SoundEffect { Powerup, Explosion, Gun, LaserCharge, LaserFire }
 
 #[derive(Serialize, Deserialize)]
 pub enum ServerMessage {

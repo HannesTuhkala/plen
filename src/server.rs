@@ -94,10 +94,13 @@ impl Server {
         }
         self.last_time = Instant::now();
 
-        let (hit_players, hit_powerup_positions) = self.state.update(delta_time);
+        let (hit_players, hit_powerup_positions, fired_laser_positions) = 
+            self.state.update(delta_time);
 
         self.accept_new_connections();
-        self.update_clients(delta_time, &hit_players, &hit_powerup_positions);
+        self.update_clients(
+            delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
+        );
     }
 
     fn accept_new_connections(&mut self) {
@@ -133,7 +136,8 @@ impl Server {
     fn update_clients(
         &mut self, delta_time: f32,
         hit_players: &[u64],
-        hit_powerup_positions: &[(u64, Point2<f32>)]
+        hit_powerup_positions: &[(u64, Point2<f32>)],
+        fired_laser_positions: &[Point2<f32>],
     ) {
         // Send data to clients
         let mut clients_to_delete = vec!();
@@ -192,6 +196,10 @@ impl Server {
                 }
             }
 
+            for position in fired_laser_positions {
+                sounds_to_play.push((SoundEffect::LaserFire, *position));
+            }
+
             // transmit player hit messages
             for hit_id in hit_players {
                 let result = send_server_message(
@@ -211,7 +219,11 @@ impl Server {
                     );
 
                     if player_shooting {
-                        bullet = player.shoot();
+                        let (b, start_charging_laser) = player.shoot();
+                        bullet = b;
+                        if start_charging_laser {
+                            sounds_to_play.push((SoundEffect::LaserCharge, player.position));
+                        }
                     }
 
                     if player.health <= 0 {

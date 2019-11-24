@@ -2,6 +2,7 @@ extern crate rand;
 
 use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
+
 use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
@@ -17,12 +18,21 @@ pub enum PlaneType {
 }
 
 impl PlaneType {
-    pub fn speed(&self) -> f64 {
+    pub fn speed(&self) -> f32 {
         match self {
-            PlaneType::SukaBlyat => 5.4,
-            PlaneType::HowdyCowboy => 3.2,
-            PlaneType::ElPolloRomero => 6.1,
-            PlaneType::AchtungBlitzKrieg => 4.3,
+            PlaneType::SukaBlyat => 1.05,
+            PlaneType::HowdyCowboy => 1.,
+            PlaneType::ElPolloRomero => 1.1,
+            PlaneType::AchtungBlitzKrieg => 1.,
+        }
+    }
+
+    pub fn max_speed(&self) -> f32 {
+        match self {
+            PlaneType::SukaBlyat => constants::MAX_SPEED * 0.9 ,
+            PlaneType::HowdyCowboy => constants::MAX_SPEED * 0.8,
+            PlaneType::ElPolloRomero => constants::MAX_SPEED * 1.0,
+            PlaneType::AchtungBlitzKrieg => constants::MAX_SPEED * 0.8,
         }
     }
 
@@ -30,16 +40,16 @@ impl PlaneType {
         match self {
             PlaneType::SukaBlyat => constants::DEFAULT_AGILITY * 5.,
             PlaneType::HowdyCowboy => constants::DEFAULT_AGILITY * 4.,
-            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 3.5,
-            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::ElPolloRomero => constants::DEFAULT_AGILITY * 5.,
+            PlaneType::AchtungBlitzKrieg => constants::DEFAULT_AGILITY * 4.,
         }
     }
 
     pub fn firepower(&self) -> i16 {
         match self {
             PlaneType::SukaBlyat => constants::BULLET_DAMAGE * 5 as i16,
-            PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 2. as i16,
-            PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 2. as i16,
+            PlaneType::HowdyCowboy => constants::BULLET_DAMAGE * 3. as i16,
+            PlaneType::ElPolloRomero => constants::BULLET_DAMAGE * 3. as i16,
             PlaneType::AchtungBlitzKrieg => constants::BULLET_DAMAGE * 4. as i16,
         }
     }
@@ -91,13 +101,13 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn rgba(&self) -> (f32, f32, f32, f32) {
+    pub fn rgba(&self) -> (u8, u8, u8, u8) {
         match self {
-            Color::Red => (1., 0., 0., 1.),
-            Color::Green => (0., 1., 0., 1.),
-            Color::Blue => (0., 0., 1., 1.),
-            Color::Yellow => (1., 1., 0., 1.),
-            Color::Purple => (1., 0., 1., 1.),
+            Color::Red => (255, 0, 0, 255),
+            Color::Green => (0, 255, 0, 255),
+            Color::Blue => (0, 0, 255, 255),
+            Color::Yellow => (255, 255, 0, 255),
+            Color::Purple => (255, 0, 255, 255),
         }
     }
 }
@@ -216,12 +226,17 @@ impl Player {
         self.health == 0
     }
 
-    pub fn shoot(&mut self) -> Option<ProjectileKind> {
+    /**
+     * Fires a weapon, returns (Option on the bullet that may have been fired, 
+     * whether a laser started charging)
+     */
+    pub fn shoot(&mut self) -> (Option<ProjectileKind>, bool) {
         if !self.invincibility_is_on() {
             if self.weapon_is_wielded(PowerUpKind::Laser) {
                 // Start charging the laser
                 if let None = self.laser_charge_time {
-                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME)
+                    self.laser_charge_time = Some(constants::LASER_FIRE_TIME);
+                    return (None, true);
                 }
             }
             else {
@@ -257,12 +272,12 @@ impl Player {
                     self.id,
                     self.name.clone(),
                 );
-                Some(ProjectileKind::from(new_bullet))
+                (Some(ProjectileKind::from(new_bullet)), false)
             } else {
-                None
+                (None, false)
             }
         } else {
-            None
+            (None, false)
         }
     }
 
@@ -317,15 +332,15 @@ impl Player {
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
 
-        if self.speed > constants::MAX_SPEED {
-            self.speed = constants::MAX_SPEED;
+        if self.speed > self.planetype.max_speed() {
+            self.speed = self.planetype.max_speed();
         }
         if self.speed < constants::MIN_SPEED {
             self.speed = constants::MIN_SPEED;
         }
 
-        let dx = self.speed * (self.rotation - std::f32::consts::PI/2.).cos();
-        let dy = self.speed * (self.rotation - std::f32::consts::PI/2.).sin();
+        let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
+        let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
         na::Vector2::new(dx, dy) * speed_boost
     }
 

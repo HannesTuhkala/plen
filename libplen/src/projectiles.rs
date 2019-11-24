@@ -192,7 +192,6 @@ impl Projectile for Missile {
         }
         else {
             self.angle
-            // 0.
         };
 
         self.angular_velocity +=
