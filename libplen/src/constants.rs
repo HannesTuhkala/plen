@@ -68,3 +68,5 @@ pub const HIT_SEQUENCE_RATE: f32 = 0.015;
 pub const HIT_SHAKE_SPEED: f32 = 55.;
 pub const HIT_SHAKE_MAGNITUDE: f32 = 7.;
 
+pub const KILLFEED_DURATION: f32 = 4.;
+
