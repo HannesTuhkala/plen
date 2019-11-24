@@ -2,6 +2,7 @@ extern crate rand;
 
 use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
+
 use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
@@ -100,13 +101,13 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn rgba(&self) -> (f32, f32, f32, f32) {
+    pub fn rgba(&self) -> (u8, u8, u8, u8) {
         match self {
-            Color::Red => (1., 0., 0., 1.),
-            Color::Green => (0., 1., 0., 1.),
-            Color::Blue => (0., 0., 1., 1.),
-            Color::Yellow => (1., 1., 0., 1.),
-            Color::Purple => (1., 0., 1., 1.),
+            Color::Red => (255, 0, 0, 255),
+            Color::Green => (0, 255, 0, 255),
+            Color::Blue => (0, 0, 255, 255),
+            Color::Yellow => (255, 255, 0, 255),
+            Color::Purple => (255, 0, 255, 255),
         }
     }
 }

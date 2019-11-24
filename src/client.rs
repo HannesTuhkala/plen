@@ -1,47 +1,23 @@
 mod assets;
 mod map;
 mod menu;
+mod rendering;
 
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::env;
-use std::path;
 use std::time::Instant;
 
-use ggez;
-use ggez::event::{self, EventHandler};
-use ggez::event::winit_event::{Event, KeyboardInput, WindowEvent, ElementState};
-use ggez::graphics;
-use ggez::nalgebra as na;
-use ggez::input::keyboard;
-
-use assets::Assets;
-use menu::MenuState;
+use nalgebra as na;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+use sdl2::event::Event;
+use sdl2::keyboard::{Keycode, Scancode};
 
 use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
-
 use libplen::gamestate;
 use libplen::constants;
-
-struct KeyStates {
-    forward: ElementState,
-    back: ElementState,
-    left: ElementState,
-    right: ElementState,
-    shooting: ElementState,
-}
-
-impl KeyStates {
-    fn new() -> Self {
-        KeyStates {
-            forward: ElementState::Released,
-            back: ElementState::Released,
-            left: ElementState::Released,
-            right: ElementState::Released,
-            shooting: ElementState::Released,
-        }
-    }
-}
+use assets::Assets;
+use menu::MenuState;
 
 fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
     let data = bincode::serialize(msg).expect("Failed to encode message");
@@ -52,91 +28,51 @@ fn send_client_message(msg: &ClientMessage, stream: &mut TcpStream) {
         .expect("Failed to send message to server");
 }
 
-struct MainState<'a> {
+#[derive(PartialEq)]
+enum StateResult { Continue, GotoNext }
+
+struct MainState {
     my_id: u64,
     camera_position: na::Point2<f32>,
-    server_reader: &'a mut MessageReader<ServerMessage>,
     game_state: gamestate::GameState,
     map: map::Map,
-    assets: &'a mut Assets,
-    key_states: KeyStates,
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
 }
 
-struct EndState<'a> {
-    assets: &'a Assets
-}
-
-impl<'a> MainState<'a> {
-    fn new(my_id: u64, stream: &'a mut MessageReader<ServerMessage>, assets: &'a mut Assets)
-        -> ggez::GameResult<MainState<'a>>
-    {
-        let s = MainState {
-            server_reader: stream,
+impl MainState {
+    fn new(my_id: u64) -> MainState {
+        MainState {
             my_id,
             camera_position: na::Point2::new(0., 0.),
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
-            assets: assets,
-            key_states: KeyStates::new(),
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
-        };
-        Ok(s)
-    }
-}
-
-impl<'a> EndState<'a> {
-    fn new(assets: &Assets) -> EndState {
-        EndState {
-            assets: assets,
         }
     }
-}
 
-impl<'a> event::EventHandler for EndState<'a> {
-    fn update(&mut self, _ctx: &mut ggez::Context) -> ggez::GameResult {
-        Ok(())
-    }
-
-    fn key_down_event(
+    fn update(
         &mut self,
-        ctx: &mut ggez::Context,
-        keycode: keyboard::KeyCode,
-        _keymod: keyboard::KeyMods,
-        repeat: bool
-    ) {
-        if keycode == keyboard::KeyCode::Return && !repeat {
-            ctx.continuing = false;
-        }
-    }
-
-    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-        graphics::draw(
-            ctx, &self.assets.end_background,
-            (na::Point2::new(
-                    -constants::WINDOW_SIZE/2.,
-                    -constants::WINDOW_SIZE/2.,
-                    ),)).unwrap();
-        graphics::present(ctx)?;
-        Ok(())
-    }
-}
-
-impl<'a> event::EventHandler for MainState<'a> {
-    fn update(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
+        assets: &Assets,
+        server_reader: &mut MessageReader<ServerMessage>,
+        keyboard_state: &sdl2::keyboard::KeyboardState
+    ) -> StateResult {
         self.update_hit_sequence();
 
         let elapsed = self.last_time.elapsed();
+        let dt_duration = std::time::Duration::from_millis(1000 / 60);
+        if elapsed < dt_duration {
+            std::thread::sleep(dt_duration - elapsed);
+        }
+
         self.last_time = Instant::now();
 
-        self.server_reader.fetch_bytes().unwrap();
+        server_reader.fetch_bytes().unwrap();
         // TODO: Use a real loop
-        while let Some(message) = self.server_reader.next() {
+        while let Some(message) = server_reader.next() {
             match message {
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
@@ -146,35 +82,35 @@ impl<'a> event::EventHandler for MainState<'a> {
                     match sound {
                         SoundEffect::Powerup => {
                             sdl2::mixer::Channel::all().play(
-                                &self.assets.powerup, 0
+                                &assets.powerup, 0
                             ).unwrap();
                         }
                         SoundEffect::Gun => {
                             sdl2::mixer::Channel::all().play(
-                                &self.assets.gun, 0
+                                &assets.gun, 0
                             ).unwrap();
                         }
                         SoundEffect::Explosion => {
                             sdl2::mixer::Channel::all().play(
-                                &self.assets.explosion, 0
+                                &assets.explosion, 0
                             ).unwrap();
                             self.map.add_explosion(pos);
                         }
                         SoundEffect::LaserCharge => {
                             sdl2::mixer::Channel::all().play(
-                                &self.assets.laser_charge_sound, 0
+                                &assets.laser_charge_sound, 0
                             ).unwrap();
                         }
                         SoundEffect::LaserFire => {
                             sdl2::mixer::Channel::all().play(
-                                &self.assets.laser_fire_sound, 0
+                                &assets.laser_fire_sound, 0
                             ).unwrap();
                             self.map.add_explosion(pos);
                         }
                     }
                 }
                 ServerMessage::YouDied => {
-                    ctx.continuing = false
+                    return StateResult::GotoNext
                 }
                 ServerMessage::PlayerHit(id) => {
                     // TODO handle if it's someone elses id, for example
@@ -187,53 +123,49 @@ impl<'a> event::EventHandler for MainState<'a> {
         }
 
         let mut y_input = 0.0;
-        if self.key_states.forward == ElementState::Pressed {
+        if keyboard_state.is_scancode_pressed(Scancode::W) {
             y_input += 1.0;
         }
-        if self.key_states.back == ElementState::Pressed {
+        if keyboard_state.is_scancode_pressed(Scancode::S) {
             y_input -= 1.0;
         }
 
         let mut x_input = 0.0;
-        if self.key_states.left == ElementState::Pressed {
+        if keyboard_state.is_scancode_pressed(Scancode::A) {
             x_input -= 1.0;
         } 
-        if self.key_states.right == ElementState::Pressed {
+        if keyboard_state.is_scancode_pressed(Scancode::D) {
             x_input += 1.0;
         }
 
         self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
 
-        let shooting = self.key_states.shooting == ElementState::Pressed;
+        let shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
         let input_message = ClientMessage::Input{ x_input, y_input, shooting };
-        send_client_message(&input_message, &mut self.server_reader.stream);
+        send_client_message(&input_message, &mut server_reader.stream);
 
-        self.powerup_rotation += constants::POWERUP_SPEED;
-        Ok(())
+        self.powerup_rotation += constants::POWERUP_SPEED * elapsed.as_secs_f32();
+
+        StateResult::Continue
     }
 
-    fn draw(&mut self, ctx: &mut ggez::Context) -> ggez::GameResult {
-        graphics::clear(ctx, [0.1, 0.1, 0.1, 1.0].into());
-
+    fn draw(&mut self, canvas: &mut Canvas<Window>, assets: &mut Assets) -> Result<(), String> {
         if let Some(my_player) = self.game_state.get_player_by_id(self.my_id) {
             self.camera_position = my_player.position;
         }
 
         self.map.draw(
             self.my_id,
-            ctx,
+            canvas,
             self.camera_position,
             &self.game_state,
-            &self.assets,
+            assets,
             self.powerup_rotation,
             self.hit_effect_timer,
-        );
-        graphics::present(ctx)?;
+        )?;
+
         Ok(())
     }
-}
-
-impl<'a> MainState<'a> {
     
     fn start_hit_sequence(&mut self) {
         self.hit_effect_timer = constants::HIT_SEQUENCE_AMOUNT;
@@ -252,25 +184,30 @@ impl<'a> MainState<'a> {
             false
         }
     }
-
 }
 
-pub fn main() -> ggez::GameResult {
-    let mut should_continue = true;
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
+struct EndState {
+}
 
+impl EndState {
+    fn draw(&self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
+        rendering::draw_texture(
+            canvas,
+            &assets.end_background,
+            na::Point2::new(0., 0.)
+        )?;
+
+        Ok(())
+    }
+}
+
+pub fn main() {
     let host = std::env::var("SERVER")
         .unwrap_or(String::from("localhost:4444"));
-    let stream = TcpStream::connect(host)?;
+    let stream = TcpStream::connect(host).expect("Could not connect to server");
     println!("Connected to server");
 
-    stream.set_nonblocking(true)?;
+    stream.set_nonblocking(true).expect("Could not set socket as nonblocking");
     let mut reader = MessageReader::new(stream);
 
     let msg = loop {
@@ -287,16 +224,17 @@ pub fn main() -> ggez::GameResult {
         panic!("Expected to get an id from server")
     };
 
-    let (ctx, event_loop) = &mut ggez::ContextBuilder::new("super_simple", "ggez")
-        .window_setup(ggez::conf::WindowSetup::default()
-                      .title("plyen"))
-        .window_mode(ggez::conf::WindowMode::default()
-                     .dimensions(constants::WINDOW_SIZE,
-                                 constants::WINDOW_SIZE))
-        .add_resource_path(resource_dir)
-        .build()?;
-
     let sdl = sdl2::init().expect("Could not initialize SDL");
+    let video_subsystem = sdl.video().expect("Could not initialize SDL video");
+
+    let window = video_subsystem
+        .window("plen", constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32)
+        .build()
+        .expect("Could not create window");
+
+    let mut canvas = window.into_canvas().build().expect("Could not create canvas");
+    let texture_creator = canvas.texture_creator();
+
     let _audio = sdl.audio().expect("Could not initialize SDL audio");
     let frequency = 44_100;
     let format = sdl2::mixer::AUDIO_S16LSB; // signed 16 bit samples, in little-endian byte order
@@ -308,112 +246,102 @@ pub fn main() -> ggez::GameResult {
     ).expect("Could not initialize SDL mixer");
 
     // Allows 16 sounds to play simultaneously
-    sdl2::mixer::allocate_channels(16);
+    sdl2::mixer::allocate_channels(64);
 
-    let mut assets = Assets::new(ctx);
+    let ttf_context = sdl2::ttf::init().expect("Could not initialize SDL ttf");
+
+    let mut assets = Assets::new(&texture_creator, &ttf_context);
 
     let mut color_selection = 0;
     let mut plane_selection = 0;
+
+    let mut event_pump = sdl.event_pump().expect("Could not get event pump");
     
-    while should_continue {
-        let state = &mut MenuState::new(&assets);
+    'mainloop: loop {
+        let menu_state = &mut MenuState::new();
 
-        state.color_selection = color_selection;
-        state.plane_selection = plane_selection;
+        menu_state.color_selection = color_selection;
+        menu_state.plane_selection = plane_selection;
 
-        event::run(ctx, event_loop, state)?;
+        'menuloop: loop {
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::Quit{..} => break 'mainloop,
+                    Event::KeyDown {keycode: Some(kc), ..} => {
+                        if kc == Keycode::Return || kc == Keycode::Space {
+                            color_selection = menu_state.color_selection;
+                            plane_selection = menu_state.plane_selection;
+                            break 'menuloop;
+                        }
+                    },
+                    Event::MouseButtonDown {x, y, ..} => {
+                        menu_state.mouse_button_down_event(x as f32, y as f32);
+                    }
+                    _ => {}
+                }
+            }
 
-        color_selection = state.color_selection;
-        plane_selection = state.plane_selection;
+            menu_state.update();
 
-        ctx.continuing = true;
+            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
+            canvas.clear();
+
+            menu_state.draw(&mut canvas, &assets).unwrap();
+
+            canvas.present();
+        }
+
         send_client_message(
             &ClientMessage::JoinGame { 
-                name: state.name.clone(),
-                plane: state.plane.clone(),
-                color: state.color.clone()
+                name: menu_state.name.clone(),
+                plane: menu_state.plane.clone(),
+                color: menu_state.color.clone()
             },
             &mut reader.stream
         );
 
-        graphics::set_screen_coordinates(
-            ctx,
-            graphics::Rect {
-                x: -constants::WINDOW_SIZE / 2.,
-                y: -constants::WINDOW_SIZE / 2.,
-                w: constants::WINDOW_SIZE,
-                h: constants::WINDOW_SIZE,
-            }
-        ).expect("Could not set screen coordinates");
-
-        let state = &mut MainState::new(my_id, &mut reader, &mut assets)?;
-        while ctx.continuing {
-            // Tell the timer stuff a frame has happened.
-            // Without this the FPS timer functions and such won't work.
-            ctx.timer_context.tick();
-
-            event_loop.poll_events(|event| {
-                // This tells `ggez` to update it's internal states, should the event require that.
-                // These include cursor position, view updating on resize, etc.
-                ctx.process_event(&event);
-
+        let main_state = &mut MainState::new(my_id);
+        'gameloop: loop {
+            for event in event_pump.poll_iter() {
                 match event {
-                    Event::WindowEvent { event, .. } => match event {
-                        WindowEvent::CloseRequested => {
-                            should_continue = false;
-                            event::quit(ctx);
-                        },
-                        WindowEvent::KeyboardInput {
-                            input: KeyboardInput {
-                                scancode,
-                                state: key_state,
-                                virtual_keycode: keycode,
-                                ..
-                            },
-                            ..
-                        } => {
-                            match scancode {
-                                constants::SCANCODE_W => { state.key_states.forward = key_state },
-                                constants::SCANCODE_S => { state.key_states.back = key_state },
-                                constants::SCANCODE_A => { state.key_states.left = key_state },
-                                constants::SCANCODE_D => { state.key_states.right = key_state },
-                                _ => {} // Handle other key events here
-                            }
-
-                            if keycode == Some(keyboard::KeyCode::Space) {
-                                state.key_states.shooting = key_state;
-                            }
-                        }
-
-                        // Add other window event handling here
-                        _ => {}
-                    },
-
-                    // Add other event handling here
+                    Event::Quit{..} => break 'mainloop,
                     _ => {}
                 }
-            });
+            }
 
-            state.update(ctx)?;
-            state.draw(ctx)?;
+            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
+            canvas.clear();
+
+            let state_result =
+                main_state.update(&assets, &mut reader, &event_pump.keyboard_state());
+            main_state.draw(&mut canvas, &mut assets).unwrap();
+
+            canvas.present();
+
+            if state_result == StateResult::GotoNext {
+                break 'gameloop;
+            }
         }
 
-        if should_continue {
-            ctx.continuing = true;
-            let state = &mut EndState::new(&state.assets);
-            event::run(ctx, event_loop, state)?;
-            ctx.continuing = true;
-
-            graphics::set_screen_coordinates(
-                ctx,
-                graphics::Rect {
-                    x: 0.,
-                    y: 0.,
-                    w: constants::WINDOW_SIZE,
-                    h: constants::WINDOW_SIZE,
+        let end_state = EndState {};
+        'endloop: loop {
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::Quit{..} => break 'mainloop,
+                    Event::KeyDown {keycode: Some(kc), ..} => {
+                        if kc == Keycode::Return || kc == Keycode::Space {
+                            break 'endloop;
+                        }
+                    },
+                    _ => {}
                 }
-            ).expect("Could not set screen coordinates");
+            }
+            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
+            canvas.clear();
+
+            end_state.draw(&mut canvas, &assets).unwrap();
+
+            canvas.present();
         }
     }
-    Ok(())
 }

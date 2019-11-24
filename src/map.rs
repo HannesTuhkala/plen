@@ -1,22 +1,19 @@
-#![allow(unused_variables)]
+use nalgebra as na;
+use rand::prelude::*;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
 
 use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
-
-use ggez;
-use ggez::graphics;
-use ggez::graphics::spritebatch;
-use ggez::graphics::Color;
-use ggez::nalgebra as na;
-use rand::prelude::*;
-
-use crate::assets::Assets;
-use libplen::powerups::PowerUpKind;
-use libplen::player::PlaneType;
 use libplen::projectiles::Projectile;
-
-use std::collections::HashMap;
+use crate::assets::Assets;
+use crate::rendering::{
+    draw_texture,
+    draw_texture_centered,
+    draw_texture_rotated,
+    draw_texture_rotated_and_scaled
+};
 
 #[derive(Clone)]
 pub struct SmokeParticle {
@@ -148,108 +145,61 @@ impl Map {
     pub fn draw(
         &self,
         my_id: u64,
-        ctx: &mut ggez::Context,
+        canvas: &mut Canvas<Window>,
         camera_position: na::Point2<f32>,
         game_state: &GameState,
-        assets: &Assets,
+        assets: &mut Assets,
         powerup_rotation: f32,
         hit_effect_timer: f32,
-    ) {
-        let mut background_sb = spritebatch::SpriteBatch::new(
-            assets.background.clone()
-        );
-        let mut plane_sbs = assets.planes.iter()
-            .map(|(k, v)| {
-                (k.clone(), spritebatch::SpriteBatch::new(v.clone()))
-            })
-            .collect();
-        let mut miniplane_sb = spritebatch::SpriteBatch::new(
-            assets.miniplane.clone()
+    ) -> Result<(), String> {
+        let screen_center = na::Vector2::new(
+            constants::WINDOW_SIZE * 0.5,
+            constants::WINDOW_SIZE * 0.5,
         );
 
-        let mut powerup_sbs = assets.powerups.iter()
-            .map(|(k, v)| {
-                (k.clone(), spritebatch::SpriteBatch::new(v.clone()))
-            })
-            .collect();
+        // the offset which causes the camera to shake upon getting hit
+        let mut hit_offset = na::Vector2::new(0., 0.);
+        if hit_effect_timer > 0. {
+            hit_offset = na::Vector2::new(
+                (hit_effect_timer*constants::HIT_SHAKE_SPEED*0.9).sin()
+                    * constants::HIT_SHAKE_MAGNITUDE * hit_effect_timer,
+                (hit_effect_timer*constants::HIT_SHAKE_SPEED*1.1).sin()
+                    * constants::HIT_SHAKE_MAGNITUDE * hit_effect_timer,
+            );
+        }
 
-        let mut bullet_sb = spritebatch::SpriteBatch::new(
-            assets.bullet.clone()
-        );
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
+                let offset = na::Vector2::new(
+                    tile_x * constants::WORLD_SIZE,
+                    tile_y * constants::WORLD_SIZE,
+                );
 
-        let mut smoke_sb = spritebatch::SpriteBatch::new(
-            assets.smoke.clone()
-        );
+                let background_position = na::Point2::new(
+                    -camera_position.x,
+                    -camera_position.y
+                ) + offset;
+                draw_texture(canvas, &assets.background, background_position)?;
+            }
+        }
 
-        let mut laser_charge_sb = spritebatch::SpriteBatch::new(
-            assets.laser_charge.clone()
-        );
-        let mut laser_sb = spritebatch::SpriteBatch::new(
-            assets.laser_firing.clone()
-        );
-        let mut laser_decay_sbs = assets.laser_decay.iter().map(|v| {
-            spritebatch::SpriteBatch::new(v.clone())
-        }).collect::<Vec<_>>();
-
-        for tile_x in [-1., 0., 1.].iter() {
-            for tile_y in [-1., 0., 1.].iter() {
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
                 let offset = na::Vector2::new(
                     tile_x * constants::WORLD_SIZE,
                     tile_y * constants::WORLD_SIZE,
                 );
 
                 self.place_world_at(
-                    ctx,
+                    canvas,
                     assets,
                     game_state,
-                    &mut background_sb,
-                    &mut plane_sbs,
-                    &mut powerup_sbs,
-                    &mut bullet_sb,
-                    &mut smoke_sb,
-                    &mut laser_charge_sb,
-                    &mut laser_sb,
-                    &mut laser_decay_sbs,
-                    camera_position,
+                    camera_position + hit_offset,
                     offset,
                     powerup_rotation,
-                    my_id,
-                );
-            }
-        }
+                    my_id
+                )?;
 
-        Self::draw_ui(my_id, game_state, &mut powerup_sbs, ctx, assets);
-
-        // the offset which causes the camera to shake upon getting hit
-        let mut hit_offset = na::Point2::new(0., 0.);
-        if hit_effect_timer > 0. {
-            hit_offset = na::Point2::new(
-                (hit_effect_timer*constants::HIT_SHAKE_SPEED*0.9).sin()
-                    *constants::HIT_SHAKE_MAGNITUDE*hit_effect_timer,
-                (hit_effect_timer*constants::HIT_SHAKE_SPEED*1.1).sin()
-                    *constants::HIT_SHAKE_MAGNITUDE*hit_effect_timer,
-                );
-        }
-
-        let camera_offset = hit_offset;
-
-        graphics::draw(ctx, &background_sb, (camera_offset,)).unwrap();
-        graphics::draw(ctx, &smoke_sb, (camera_offset,)).unwrap();
-        for sb in plane_sbs.values() {
-            graphics::draw(ctx, sb, (camera_offset,)).unwrap();
-        }
-
-        for sb in powerup_sbs.values() {
-            graphics::draw(ctx, sb, (camera_offset,)) .unwrap();
-        }
-        graphics::draw(ctx, &laser_charge_sb, (camera_offset,)) .unwrap();
-        graphics::draw(ctx, &laser_sb, (camera_offset,)) .unwrap();
-        for sb in &laser_decay_sbs {
-            graphics::draw(ctx, sb, (camera_offset,)) .unwrap();
-        }
-
-        for tile_x in [-1., 0., 1.].iter() {
-            for tile_y in [-1., 0., 1.].iter() {
                 for player in &game_state.players {
                     if player.is_invisible() && my_id != player.id {
                         // don't draw player if invisible
@@ -263,204 +213,88 @@ impl Map {
                     let position = na::Point2::new(
                         player.position.x - camera_position.x,
                         player.position.y - camera_position.y,
-                    ) + offset;
+                    ) + offset + hit_offset + screen_center;
 
                     let health = player.health as f32;
                     let max_health = player.planetype.health() as f32;
                     const HEALTH_BAR_WIDTH: f32 = 50.;
-                    let red_rect = graphics::Rect::new(
-                        position.x - HEALTH_BAR_WIDTH / 2.,
-                        position.y + 50.,
-                        HEALTH_BAR_WIDTH,
-                        10.
+                    let red_rect = sdl2::rect::Rect::new(
+                        (position.x - HEALTH_BAR_WIDTH / 2.) as i32,
+                        (position.y + 50.) as i32,
+                        HEALTH_BAR_WIDTH as u32,
+                        10 as u32
                     );
-                    let green_rect = graphics::Rect::new(
-                        position.x - HEALTH_BAR_WIDTH / 2.,
-                        position.y + 50.,
-                        HEALTH_BAR_WIDTH * health / max_health,
-                        10.
+                    let green_rect = sdl2::rect::Rect::new(
+                        (position.x - HEALTH_BAR_WIDTH / 2.) as i32,
+                        (position.y + 50.) as i32,
+                        (HEALTH_BAR_WIDTH * health / max_health) as u32,
+                        10 as u32
                     );
-                    let red_mesh = graphics::Mesh::new_rectangle(
-                        ctx, graphics::DrawMode::fill(), red_rect, graphics::Color::new(1., 0., 0., 1.)
-                    ).unwrap();
-                    let green_mesh = graphics::Mesh::new_rectangle(
-                        ctx, graphics::DrawMode::fill(), green_rect, graphics::Color::new(0., 1., 0., 1.)
-                    ).unwrap();
-                    graphics::draw(ctx, &red_mesh, (camera_offset,))
-                        .unwrap();
-                    graphics::draw(ctx, &green_mesh, (camera_offset,))
-                        .unwrap();
 
+                    canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 0, 0));
+                    canvas.fill_rect(red_rect).unwrap();
+
+                    canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 255, 0));
+                    canvas.fill_rect(green_rect).unwrap();
                 }
             }
         }
 
-        Self::draw_red_hit_effect(hit_effect_timer, ctx);
+        Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
-        graphics::draw(ctx, &bullet_sb, (na::Point2::new(0., 0.),)).unwrap();
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            Map::draw_mini_map(game_state, &mut miniplane_sb, ctx, &my_player);
+            Map::draw_mini_map(game_state, canvas, assets, &my_player)?;
         }
 
-        graphics::draw_queued_text(
-            ctx, (camera_offset,), None, graphics::FilterMode::Linear)
-            .expect("Failed to draw queued text");
+        Self::draw_ui(my_id, game_state, canvas, assets)?;
 
-        Self::draw_killfeed(ctx, assets, game_state)
+        Self::draw_killfeed(canvas, assets, game_state)
     }
 
-    fn draw_red_hit_effect(hit_effect_timer: f32, ctx: &mut ggez::Context) {
+    fn draw_red_hit_effect(hit_effect_timer: f32, canvas: &mut Canvas<Window>) {
         if hit_effect_timer > 0. {
-            let rect = &graphics::Mesh::new_rectangle(
-                ctx,
-                graphics::DrawMode::fill(),
-                graphics::Rect::new(
-                    -constants::WINDOW_SIZE/2.,
-                    -constants::WINDOW_SIZE/2.,
-                    constants::WINDOW_SIZE,
-                    constants::WINDOW_SIZE,
-                    ),
-                [0.8, 0., 0., hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
-                    * constants::MAX_RED_ALPHA].into()
-            ).unwrap();
-            graphics::draw(
-                ctx, rect,
-                (na::Point2::new(0., 0.),)).unwrap();
+            let rect = sdl2::rect::Rect::new(
+                0, 0, constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32,
+            );
+
+            canvas.set_draw_color((
+                200, 0, 0, (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
+                    * constants::MAX_RED_ALPHA * 255.) as u8
+            ));
+            canvas.fill_rect(rect).unwrap();
         }
     }
 
     fn place_world_at(
         &self,
-        ctx: &mut ggez::Context,
-        assets: &Assets,
+        canvas: &mut Canvas<Window>,
+        assets: &mut Assets,
         game_state: &GameState,
-        background_sb: &mut spritebatch::SpriteBatch,
-        plane_sbs: &mut HashMap<PlaneType, spritebatch::SpriteBatch>,
-        powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
-        bullet_sb: &mut spritebatch::SpriteBatch,
-        smoke_sb: &mut spritebatch::SpriteBatch,
-        laser_charge_sb: &mut spritebatch::SpriteBatch,
-        laser_sb: &mut spritebatch::SpriteBatch,
-        laser_decay_sbs: &mut [spritebatch::SpriteBatch],
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
         my_id: u64,
-    ) {
-        let background_position = na::Point2::new(
-            -camera_position.x,
-            -camera_position.y
-        ) + offset;
-        background_sb.add(
-            graphics::DrawParam::new()
-                .dest(background_position)
+    ) -> Result<(), String> {
+        let screen_center = na::Vector2::new(
+            constants::WINDOW_SIZE * 0.5,
+            constants::WINDOW_SIZE * 0.5,
         );
-        for player in &game_state.players {
-            if player.is_invisible() && player.id != my_id {
-                // don't draw player if invisible
-                continue;
-            }
-            let opacity = if player.is_invisible() {0.5} else {1.};
-            let position = na::Point2::new(
-                player.position.x - camera_position.x,
-                player.position.y - camera_position.y,
-            ) + offset;
-            plane_sbs.get_mut(&player.planetype).expect("Missing plane asset").add(
-                graphics::DrawParam::default()
-                    .dest(position)
-                    .rotation(player.rotation)
-                    .scale(na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0))
-                    .offset(na::Point2::new(0.5, 0.5))
-                    .color([1., 1., 1., opacity].into())
-            );
-
-            let mut nametag = graphics::Text::new(player.name.clone());
-            nametag.set_font(assets.font, graphics::Scale::uniform(15.));
-            let width = nametag.width(ctx) as f32;
-            graphics::queue_text(
-                ctx, &nametag,
-                na::Point2::new(position.x - width/2., position.y + 30.),
-                Some(player.color.rgba().into())
-            );
-
-
-            player.laser_charge_progress().map(|p| {
-                laser_charge_sb.add(
-                    graphics::DrawParam::default()
-                        .dest(position)
-                        .rotation(player.rotation)
-                        .scale(na::Vector2::new(1.0, 1.0))
-                        .offset(na::Point2::new(0.5, 1.0))
-                        .color(Color::new(1., 1., 1., p))
-                );
-            });
-        }
-
-        for laser in &game_state.lasers {
-            let position = na::Point2::new(
-                laser.position.x - camera_position.x,
-                laser.position.y - camera_position.y,
-            ) + offset;
-            if laser.is_dealing_damage() {
-                laser_sb.add(
-                    graphics::DrawParam::default()
-                        .dest(position)
-                        .rotation(laser.angle)
-                        .offset(na::Point2::new(0.5, 1.0)));
-            }
-            else {
-                let decay_index =
-                    ((laser.decay_progress() * laser_decay_sbs.len() as f32) as usize)
-                        .min(laser_decay_sbs.len()-1)
-                        .max(0);
-                laser_decay_sbs[decay_index].add(
-                        graphics::DrawParam::default()
-                            .dest(position)
-                            .rotation(laser.angle)
-                            .offset(na::Point2::new(0.5, 1.0)));
-            }
-        }
-
-        for projectile in &game_state.projectiles {
-            let position = na::Point2::new(
-                projectile.get_position().x - camera_position.x,
-                projectile.get_position().y - camera_position.y,
-            ) + offset;
-            bullet_sb.add(
-                graphics::DrawParam::default()
-                    .dest(position)
-                    .offset(na::Point2::new(0.5, 0.5)));
-        }
-
-        for powerup in game_state.powerups.iter() {
-            let position = na::Point2::new(
-                powerup.position.x - camera_position.x,
-                powerup.position.y - camera_position.y,
-            ) + offset;
-            let mini_offset = na::Vector2::new(
-                0.,
-                (powerup_rotation*2.).sin()*constants::POWERUP_BOUNCE_HEIGHT
-            );
-            powerup_sbs.get_mut(&powerup.kind)
-                .expect("No powerup asset for this kind")
-                .add(graphics::DrawParam::default()
-                     .dest(position + mini_offset)
-                     .rotation(powerup_rotation)
-                     .offset(na::Point2::new(0.5, 0.5)));
-        }
 
         for smoke_particle in &self.smoke_particles {
             let position = na::Point2::new(
                 smoke_particle.position.x - camera_position.x,
                 smoke_particle.position.y - camera_position.y,
-            ) + offset;
+            ) + offset + screen_center;
             if smoke_particle.alive {
-                smoke_sb.add(
-                    graphics::DrawParam::default()
-                        .dest(position)
-                        .offset(na::Point2::new(0.5, 0.5))
-                        .color(graphics::Color::new(1.0, 1.0, 1.0, smoke_particle.alpha))
-                        .scale(na::Vector2::new(0.2, 0.2)));
+                assets.smoke.set_alpha_mod((smoke_particle.alpha * 255.) as u8);
+                draw_texture_rotated_and_scaled(
+                    canvas,
+                    &assets.smoke,
+                    position,
+                    0.,
+                    na::Vector2::new(0.2, 0.2)
+                )?;
+                assets.smoke.set_alpha_mod(255);
             }
         }
 
@@ -468,78 +302,185 @@ impl Map {
             let position = na::Point2::new(
                 explosion_particle.position.x - camera_position.x,
                 explosion_particle.position.y - camera_position.y,
-            ) + offset;
+            ) + offset + screen_center;
             if explosion_particle.alive {
-                smoke_sb.add(
-                    graphics::DrawParam::default()
-                        .dest(position)
-                        .offset(na::Point2::new(0.5, 0.5))
-                        .color(graphics::Color::new(1.0, 1.0, 1.0, explosion_particle.alpha)));
+                assets.smoke.set_alpha_mod((explosion_particle.alpha * 255.) as u8);
+                draw_texture_centered(canvas, &assets.smoke, position)?;
+                assets.smoke.set_alpha_mod(255);
             }
         }
+
+        for player in &game_state.players {
+            if player.is_invisible() && player.id != my_id {
+                // don't draw player if invisible
+                continue;
+            }
+            let opacity = if player.is_invisible() {128} else {255};
+            let position = na::Point2::new(
+                player.position.x - camera_position.x,
+                player.position.y - camera_position.y,
+            ) + offset + screen_center;
+            let texture = assets.planes.get_mut(&player.planetype).expect("Missing plane asset");
+
+            texture.set_alpha_mod(opacity);
+            draw_texture_rotated_and_scaled(
+                canvas,
+                texture,
+                position,
+                player.rotation,
+                na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0)
+            )?;
+
+            let nametag = assets.font.render(&player.name)
+                .blended(player.color.rgba())
+                .expect("Could not render text");
+
+            let texture_creator = canvas.texture_creator();
+            let nametag_texture = texture_creator.create_texture_from_surface(nametag).unwrap();
+            draw_texture_centered(
+                canvas,
+                &nametag_texture,
+                na::Point2::new(position.x, position.y + 30.),
+            )?;
+
+            if let Some(p) = player.laser_charge_progress() {
+                let h_offset = assets.laser_charge.query().height as f32 * 0.5;
+                let laser_pos = position + na::Vector2::new(
+                    player.rotation.sin() * h_offset,
+                    -player.rotation.cos() * h_offset
+                );
+                assets.laser_charge.set_alpha_mod((p * 255.) as u8);
+                draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
+                assets.laser_charge.set_alpha_mod(255);
+            }
+        }
+
+        for laser in &game_state.lasers {
+            let position = na::Point2::new(
+                laser.position.x - camera_position.x,
+                laser.position.y - camera_position.y,
+            ) + offset + screen_center;
+            let h_offset = assets.laser_charge.query().height as f32 * 0.5;
+            let laser_pos = position + na::Vector2::new(
+                laser.angle.sin() * h_offset,
+                -laser.angle.cos() * h_offset
+            );
+
+            if laser.is_dealing_damage() {
+                draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
+            }
+            else {
+                let decay_index =
+                    ((laser.decay_progress() * assets.laser_decay.len() as f32) as usize)
+                        .min(assets.laser_decay.len()-1)
+                    .max(0);
+                draw_texture_rotated(
+                    canvas, &assets.laser_decay[decay_index], laser_pos, laser.angle
+                )?;
+            }
+        }
+
+        for projectile in &game_state.projectiles {
+            let position = na::Point2::new(
+                projectile.get_position().x - camera_position.x,
+                projectile.get_position().y - camera_position.y,
+            ) + offset + screen_center;
+            draw_texture_centered(canvas, &assets.bullet, position)?;
+        }
+
+        for powerup in game_state.powerups.iter() {
+            let position = na::Point2::new(
+                powerup.position.x - camera_position.x,
+                powerup.position.y - camera_position.y,
+            ) + offset + screen_center;
+            let mini_offset = na::Vector2::new(
+                0.,
+                (powerup_rotation*2.).sin() * constants::POWERUP_BOUNCE_HEIGHT
+            );
+            draw_texture_rotated(
+                canvas,
+                assets.powerups.get(&powerup.kind).unwrap(),
+                position + mini_offset,
+                powerup_rotation,
+            )?;
+        }
+
+        Ok(())
     }
 
     fn draw_ui(
         my_id: u64,
         game_state: &GameState,
-        powerup_sbs: &mut HashMap<PowerUpKind, spritebatch::SpriteBatch>,
-        ctx: &mut ggez::Context,
+        canvas: &mut Canvas<Window>,
         assets: &Assets,
-    ) {
-        let mut x_pos = -constants::WINDOW_SIZE/2. + 40.;
-        let y_pos = constants::WINDOW_SIZE/2. - 20. - constants::POWERUP_RADIUS as f32;
+    ) -> Result<(), String> {
+        let mut x_pos = 40.;
+        let y_pos = constants::WINDOW_SIZE - 20. - constants::POWERUP_RADIUS as f32;
 
-        game_state.get_player_by_id(my_id)
-            .map(|p| {
-                for powerup in p.powerups.iter() {
-                    powerup_sbs.get_mut(&powerup.kind)
-                        .expect("Missing powerup graphics")
-                        .add(graphics::DrawParam::default()
-                            .dest(na::Point2::new(x_pos, y_pos))
-                            .offset(na::Point2::new(0.5, 0.5))
-                        );
-                    x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
-                }
-            });
+        if let Some(p) = game_state.get_player_by_id(my_id) {
+            for powerup in p.powerups.iter() {
+                draw_texture_centered(
+                    canvas,
+                    assets.powerups.get(&powerup.kind).expect("Missing powerup graphics"),
+                    na::Point2::new(x_pos, y_pos)
+                )?;
+                x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
+            }
+        }
+
+        Ok(())
     }
 
-    fn draw_killfeed(ctx: &mut ggez::Context, assets: &Assets, game_state: &GameState) {
-        let mut i: f32 = 0.;
-        let mut kf = game_state.killfeed.clone();
-        let messages = kf.get_messages().clone();
-        for message in messages.iter() {
-            let mut kfm = graphics::Text::new(message.message.clone());
-            kfm.set_font(assets.font, graphics::Scale::uniform(20.));
-            let width = kfm.width(ctx) as f32;
-            
-            graphics::queue_text(
-                ctx, &kfm,
-                na::Point2::new(constants::WINDOW_SIZE - 700., -constants::WINDOW_SIZE/2. + 30. * i),
-                Some(graphics::Color::new(1., 0., 0., 1.))
-            );
+    fn draw_killfeed(canvas: &mut Canvas<Window>, assets: &Assets, game_state: &GameState) -> Result<(), String> {
+        let mut kill_feed = game_state.killfeed.clone();
+        let messages = kill_feed.get_messages().clone();
 
-            i += 1.;
+        for (i, message) in messages.iter().enumerate() {
+            let kill_feed_message = assets.font.render(&message.message)
+                .blended((255, 0, 0))
+                .expect("Could not render text");
+
+            let texture_creator = canvas.texture_creator();
+            let kill_feed_message_texture =
+                texture_creator.create_texture_from_surface(kill_feed_message).unwrap();
+            let width = kill_feed_message_texture.query().width as f32;
+            
+            draw_texture(
+                canvas,
+                &kill_feed_message_texture,
+                na::Point2::new(
+                    constants::WINDOW_SIZE - width,
+                    30. * i as f32
+                ),
+            )?;
         }
+
+        Ok(())
     }
 
     fn draw_mini_map(
         game_state: &GameState,
-        miniplane_sb: &mut spritebatch::SpriteBatch,
-        ctx: &mut ggez::Context,
+        canvas: &mut Canvas<Window>,
+        assets: &mut Assets,
         my_player: &player::Player,
-    ) {
-        let mut builder = graphics::MeshBuilder::new();
-        Map::add_mini_map_background(&mut builder);
-        let mesh = builder.build(ctx).unwrap();
-        graphics::draw(ctx, &mesh, (na::Point2::new(
-            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
-            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE,
-        ),)).unwrap();
-        let my_pos = my_player.position;
-        let mut powerup_mesh_builder = graphics::MeshBuilder::new();
+    ) -> Result<(), String> {
+        draw_texture(
+            canvas,
+            &assets.minimap_background,
+            na::Point2::new(
+                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+            )
+        )?;
 
-        for tile_x in [-1., 0., 1.].iter() {
-            for tile_y in [-1., 0., 1.].iter() {
+        let my_pos = my_player.position;
+        let mini_map_center = na::Vector2::new(
+            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5,
+            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5
+        );
+
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
                 let offset = na::Vector2::new(
                     tile_x * constants::MINI_MAP_SIZE,
                     tile_y * constants::MINI_MAP_SIZE,
@@ -558,14 +499,15 @@ impl Map {
                     let dist = ((position.x + offset.x).powi(2)
                                 + (position.y + offset.y).powi(2)).sqrt();
                     if dist <= constants::MINI_MAP_SIZE/2. {
-                        miniplane_sb.add(
-                            graphics::DrawParam::default()
-                                .dest(position + offset)
-                                .rotation(player.rotation)
-                                .scale(na::Vector2::new(0.5, 0.5))
-                                .color(player.color.rgba().into())
-                                .offset(na::Point2::new(0.5, 0.5))
-                        );
+                        let (r, g, b, _) = player.color.rgba();
+                        assets.miniplane.set_color_mod(r, g, b);
+                        draw_texture_rotated_and_scaled(
+                            canvas,
+                            &assets.miniplane,
+                            position + offset + mini_map_center,
+                            player.rotation,
+                            na::Vector2::new(0.5, 0.5)
+                        )?;
                     }
                 }
                 for powerup in &game_state.powerups {
@@ -576,98 +518,17 @@ impl Map {
                     let dist = ((position.x + offset.x).powi(2)
                                 + (position.y + offset.y).powi(2)).sqrt();
                     if dist <= constants::MINI_MAP_SIZE/2. {
-                        powerup_mesh_builder
-                            .circle(
-                                graphics::DrawMode::fill(),
-                                position + offset,
-                                2.,
-                                0.1,
-                                [0.5, 1., 0.5, 0.7,].into()
-                        );
+                        let pos = position + offset + mini_map_center;
+                        draw_texture_centered(
+                            canvas,
+                            &assets.minimap_powerup,
+                            pos
+                        )?;
                     }
                 }
             }
         }
-        let powerup_mesh = powerup_mesh_builder.build(ctx).unwrap();
-        graphics::draw(ctx, &powerup_mesh, (na::Point2::new(
-            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE/2.,
-            constants::WINDOW_SIZE/2. - constants::MINI_MAP_SIZE/2.,
-        ),)).unwrap();
-        graphics::draw(
-            ctx, miniplane_sb, graphics::DrawParam::default()
-                .dest(
-                    na::Point2::new(
-                        constants::WINDOW_SIZE/2.
-                        - constants::MINI_MAP_SIZE/2.,
-                        constants::WINDOW_SIZE/2.
-                        - constants::MINI_MAP_SIZE/2.
-            )))
-            .unwrap();
-    }
 
-    fn add_mini_map_background(builder: &mut graphics::MeshBuilder) {
-        let green_color: graphics::Color = [0., 1., 0., 0.8].into();
-        let bg_color: graphics::Color = [0., 0., 0., 0.8].into();
-
-        builder
-            .circle( // background
-                graphics::DrawMode::fill(),
-                na::Point2::new(
-                    constants::MINI_MAP_SIZE/2.,
-                    constants::MINI_MAP_SIZE/2.,
-                ),
-                constants::MINI_MAP_SIZE/2.,
-                0.1,
-                bg_color 
-            )
-            .circle(
-                graphics::DrawMode::stroke(1.),
-                na::Point2::new(
-                    constants::MINI_MAP_SIZE/2.,
-                    constants::MINI_MAP_SIZE/2.,
-                ),
-                (constants::MINI_MAP_SIZE/2.)*0.9,
-                0.1,
-                green_color
-            )
-            .circle(
-                graphics::DrawMode::stroke(1.),
-                na::Point2::new(
-                    constants::MINI_MAP_SIZE/2.,
-                    constants::MINI_MAP_SIZE/2.,
-                ),
-                (constants::MINI_MAP_SIZE/4.)*0.9,
-                0.1,
-                green_color
-            )
-            .line( // horizontal line
-                &[
-                    na::Point2::new(
-                        0.,
-                        constants::MINI_MAP_SIZE/2.,
-                    ),
-                    na::Point2::new(
-                        constants::MINI_MAP_SIZE,
-                        constants::MINI_MAP_SIZE/2.,
-                    ),
-                ],
-                1.,
-                green_color
-            ).unwrap()
-            .line( // vertical line
-                &[
-                    na::Point2::new(
-                        constants::MINI_MAP_SIZE/2.,
-                        0.,
-                    ),
-                    na::Point2::new(
-                        constants::MINI_MAP_SIZE/2.,
-                        constants::MINI_MAP_SIZE,
-                    ),
-                ],
-                1.,
-                green_color
-            ).unwrap()
-            ;
+        Ok(())
     }
 }
