@@ -16,6 +16,7 @@ use sdl2::keyboard::{Keycode, Scancode};
 use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
 use libplen::gamestate;
 use libplen::constants;
+use libplen::hurricane;
 use assets::Assets;
 use menu::MenuState;
 
@@ -105,7 +106,6 @@ impl MainState {
                             sdl2::mixer::Channel::all().play(
                                 &assets.laser_fire_sound, 0
                             ).unwrap();
-                            self.map.add_explosion(pos);
                         }
                     }
                 }
@@ -162,6 +162,7 @@ impl MainState {
             assets,
             self.powerup_rotation,
             self.hit_effect_timer,
+            &self.game_state.hurricane
         )?;
 
         Ok(())

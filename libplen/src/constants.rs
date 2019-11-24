@@ -72,3 +72,11 @@ pub const HIT_SHAKE_MAGNITUDE: f32 = 7.;
 
 pub const KILLFEED_DURATION: f32 = 4.;
 
+pub const HURRICANE_PROBABILITY: f32 = 0.5;
+pub const HURRICANE_MOVE_SPEED: f32 = 10.;
+pub const HURRICANE_GROW_SPEED: f32 = 0.1;
+pub const HURRICANE_MAX_SIZE: f32 = 2000.;
+pub const HURRICANE_MAX_WINDSPEED: f32 = 100.;
+pub const HURRICANE_SUSTAIN_TIME: f32 = 10.;
+pub const HURRICANE_SPRITE_SIZE: f32 = 1000.;
+pub const HURRICANE_OPACITY: f32 = 0.8;

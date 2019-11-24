@@ -6,3 +6,4 @@ pub mod powerups;
 pub mod gamestate;
 pub mod killfeed;
 pub mod messages;
+pub mod hurricane;

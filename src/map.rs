@@ -9,6 +9,7 @@ use libplen::gamestate::GameState;
 use libplen::projectiles::Projectile;
 use crate::assets::Assets;
 use crate::rendering;
+use crate::hurricane;
 
 #[derive(Clone)]
 pub struct SmokeParticle {
@@ -146,6 +147,7 @@ impl Map {
         assets: &mut Assets,
         powerup_rotation: f32,
         hit_effect_timer: f32,
+        hurricane: &Option<hurricane::Hurricane>,
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
@@ -194,7 +196,8 @@ impl Map {
                     camera_position,
                     offset,
                     powerup_rotation,
-                    my_id
+                    my_id,
+                    hurricane
                 )?;
 
                 for player in &game_state.players {
@@ -272,6 +275,7 @@ impl Map {
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
         my_id: u64,
+        hurricane: &Option<hurricane::Hurricane>
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
@@ -404,6 +408,31 @@ impl Map {
             )?;
         }
 
+        hurricane.as_ref().map(|h| {
+            let position = na::Point2::new(
+                h.position.x - camera_position.x,
+                h.position.y - camera_position.y,
+            ) + offset + screen_center;
+            Self::draw_hurricane(h, position, canvas, assets).unwrap();
+        });
+
+        Ok(())
+    }
+
+    fn draw_hurricane(
+        hurricane: &hurricane::Hurricane,
+        position: na::Point2<f32>,
+        canvas: &mut Canvas<Window>,
+        assets: &Assets
+    ) -> Result<(), String> {
+        let scale = hurricane.size()/constants::HURRICANE_SPRITE_SIZE;
+        rendering::draw_texture_rotated_and_scaled(
+            canvas,
+            &assets.hurricane,
+            position,
+            0.,
+            na::Vector2::new(scale, scale)
+        )?;
         Ok(())
     }
 
