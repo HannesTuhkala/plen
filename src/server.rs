@@ -77,10 +77,10 @@ impl Server {
 
     fn get_delta_time(&mut self) -> f32 {
         if self.slowtime_is_active() {
-            return constants::DELTA_TIME / constants::POWERUP_SLOWTIME_FACTOR;
+            constants::DELTA_TIME / constants::POWERUP_SLOWTIME_FACTOR
         }
 
-        return constants::DELTA_TIME;
+        constants::DELTA_TIME
     }
 
     fn slowtime_is_active(&mut self) -> bool {
