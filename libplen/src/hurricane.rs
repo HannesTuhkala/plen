@@ -15,7 +15,7 @@ enum HurricaneStatus {
 pub struct Hurricane {
     pub position: na::Point2<f32>,
     pub velocity: na::Vector2<f32>,
-    pub strength: f32,
+    pub rotation: f32,
     size: f32,
     status: HurricaneStatus,
 }
@@ -27,7 +27,7 @@ impl Hurricane {
             position,
             velocity,
             size: 0.,
-            strength: 0.,
+            rotation: 0.,
             status: HurricaneStatus::Growing,
         }
     }
@@ -66,9 +66,19 @@ impl Hurricane {
     }
 
     pub fn get_wind_force_at_position(&self, position: na::Point2<f32>) -> na::Vector2<f32> {
-        // TODO implement
-        na::Vector2::new(0., 0.)
-        
+        let center_to_point = position - self.position;
+        let dist = (center_to_point.x.powi(2) + center_to_point.y.powi(2)).sqrt();
+
+        if dist < constants::HURRICANE_EYE_SIZE || dist >= self.size()/2. {
+            na::Vector2::new(0., 0.)
+        } else {
+            let normal = na::Vector2::new(center_to_point.y, -center_to_point.x);
+            let norm = (normal.x.powi(2) + normal.x.powi(2)).sqrt();
+            let unit_vector = normal / norm;
+
+            unit_vector * constants::HURRICANE_MAX_WINDSPEED *
+                (self.size()/2. - dist)/(constants::HURRICANE_MAX_SIZE/2.)
+        }
     }
 
     pub fn is_dead(&self) -> bool {

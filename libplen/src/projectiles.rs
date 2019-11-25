@@ -3,6 +3,7 @@ use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
 use crate::math;
+use crate::hurricane::Hurricane;
 use rand::Rng;
 use crate::player::Player;
 
@@ -18,7 +19,7 @@ pub enum ProjectileKind {
 
 #[enum_dispatch(ProjectileKind)]
 pub trait Projectile {
-    fn update(&mut self, players: &[Player], delta_time: f32);
+    fn update(&mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>);
     fn is_done(&self) -> bool;
     fn is_armed(&self) -> bool;
 
@@ -61,7 +62,13 @@ impl Bullet {
 }
 
 impl Projectile for Bullet {
-    fn update(&mut self, players: &[Player], delta_time: f32) {
+    fn update(
+        &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
+    ) {
+        hurricane.as_ref().map(|h| {
+            let force = h.get_wind_force_at_position(self.position)*delta_time;
+            self.velocity += force;
+        });
         self.position = math::wrap_around(self.position + self.velocity * delta_time);
         self.traveled_distance += self.velocity.norm() * delta_time;
         self.lifetime += delta_time;
@@ -161,7 +168,9 @@ impl Missile {
 }
 
 impl Projectile for Missile {
-    fn update(&mut self, players: &[Player], delta_time: f32) {
+    fn update(
+        &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
+    ) {
         let movement_direction = na::Vector2::new(
                 self.angle.cos(),
                 self.angle.sin(),

@@ -243,7 +243,7 @@ impl Map {
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            Map::draw_mini_map(game_state, canvas, assets, &my_player)?;
+            Map::draw_mini_map(game_state, canvas, assets, &my_player, hurricane)?;
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets)?;
@@ -423,9 +423,10 @@ impl Map {
         hurricane: &hurricane::Hurricane,
         position: na::Point2<f32>,
         canvas: &mut Canvas<Window>,
-        assets: &Assets
+        assets: &mut Assets
     ) -> Result<(), String> {
         let scale = hurricane.size()/constants::HURRICANE_SPRITE_SIZE;
+        assets.hurricane.set_color_mod(255, 255, 255);
         rendering::draw_texture_rotated_and_scaled(
             canvas,
             &assets.hurricane,
@@ -491,6 +492,7 @@ impl Map {
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
         my_player: &player::Player,
+        hurricane: &Option<hurricane::Hurricane>
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         rendering::draw_texture(
@@ -555,6 +557,26 @@ impl Map {
                         )?;
                     }
                 }
+                hurricane.as_ref().map(|h| {
+                    let position = na::Point2::new(
+                        (h.position.x - my_pos.x)*scale,
+                        (h.position.y - my_pos.y)*scale,
+                    );
+                    let dist = ((position.x + offset.x).powi(2)
+                                + (position.y + offset.y).powi(2)).sqrt();
+                    if dist <= (constants::MINI_MAP_SIZE + h.size()*scale)/2. {
+                        let hurricane_scale = h.size()/constants::HURRICANE_SPRITE_SIZE;
+                        assets.hurricane.set_color_mod(0, 255, 0);
+                        rendering::draw_texture_rotated_and_scaled(
+                            canvas,
+                            &assets.hurricane,
+                            position + offset + mini_map_center,
+                            h.rotation,
+                            na::Vector2::new(hurricane_scale, hurricane_scale)*scale
+                        ).unwrap();
+                    }
+                    
+                });
             }
         }
 

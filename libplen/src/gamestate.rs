@@ -162,7 +162,7 @@ impl GameState {
 
     pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
         for projectile in &mut self.projectiles {
-            projectile.update(&self.players, delta_time);
+            projectile.update(&self.players, delta_time, &self.hurricane);
         }
 
         self.projectiles.retain(
