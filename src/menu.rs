@@ -103,7 +103,8 @@ impl MenuState {
             ))?;
 
         let specs_string = format!(
-            "Agility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
+            "Top speed: {}\nAgility: {}\nFirepower: {}\nAcceleration: {}\nHealth: {}\nResilience: {}",
+            self.plane.max_speed(),
             self.plane.agility(),
             self.plane.firepower(),
             self.plane.acceleration().trunc(),
