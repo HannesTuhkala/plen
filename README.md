@@ -25,4 +25,12 @@ Download both zip files under "Development Libraries", SDL2_mixer-devel-2.x.x-VC
 
 Extract them both according to the same instructions as noted in the SDL2 tutorial.
 
+Do the same for SDL2_image and SDL2_ttf:
+
+https://www.libsdl.org/projects/SDL_image/
+
+and
+
+https://www.libsdl.org/projects/SDL_ttf/.
+
 Plen should now compile and you should be able to run the game under Windows.
