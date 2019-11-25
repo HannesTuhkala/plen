@@ -152,9 +152,10 @@ impl Map {
         powerup_rotation: f32,
         hit_effect_timer: f32,
     ) -> Result<(), String> {
+        let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
-            constants::WINDOW_SIZE * 0.5,
-            constants::WINDOW_SIZE * 0.5,
+            screen_w as f32 * 0.5,
+            screen_h as f32 * 0.5,
         );
 
         // the offset which causes the camera to shake upon getting hit
@@ -252,10 +253,15 @@ impl Map {
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, canvas: &mut Canvas<Window>) {
+        let (screen_w, screen_h) = canvas.logical_size();
         if hit_effect_timer > 0. {
             let rect = sdl2::rect::Rect::new(
-                0, 0, constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32,
+                0, 0, screen_w, screen_h,
             );
+
+            let ha = (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
+                      * constants::MAX_RED_ALPHA * 255.);
+            println!("{}", ha);
 
             canvas.set_draw_color((
                 200, 0, 0, (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
@@ -275,9 +281,10 @@ impl Map {
         powerup_rotation: f32,
         my_id: u64,
     ) -> Result<(), String> {
+        let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
-            constants::WINDOW_SIZE * 0.5,
-            constants::WINDOW_SIZE * 0.5,
+            screen_w as f32 * 0.5,
+            screen_h as f32 * 0.5,
         );
 
         for smoke_particle in &self.smoke_particles {
@@ -415,7 +422,7 @@ impl Map {
         assets: &Assets,
     ) -> Result<(), String> {
         let mut x_pos = 40.;
-        let y_pos = constants::WINDOW_SIZE - 20. - constants::POWERUP_RADIUS as f32;
+        let y_pos = canvas.logical_size().1 as f32 - 20. - constants::POWERUP_RADIUS as f32;
 
         if let Some(p) = game_state.get_player_by_id(my_id) {
             for powerup in p.powerups.iter() {
@@ -449,7 +456,7 @@ impl Map {
                 canvas,
                 &kill_feed_message_texture,
                 na::Point2::new(
-                    constants::WINDOW_SIZE - width,
+                    canvas.logical_size().0 as f32 - width,
                     30. * i as f32
                 ),
             )?;
@@ -464,19 +471,20 @@ impl Map {
         assets: &mut Assets,
         my_player: &player::Player,
     ) -> Result<(), String> {
+        let (screen_w, screen_h) = canvas.logical_size();
         draw_texture(
             canvas,
             &assets.minimap_background,
             na::Point2::new(
-                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
-                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+                screen_w as f32 - constants::MINI_MAP_SIZE,
+                screen_h as f32 - constants::MINI_MAP_SIZE,
             )
         )?;
 
         let my_pos = my_player.position;
         let mini_map_center = na::Vector2::new(
-            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5,
-            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5
+            screen_w as f32 - constants::MINI_MAP_SIZE * 0.5,
+            screen_h as f32 - constants::MINI_MAP_SIZE * 0.5
         );
 
         for tile_x in &[-1., 0., 1.] {
