@@ -8,12 +8,7 @@ use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::Projectile;
 use crate::assets::Assets;
-use crate::rendering::{
-    draw_texture,
-    draw_texture_centered,
-    draw_texture_rotated,
-    draw_texture_rotated_and_scaled
-};
+use crate::rendering;
 
 #[derive(Clone)]
 pub struct SmokeParticle {
@@ -168,6 +163,7 @@ impl Map {
                     * constants::HIT_SHAKE_MAGNITUDE * hit_effect_timer,
             );
         }
+        let camera_position = camera_position - hit_offset;
 
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
@@ -179,8 +175,8 @@ impl Map {
                 let background_position = na::Point2::new(
                     -camera_position.x,
                     -camera_position.y
-                ) + offset;
-                draw_texture(canvas, &assets.background, background_position)?;
+                ) + offset + rendering::calculate_resolution_offset(&canvas);
+                rendering::draw_texture(canvas, &assets.background, background_position)?;
             }
         }
 
@@ -195,7 +191,7 @@ impl Map {
                     canvas,
                     assets,
                     game_state,
-                    camera_position + hit_offset,
+                    camera_position,
                     offset,
                     powerup_rotation,
                     my_id
@@ -206,7 +202,7 @@ impl Map {
                         // don't draw player if invisible
                         continue;
                     }
-                    let offset = na::Vector2::new(
+                    let tile_offset = na::Vector2::new(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
                     );
@@ -214,7 +210,7 @@ impl Map {
                     let position = na::Point2::new(
                         player.position.x - camera_position.x,
                         player.position.y - camera_position.y,
-                    ) + offset + hit_offset + screen_center;
+                    ) + tile_offset + screen_center;
 
                     let health = player.health as f32;
                     let max_health = player.planetype.health() as f32;
@@ -259,10 +255,6 @@ impl Map {
                 0, 0, screen_w, screen_h,
             );
 
-            let ha = (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
-                      * constants::MAX_RED_ALPHA * 255.);
-            println!("{}", ha);
-
             canvas.set_draw_color((
                 200, 0, 0, (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
                     * constants::MAX_RED_ALPHA * 255.) as u8
@@ -294,7 +286,7 @@ impl Map {
             ) + offset + screen_center;
             if smoke_particle.alive {
                 assets.smoke.set_alpha_mod((smoke_particle.alpha * 255.) as u8);
-                draw_texture_rotated_and_scaled(
+                rendering::draw_texture_rotated_and_scaled(
                     canvas,
                     &assets.smoke,
                     position,
@@ -312,7 +304,7 @@ impl Map {
             ) + offset + screen_center;
             if explosion_particle.alive {
                 assets.smoke.set_alpha_mod((explosion_particle.alpha * 255.) as u8);
-                draw_texture_centered(canvas, &assets.smoke, position)?;
+                rendering::draw_texture_centered(canvas, &assets.smoke, position)?;
                 assets.smoke.set_alpha_mod(255);
             }
         }
@@ -330,7 +322,7 @@ impl Map {
             let texture = assets.planes.get_mut(&player.planetype).expect("Missing plane asset");
 
             texture.set_alpha_mod(opacity);
-            draw_texture_rotated_and_scaled(
+            rendering::draw_texture_rotated_and_scaled(
                 canvas,
                 texture,
                 position,
@@ -344,7 +336,7 @@ impl Map {
 
             let texture_creator = canvas.texture_creator();
             let nametag_texture = texture_creator.create_texture_from_surface(nametag).unwrap();
-            draw_texture_centered(
+            rendering::draw_texture_centered(
                 canvas,
                 &nametag_texture,
                 na::Point2::new(position.x, position.y + 30.),
@@ -357,7 +349,7 @@ impl Map {
                     -player.rotation.cos() * h_offset
                 );
                 assets.laser_charge.set_alpha_mod((p * 255.) as u8);
-                draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
+                rendering::draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
                 assets.laser_charge.set_alpha_mod(255);
             }
         }
@@ -374,14 +366,14 @@ impl Map {
             );
 
             if laser.is_dealing_damage() {
-                draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
+                rendering::draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
             }
             else {
                 let decay_index =
                     ((laser.decay_progress() * assets.laser_decay.len() as f32) as usize)
                         .min(assets.laser_decay.len()-1)
                     .max(0);
-                draw_texture_rotated(
+                rendering::draw_texture_rotated(
                     canvas, &assets.laser_decay[decay_index], laser_pos, laser.angle
                 )?;
             }
@@ -392,7 +384,7 @@ impl Map {
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
-            draw_texture_centered(canvas, &assets.bullet, position)?;
+            rendering::draw_texture_centered(canvas, &assets.bullet, position)?;
         }
 
         for powerup in game_state.powerups.iter() {
@@ -404,7 +396,7 @@ impl Map {
                 0.,
                 (powerup_rotation*2.).sin() * constants::POWERUP_BOUNCE_HEIGHT
             );
-            draw_texture_rotated(
+            rendering::draw_texture_rotated(
                 canvas,
                 assets.powerups.get(&powerup.kind).unwrap(),
                 position + mini_offset,
@@ -426,7 +418,7 @@ impl Map {
 
         if let Some(p) = game_state.get_player_by_id(my_id) {
             for powerup in p.powerups.iter() {
-                draw_texture_centered(
+                rendering::draw_texture_centered(
                     canvas,
                     assets.powerups.get(&powerup.kind).expect("Missing powerup graphics"),
                     na::Point2::new(x_pos, y_pos)
@@ -452,7 +444,7 @@ impl Map {
                 texture_creator.create_texture_from_surface(kill_feed_message).unwrap();
             let width = kill_feed_message_texture.query().width as f32;
             
-            draw_texture(
+            rendering::draw_texture(
                 canvas,
                 &kill_feed_message_texture,
                 na::Point2::new(
@@ -472,7 +464,7 @@ impl Map {
         my_player: &player::Player,
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
-        draw_texture(
+        rendering::draw_texture(
             canvas,
             &assets.minimap_background,
             na::Point2::new(
@@ -509,7 +501,7 @@ impl Map {
                     if dist <= constants::MINI_MAP_SIZE/2. {
                         let (r, g, b, _) = player.color.rgba();
                         assets.miniplane.set_color_mod(r, g, b);
-                        draw_texture_rotated_and_scaled(
+                        rendering::draw_texture_rotated_and_scaled(
                             canvas,
                             &assets.miniplane,
                             position + offset + mini_map_center,
@@ -527,7 +519,7 @@ impl Map {
                                 + (position.y + offset.y).powi(2)).sqrt();
                     if dist <= constants::MINI_MAP_SIZE/2. {
                         let pos = position + offset + mini_map_center;
-                        draw_texture_centered(
+                        rendering::draw_texture_centered(
                             canvas,
                             &assets.minimap_powerup,
                             pos
