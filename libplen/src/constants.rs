@@ -9,6 +9,7 @@ pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
 pub const WORLD_SIZE: f32 = 3000.;
+pub const DELTA_TIME: f32 = 0.01;
 
 pub const MAX_SPEED: f32 = 400.;
 pub const MIN_SPEED: f32 = 50.;
