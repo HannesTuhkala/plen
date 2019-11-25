@@ -78,11 +78,11 @@ impl Server {
     fn get_delta_time(&mut self) -> f32 {
         for player in &mut self.state.players {
             if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::SlowTime) {
-                return 1./300.;
+                return constants::DELTA_TIME / 3.;
             }
         }
 
-        return 1./100.;
+        return constants::DELTA_TIME;
     }
 
     pub fn update(&mut self) {
