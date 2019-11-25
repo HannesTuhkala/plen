@@ -245,7 +245,7 @@ pub fn main() {
         sdl2::mixer::InitFlag::OGG
     ).expect("Could not initialize SDL mixer");
 
-    // Allows 16 sounds to play simultaneously
+    // Allows 64 sounds to play simultaneously
     sdl2::mixer::allocate_channels(64);
 
     let ttf_context = sdl2::ttf::init().expect("Could not initialize SDL ttf");
