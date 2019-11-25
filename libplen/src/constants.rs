@@ -47,6 +47,7 @@ pub const WINDOW_SIZE: f32 = 700.;
 
 pub const POWERUP_AMOUNT: u32 = 10;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;
+pub const POWERUP_SLOWTIME_FACTOR: f32 = 3.;
 
 pub const MINI_MAP_SIZE: f32 = 300.;
 
