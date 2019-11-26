@@ -9,6 +9,8 @@ pub const POWERUP_BOUNCE_HEIGHT: f32 = 10.;
 
 // currently hardcoded to the background image size
 pub const WORLD_SIZE: f32 = 3000.;
+pub const DELTA_TIME: f32 = 0.01;
+pub const SERVER_SLEEP_DURATION: u64 = 10;
 
 pub const MAX_SPEED: f32 = 400.;
 pub const MIN_SPEED: f32 = 50.;
@@ -35,7 +37,7 @@ pub const LASER_DECAY_TIME: f32 = 0.3;
 pub const LASER_RANGE: f32 = 300.;
 // Damage of laser hit
 pub const LASER_DAMAGE: i16 = 200;
-pub const LASER_RANGE_EXTRA: u32 = 5;
+pub const LASER_RANGE_EXTRA: u32 = 10;
 
 pub const MISSILE_LOCK_ANGLE: f32 = PI/2.;
 pub const MISSILE_KEO_P: f32 = 5.;
@@ -46,6 +48,7 @@ pub const WINDOW_SIZE: f32 = 700.;
 
 pub const POWERUP_AMOUNT: u32 = 10;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;
+pub const POWERUP_SLOWTIME_FACTOR: f32 = 3.;
 
 pub const MINI_MAP_SIZE: f32 = 300.;
 

@@ -1,5 +1,3 @@
-// mod assets;
-
 use std::io;
 use std::vec;
 use std::io::prelude::*;
@@ -75,20 +73,28 @@ impl Server {
         }
     }
 
-    fn get_delta_time(&mut self) -> f32 {
-        for player in &mut self.state.players {
+    fn get_delta_time(&self) -> f32 {
+        if self.slowtime_is_active() {
+            return constants::DELTA_TIME / constants::POWERUP_SLOWTIME_FACTOR;
+        }
+
+        constants::DELTA_TIME
+    }
+
+    fn slowtime_is_active(&self) -> bool {
+        for player in &self.state.players {
             if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::SlowTime) {
-                return 1./300.;
+                return true;
             }
         }
 
-        return 1./100.;
+        false
     }
 
     pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
         let delta_time = self.get_delta_time();
-        let dt_duration = std::time::Duration::from_millis(10);
+        let dt_duration = std::time::Duration::from_millis(constants::SERVER_SLEEP_DURATION);
         if elapsed < dt_duration {
             std::thread::sleep(dt_duration - elapsed);
         }
