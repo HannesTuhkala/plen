@@ -158,14 +158,25 @@ impl Player {
     }
 
     pub fn update(&mut self, x_input: f32, y_input: f32, delta_time: f32) {
+        self.update_laser_charge(delta_time);
+        self.update_velocity_and_position(y_input, delta_time);
+        self.update_angular_velocity_and_rotation(x_input, delta_time);
+        self.manage_powerups(delta_time);
+    }
+
+    fn update_laser_charge(&mut self, delta_time: f32) {
         self.cooldown = (self.cooldown - delta_time).max(0.);
-        self.laser_charge_time = self.laser_charge_time.map(|t| t-delta_time);
+        self.laser_charge_time = self.laser_charge_time.map(|t| t - delta_time);
+        
         self.lasering_this_frame = self.laser_charge_time
             .map(|t| t < 0.)
             .unwrap_or(false);
+        
         self.laser_charge_time =
             if self.lasering_this_frame {None} else {self.laser_charge_time};
+    }
 
+    fn update_velocity_and_position(&mut self, y_input: f32, delta_time: f32) {
         let velocity = self.final_velocity();
 
         self.speed += y_input * self.planetype.acceleration() * delta_time;
@@ -173,18 +184,21 @@ impl Player {
         self.position = math::wrap_around(
             self.position + velocity * delta_time
         );
+    }
 
+    fn update_angular_velocity_and_rotation(&mut self, x_input: f32, delta_time: f32) {
         let angular_acceleration = x_input * self.planetype.agility()/10. * delta_time;
         self.angular_velocity += angular_acceleration;
         self.angular_velocity *= constants::ANGULAR_FADE;
+        
         if self.angular_velocity > self.planetype.agility() {
             self.angular_velocity = self.planetype.agility();
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
+        
         self.rotation = self.rotation + self.angular_velocity * delta_time;
 
-        self.manage_powerups(delta_time);
     }
 
     pub fn update_collision_timer(&mut self, delta_time: f32) {
@@ -246,6 +260,7 @@ impl Player {
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
+                
                 let new_bullet = projectiles::Bullet::new(
                     self.position + na::Vector2::new(
                         dir.cos() * constants::BULLET_START,
@@ -328,6 +343,7 @@ impl Player {
 
         let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
         let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
+        
         na::Vector2::new(dx, dy) * speed_boost
     }
 
