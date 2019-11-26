@@ -73,18 +73,18 @@ impl Server {
         }
     }
 
-    fn get_delta_time(&mut self) -> f32 {
+    fn get_delta_time(&self) -> f32 {
         if self.slowtime_is_active() {
-            constants::DELTA_TIME / constants::POWERUP_SLOWTIME_FACTOR;
+            return constants::DELTA_TIME / constants::POWERUP_SLOWTIME_FACTOR;
         }
 
         constants::DELTA_TIME
     }
 
-    fn slowtime_is_active(&mut self) -> bool {
-        for player in &mut self.state.players {
+    fn slowtime_is_active(&self) -> bool {
+        for player in &self.state.players {
             if player.powerups.iter().any(|powerup|powerup.kind == PowerUpKind::SlowTime) {
-                true;
+                return true;
             }
         }
 
@@ -94,7 +94,7 @@ impl Server {
     pub fn update(&mut self) {
         let elapsed = self.last_time.elapsed();
         let delta_time = self.get_delta_time();
-        let dt_duration = std::time::Duration::from_millis(10);
+        let dt_duration = std::time::Duration::from_millis(constants::SERVER_SLEEP_DURATION);
         if elapsed < dt_duration {
             std::thread::sleep(dt_duration - elapsed);
         }
@@ -150,14 +150,14 @@ impl Server {
         let mut sounds_to_play = vec!();
 
         macro_rules! remove_player_on_disconnect {
-            ($op:expr, $id:expr) => {
+            ($op:expr, $id:expr, $to_delete_list:ident) => {
                 match $op {
                     Ok(_) => {},
                     Err(e) => {
                         match e.kind() {
                             io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
                                 println!("Player {} disconnected", $id);
-                                clients_to_delete.push($id);
+                                $to_delete_list.push($id);
                                 break;
                             }
                             e => {
