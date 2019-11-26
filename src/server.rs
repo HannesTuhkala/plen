@@ -1,5 +1,3 @@
-// mod assets;
-
 use std::io;
 use std::vec;
 use std::io::prelude::*;
