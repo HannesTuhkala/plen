@@ -150,14 +150,14 @@ impl Server {
         let mut sounds_to_play = vec!();
 
         macro_rules! remove_player_on_disconnect {
-            ($op:expr, $id:expr, $to_delete_list:ident) => {
+            ($op:expr, $id:expr) => {
                 match $op {
                     Ok(_) => {},
                     Err(e) => {
                         match e.kind() {
                             io::ErrorKind::ConnectionReset | io::ErrorKind::BrokenPipe => {
                                 println!("Player {} disconnected", $id);
-                                $to_delete_list.push($id);
+                                clients_to_delete.push($id);
                                 break;
                             }
                             e => {
