@@ -6,6 +6,7 @@ use serde_derive::{Serialize, Deserialize};
 use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
+use crate::hurricane::Hurricane;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
@@ -118,6 +119,7 @@ pub struct Player {
     pub id: u64,
     pub rotation: f32,
     pub angular_velocity: f32,
+    pub wind_effect_velocity: na::Vector2<f32>,
     pub speed: f32,
     pub health: i16,
     pub position: na::Point2<f32>,
@@ -142,6 +144,7 @@ impl Player {
             id: id,
             rotation: 0.,
             angular_velocity: 0.,
+            wind_effect_velocity: na::Vector2::new(0., 0.,),
             speed: 0.,
             health: plane_type.health(),
             powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
@@ -157,9 +160,11 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, x_input: f32, y_input: f32, delta_time: f32) {
+    pub fn update(
+        &mut self, x_input: f32, y_input: f32, hurricane: &Option<Hurricane>, delta_time: f32
+    ) {
         self.update_laser_charge(delta_time);
-        self.update_velocity_and_position(y_input, delta_time);
+        self.update_velocity_and_position(y_input, hurricane, delta_time);
         self.update_angular_velocity_and_rotation(x_input, delta_time);
         self.manage_powerups(delta_time);
     }
@@ -176,14 +181,29 @@ impl Player {
             if self.lasering_this_frame {None} else {self.laser_charge_time};
     }
 
-    fn update_velocity_and_position(&mut self, y_input: f32, delta_time: f32) {
+    fn update_velocity_and_position(
+        &mut self, y_input: f32, hurricane: &Option<Hurricane>, delta_time: f32
+    ) {
         let velocity = self.final_velocity();
+
+        self.wind_effect_velocity = self.update_wind_effect_velocity(hurricane, delta_time);
 
         self.speed += y_input * self.planetype.acceleration() * delta_time;
 
         self.position = math::wrap_around(
-            self.position + velocity * delta_time
+            self.position + (velocity + self.wind_effect_velocity) * delta_time
         );
+    }
+
+    fn update_wind_effect_velocity(
+        &self, hurricane: &Option<Hurricane>, delta_time: f32
+    ) -> na::Vector2<f32> {
+        let wind_force = match hurricane {
+            Some(hurricane) => hurricane.get_wind_force_at_position(self.position),
+            None => na::Vector2::new(0., 0.)
+        };
+        (self.wind_effect_velocity + wind_force*delta_time/constants::PLANE_MASS)
+            * constants::HURRICANE_WIND_EFFECT_DECAY
     }
 
     fn update_angular_velocity_and_rotation(&mut self, x_input: f32, delta_time: f32) {

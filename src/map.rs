@@ -196,8 +196,7 @@ impl Map {
                     camera_position,
                     offset,
                     powerup_rotation,
-                    my_id,
-                    hurricane
+                    my_id
                 )?;
 
                 for player in &game_state.players {
@@ -240,15 +239,41 @@ impl Map {
             }
         }
 
+        Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
+
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            Map::draw_mini_map(game_state, canvas, assets, &my_player, hurricane)?;
+            Map::draw_mini_map(game_state, canvas, assets, &my_player)?;
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets)?;
 
         Self::draw_killfeed(canvas, assets, game_state)
+    }
+
+    fn draw_hurricanes_wrapped_around(
+        hurricane: &Option<hurricane::Hurricane>,
+        camera_position: na::Point2<f32>,
+        screen_center: na::Vector2<f32>,
+        assets: &Assets,
+        canvas: &mut Canvas<Window>,
+    ) {
+        hurricane.as_ref().map(|h| {
+            for tile_x in &[-1., 0., 1.] {
+                for tile_y in &[-1., 0., 1.] {
+                    let offset = na::Vector2::new(
+                        tile_x * constants::WORLD_SIZE,
+                        tile_y * constants::WORLD_SIZE,
+                    );
+                    let position = na::Point2::new(
+                        h.position.x - camera_position.x,
+                        h.position.y - camera_position.y,
+                    ) + offset + screen_center;
+                    Self::draw_hurricane(h, position, canvas, assets).unwrap();
+                }
+            }
+        });
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, canvas: &mut Canvas<Window>) {
@@ -274,8 +299,7 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
-        my_id: u64,
-        hurricane: &Option<hurricane::Hurricane>
+        my_id: u64
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
@@ -408,14 +432,6 @@ impl Map {
             )?;
         }
 
-        hurricane.as_ref().map(|h| {
-            let position = na::Point2::new(
-                h.position.x - camera_position.x,
-                h.position.y - camera_position.y,
-            ) + offset + screen_center;
-            Self::draw_hurricane(h, position, canvas, assets).unwrap();
-        });
-
         Ok(())
     }
 
@@ -423,15 +439,14 @@ impl Map {
         hurricane: &hurricane::Hurricane,
         position: na::Point2<f32>,
         canvas: &mut Canvas<Window>,
-        assets: &mut Assets
+        assets: &Assets
     ) -> Result<(), String> {
         let scale = hurricane.size()/constants::HURRICANE_SPRITE_SIZE;
-        assets.hurricane.set_color_mod(255, 255, 255);
         rendering::draw_texture_rotated_and_scaled(
             canvas,
             &assets.hurricane,
             position,
-            0.,
+            hurricane.rotation,
             na::Vector2::new(scale, scale)
         )?;
         Ok(())
@@ -492,7 +507,6 @@ impl Map {
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
         my_player: &player::Player,
-        hurricane: &Option<hurricane::Hurricane>
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         rendering::draw_texture(
@@ -557,26 +571,6 @@ impl Map {
                         )?;
                     }
                 }
-                hurricane.as_ref().map(|h| {
-                    let position = na::Point2::new(
-                        (h.position.x - my_pos.x)*scale,
-                        (h.position.y - my_pos.y)*scale,
-                    );
-                    let dist = ((position.x + offset.x).powi(2)
-                                + (position.y + offset.y).powi(2)).sqrt();
-                    if dist <= (constants::MINI_MAP_SIZE + h.size()*scale)/2. {
-                        let hurricane_scale = h.size()/constants::HURRICANE_SPRITE_SIZE;
-                        assets.hurricane.set_color_mod(0, 255, 0);
-                        rendering::draw_texture_rotated_and_scaled(
-                            canvas,
-                            &assets.hurricane,
-                            position + offset + mini_map_center,
-                            h.rotation,
-                            na::Vector2::new(hurricane_scale, hurricane_scale)*scale
-                        ).unwrap();
-                    }
-                    
-                });
             }
         }
 

@@ -16,6 +16,7 @@ pub const MAX_SPEED: f32 = 400.;
 pub const MIN_SPEED: f32 = 50.;
 pub const DEFAULT_ACCELERATION: f32 = 200.;
 pub const DEFAULT_HEALTH: i16 = 150;
+pub const PLANE_MASS: f32 = 1.;
 
 pub const DEFAULT_AGILITY: f32 = 100.;
 pub const ANGULAR_FADE: f32 = 0.9;
@@ -75,12 +76,14 @@ pub const HIT_SHAKE_MAGNITUDE: f32 = 7.;
 
 pub const KILLFEED_DURATION: f32 = 4.;
 
-pub const HURRICANE_PROBABILITY: f32 = 0.5;
-pub const HURRICANE_MOVE_SPEED: f32 = 10.;
+pub const HURRICANE_PROBABILITY: f32 = 0.05;
+pub const HURRICANE_MOVE_SPEED: f32 = 30.;
 pub const HURRICANE_GROW_SPEED: f32 = 0.1;
-pub const HURRICANE_MAX_SIZE: f32 = 2000.;
+pub const HURRICANE_MAX_SIZE: f32 = 2500.;
 pub const HURRICANE_MAX_WINDSPEED: f32 = 10000.;
-pub const HURRICANE_SUSTAIN_TIME: f32 = 10.;
+pub const HURRICANE_SUSTAIN_TIME: f32 = 30.;
 pub const HURRICANE_SPRITE_SIZE: f32 = 1000.;
 pub const HURRICANE_OPACITY: f32 = 0.8;
 pub const HURRICANE_EYE_SIZE: f32 = 100.;
+pub const HURRICANE_WIND_EFFECT_DECAY: f32 = 0.9;
+pub const HURRICANE_ROTATION_SPEED: f32 = 0.5;
