@@ -285,8 +285,8 @@ impl GameState {
                     player.damage_player(constants::COLLISION_DAMAGE);
                     
                     if player.has_died() {
-                        let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name());
-                        self.killfeed.add_message(msg.to_str());
+                        let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name.clone());
+                        self.killfeed.add_message(msg.as_str());
                     }
 
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
