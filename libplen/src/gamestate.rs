@@ -181,10 +181,10 @@ impl GameState {
                 if distance < hit_radius as f32 && projectile.is_armed() {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
-                        let msg;
+                        let msg: String;
                         
                         if projectile.get_id() == player.id {
-                            let msg = &player.name.clone() + " killed themselves using a Gun.";
+                            let msg = String::from(&player.name.clone()) + " killed themselves using a Gun.";
                         } else {
                             let msg = killer.clone() + " killed " + 
                                 &player.name + " using a Gun.";
