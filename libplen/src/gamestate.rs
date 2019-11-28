@@ -182,7 +182,7 @@ impl GameState {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
                         let msg;
-                        if bullet.owner == player.id {
+                        if projectile.owner == player.id {
                             let msg = &player.name + " killed themselves using a Gun.";
                         } else {
                             let msg = killer.clone() + " killed " + 
@@ -263,7 +263,7 @@ impl GameState {
     }
 
     pub fn handle_player_collisions(&mut self, delta: f32) {
-        let mut collided_players = vec!();
+        let mut collided_players: Vec<(u64, String)> = vec!();
         let hit_radius = PLANE_SIZE * 2;
 
         for p1 in &self.players {
