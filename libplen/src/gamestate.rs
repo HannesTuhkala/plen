@@ -184,7 +184,7 @@ impl GameState {
                         let msg;
                         
                         if projectile.get_id() == player.id {
-                            let msg = player.name.clone() + " killed themselves using a Gun.";
+                            let msg = &player.name + " killed themselves using a Gun.";
                         } else {
                             let msg = killer.clone() + " killed " + 
                                 &player.name + " using a Gun.";
