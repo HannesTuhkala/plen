@@ -181,8 +181,14 @@ impl GameState {
                 if distance < hit_radius as f32 && projectile.is_armed() {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
-                        let msg = killer.clone() + " killed " + 
-                            &player.name + " using a Gun.";
+                        let msg;
+                        if bullet.owner == player.id {
+                            let msg = &player.name + " killed themselves using a Gun.";
+                        } else {
+                            let msg = killer.clone() + " killed " + 
+                                &player.name + " using a Gun.";
+                        }
+
                         self.killfeed.add_message(&msg);
                     }
                     bullets_to_remove.push(projectile.get_id());
@@ -264,8 +270,8 @@ impl GameState {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
                 if p1.id != p2.id && distance < hit_radius as f32 &&
-                    !collided_players.contains(&p1.id) && !p1.invincibility_is_on() {
-                    collided_players.push(p1.id);
+                    !collided_players.contains(&p1.id) {
+                        collided_players.push((p1.id, p2.name));
                 }
             }
         }
@@ -273,9 +279,16 @@ impl GameState {
         for player in &mut self.players {
             player.update_collision_timer(delta);
 
-            for id in &collided_players {
+            for (id, attacker) in &collided_players {
                 if player.id == *id && player.time_to_next_collision == 0. {
-                    player.health -= constants::COLLISION_DAMAGE;
+                    player.damage_player(constants::COLLISION_DAMAGE);
+                    
+                    if player.has_died() {
+                        let msg = attacker.clone() + " killed " +
+                                &player.name + " by collission.";
+                        self.killfeed.add_message(&msg);
+                    }
+
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
                 }
             }
