@@ -184,7 +184,7 @@ impl GameState {
                         let msg;
                         
                         if projectile.get_id() == player.id {
-                            let msg = &player.name + " killed themselves using a Gun.";
+                            let msg = player.name.clone() + " killed themselves using a Gun.";
                         } else {
                             let msg = killer.clone() + " killed " + 
                                 &player.name + " using a Gun.";
@@ -285,9 +285,8 @@ impl GameState {
                     player.damage_player(constants::COLLISION_DAMAGE);
                     
                     if player.has_died() {
-                        let msg = attacker.clone() + " killed " +
-                                player.name.clone() + " by collission.";
-                        self.killfeed.add_message(&msg);
+                        let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name());
+                        self.killfeed.add_message(msg.to_str());
                     }
 
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
