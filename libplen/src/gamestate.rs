@@ -182,6 +182,7 @@ impl GameState {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
                         let msg;
+                        
                         if projectile.get_id() == player.id {
                             let msg = &player.name + " killed themselves using a Gun.";
                         } else {
@@ -285,7 +286,7 @@ impl GameState {
                     
                     if player.has_died() {
                         let msg = attacker.clone() + " killed " +
-                                &player.name + " by collission.";
+                                player.name.clone() + " by collission.";
                         self.killfeed.add_message(&msg);
                     }
 
