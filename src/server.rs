@@ -221,6 +221,7 @@ impl Server {
                     player.update(
                         player_input_x,
                         player_input_y,
+                        &self.state.hurricane,
                         delta_time,
                     );
 

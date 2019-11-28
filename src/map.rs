@@ -9,6 +9,7 @@ use libplen::gamestate::GameState;
 use libplen::projectiles::Projectile;
 use crate::assets::Assets;
 use crate::rendering;
+use crate::hurricane;
 
 #[derive(Clone)]
 pub struct SmokeParticle {
@@ -146,6 +147,7 @@ impl Map {
         assets: &mut Assets,
         powerup_rotation: f32,
         hit_effect_timer: f32,
+        hurricane: &Option<hurricane::Hurricane>,
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
@@ -237,6 +239,8 @@ impl Map {
             }
         }
 
+        Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
+
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -246,6 +250,30 @@ impl Map {
         Self::draw_ui(my_id, game_state, canvas, assets)?;
 
         Self::draw_killfeed(canvas, assets, game_state)
+    }
+
+    fn draw_hurricanes_wrapped_around(
+        hurricane: &Option<hurricane::Hurricane>,
+        camera_position: na::Point2<f32>,
+        screen_center: na::Vector2<f32>,
+        assets: &Assets,
+        canvas: &mut Canvas<Window>,
+    ) {
+        hurricane.as_ref().map(|h| {
+            for tile_x in &[-1., 0., 1.] {
+                for tile_y in &[-1., 0., 1.] {
+                    let offset = na::Vector2::new(
+                        tile_x * constants::WORLD_SIZE,
+                        tile_y * constants::WORLD_SIZE,
+                    );
+                    let position = na::Point2::new(
+                        h.position.x - camera_position.x,
+                        h.position.y - camera_position.y,
+                    ) + offset + screen_center;
+                    Self::draw_hurricane(h, position, canvas, assets).unwrap();
+                }
+            }
+        });
     }
 
     fn draw_red_hit_effect(hit_effect_timer: f32, canvas: &mut Canvas<Window>) {
@@ -271,7 +299,7 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
-        my_id: u64,
+        my_id: u64
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
@@ -404,6 +432,23 @@ impl Map {
             )?;
         }
 
+        Ok(())
+    }
+
+    fn draw_hurricane(
+        hurricane: &hurricane::Hurricane,
+        position: na::Point2<f32>,
+        canvas: &mut Canvas<Window>,
+        assets: &Assets
+    ) -> Result<(), String> {
+        let scale = hurricane.size()/constants::HURRICANE_SPRITE_SIZE;
+        rendering::draw_texture_rotated_and_scaled(
+            canvas,
+            &assets.hurricane,
+            position,
+            hurricane.rotation,
+            na::Vector2::new(scale, scale)
+        )?;
         Ok(())
     }
 

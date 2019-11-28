@@ -7,6 +7,7 @@ use crate::player::Player;
 use crate::projectiles::LaserBeam;
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
+use crate::hurricane::Hurricane;
 use crate::math::wrap_around;
 use crate::projectiles::{ProjectileKind, Projectile};
 use rand::Rng;
@@ -20,6 +21,7 @@ pub struct GameState {
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
+    pub hurricane: Option<Hurricane>,
 }
 
 impl GameState {
@@ -30,6 +32,7 @@ impl GameState {
             powerups: Vec::new(),
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
+            hurricane: None,
         }
     }
 
@@ -43,12 +46,46 @@ impl GameState {
      */
     pub fn update(&mut self, delta: f32)
         -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>) {
+        self.maybe_spawn_hurricane(delta);
+        self.update_hurricane(delta);
         let hit_powerup_positions = self.handle_powerups();
         let hit_players = self.handle_bullets(delta);
         let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
         (hit_players, hit_powerup_positions, fired_laser_positions)
+    }
+
+    fn maybe_spawn_hurricane(&mut self, delta: f32) {
+        match self.hurricane {
+            None => {
+                let rand_number = rand::thread_rng().gen_range(0., 1.);
+                if rand_number < constants::HURRICANE_PROBABILITY*delta {
+                    let xv = rand::thread_rng().gen_range(0., 1.)*constants::HURRICANE_MOVE_SPEED;
+                    let yv = rand::thread_rng().gen_range(0., 1.)*constants::HURRICANE_MOVE_SPEED;
+
+                    let xp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
+                    let yp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
+
+                    let vel = na::Vector2::new(xv, yv);
+                    let pos = na::Point2::new(xp, yp);
+
+                    self.hurricane = Some(Hurricane::new(pos, vel));
+                }
+            }
+            _ => ()
+        }
+    }
+
+    pub fn update_hurricane(&mut self, delta: f32) {
+        let mut should_remove_hurricane = false;
+        self.hurricane.as_mut().map(|hurricane| {
+            hurricane.update(delta);
+            should_remove_hurricane = hurricane.is_dead();
+        });
+        if should_remove_hurricane {
+            self.hurricane = None;
+        }
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -125,7 +162,7 @@ impl GameState {
 
     pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
         for projectile in &mut self.projectiles {
-            projectile.update(&self.players, delta_time);
+            projectile.update(&self.players, delta_time, &self.hurricane);
         }
 
         self.projectiles.retain(

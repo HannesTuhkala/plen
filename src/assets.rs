@@ -8,6 +8,7 @@ use sdl2::mixer::Chunk;
 
 use libplen::powerups::PowerUpKind;
 use libplen::player::PlaneType;
+use libplen::constants;
 
 pub struct Assets<'ttf, 'r> {
     pub font: sdl2::ttf::Font<'ttf, 'r>,
@@ -16,6 +17,7 @@ pub struct Assets<'ttf, 'r> {
     pub background: Texture<'r>,
     pub minimap_background: Texture<'r>,
     pub minimap_powerup: Texture<'r>,
+    pub hurricane: Texture<'r>,
     pub powerups: HashMap<PowerUpKind, Texture<'r>>,
     pub bullet: Texture<'r>,
     pub menu_background: Texture<'r>,
@@ -72,6 +74,7 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
             minimap_powerup: load_tex("resources/map_powerup.png"),
             miniplane: load_tex("resources/miniplane.png"),
             powerups,
+            hurricane: load_tex("resources/hurricane.png"),
             bullet: load_tex("resources/bullet.png"),
             menu_background: load_tex("resources/menu_background.png"),
             end_background: load_tex("resources/endscreen.png"),
@@ -96,6 +99,8 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
             laser_fire_sound: Chunk::from_file("resources/audio/laserfire.ogg").unwrap(),
             laser_charge_sound: Chunk::from_file("resources/audio/lasercharge.ogg").unwrap(),
         };
+
+        assets.hurricane.set_alpha_mod((constants::HURRICANE_OPACITY * 255.) as u8);
 
         // Volume is on a scale from 0 to 128
         assets.achtung_blitzkrieg_engine.set_volume(30);
