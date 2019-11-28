@@ -283,10 +283,9 @@ impl Map {
                 0, 0, screen_w, screen_h,
             );
 
-            canvas.set_draw_color((
-                200, 0, 0, (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
-                    * constants::MAX_RED_ALPHA * 255.) as u8
-            ));
+            let opacity = (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
+                    * constants::MAX_RED_ALPHA * 255.) as u8;
+            canvas.set_draw_color((200, 0, 0, opacity));
             canvas.fill_rect(rect).unwrap();
         }
     }

@@ -11,6 +11,7 @@ use nalgebra as na;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::event::Event;
+use sdl2::render::BlendMode;
 use sdl2::keyboard::{Keycode, Scancode};
 
 use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
@@ -241,6 +242,7 @@ pub fn main() -> Result<(), String> {
         .expect("Could not create window");
 
     let mut canvas = window.into_canvas().build().expect("Could not create canvas");
+    canvas.set_blend_mode(BlendMode::Blend);
     let texture_creator = canvas.texture_creator();
 
     let _audio = sdl.audio().expect("Could not initialize SDL audio");
