@@ -182,7 +182,7 @@ impl GameState {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
                         let msg;
-                        if projectile.owner == player.id {
+                        if projectile.get_id() == player.id {
                             let msg = &player.name + " killed themselves using a Gun.";
                         } else {
                             let msg = killer.clone() + " killed " + 
@@ -269,8 +269,8 @@ impl GameState {
         for p1 in &self.players {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
-                if p1.id != p2.id && distance < hit_radius as f32 &&
-                    !collided_players.contains(&p1.id) {
+                if p1.id != p2.id && distance < hit_radius as f32
+                    //&& !collided_players.contains(&p1.id) {
                         collided_players.push((p1.id, p2.name));
                 }
             }
