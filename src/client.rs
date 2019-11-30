@@ -83,30 +83,30 @@ impl MainState {
                 ServerMessage::PlaySound(sound, pos) => {
                     match sound {
                         SoundEffect::Powerup => {
-                            sdl2::mixer::Channel::all().play(
+                            let _ = sdl2::mixer::Channel::all().play(
                                 &assets.powerup, 0
-                            ).unwrap();
+                            );
                         }
                         SoundEffect::Gun => {
-                            sdl2::mixer::Channel::all().play(
+                            let _ = sdl2::mixer::Channel::all().play(
                                 &assets.gun, 0
-                            ).unwrap();
+                            );
                         }
                         SoundEffect::Explosion => {
-                            sdl2::mixer::Channel::all().play(
+                            let _ = sdl2::mixer::Channel::all().play(
                                 &assets.explosion, 0
-                            ).unwrap();
+                            );
                             self.map.add_explosion(pos);
                         }
                         SoundEffect::LaserCharge => {
-                            sdl2::mixer::Channel::all().play(
+                            let _ = sdl2::mixer::Channel::all().play(
                                 &assets.laser_charge_sound, 0
-                            ).unwrap();
+                            );
                         }
                         SoundEffect::LaserFire => {
-                            sdl2::mixer::Channel::all().play(
+                            let _ = sdl2::mixer::Channel::all().play(
                                 &assets.laser_fire_sound, 0
-                            ).unwrap();
+                            );
                         }
                     }
                 }
