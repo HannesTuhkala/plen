@@ -81,32 +81,30 @@ impl MainState {
                     self.game_state = state
                 },
                 ServerMessage::PlaySound(sound, pos) => {
+                    fn play_sound(soundeffect: &sdl2::mixer::Chunk) {
+                        if let Err(e) = sdl2::mixer::Channel::all().play(
+                            soundeffect, 0
+                        ) {
+                            println!("SDL mixer error: {}", e);
+                        }
+                    }
+
                     match sound {
                         SoundEffect::Powerup => {
-                            let _ = sdl2::mixer::Channel::all().play(
-                                &assets.powerup, 0
-                            );
+                            play_sound(&assets.powerup);
                         }
                         SoundEffect::Gun => {
-                            let _ = sdl2::mixer::Channel::all().play(
-                                &assets.gun, 0
-                            );
+                            play_sound(&assets.gun);
                         }
                         SoundEffect::Explosion => {
-                            let _ = sdl2::mixer::Channel::all().play(
-                                &assets.explosion, 0
-                            );
+                            play_sound(&assets.explosion);
                             self.map.add_explosion(pos);
                         }
                         SoundEffect::LaserCharge => {
-                            let _ = sdl2::mixer::Channel::all().play(
-                                &assets.laser_charge_sound, 0
-                            );
+                            play_sound(&assets.laser_charge_sound);
                         }
                         SoundEffect::LaserFire => {
-                            let _ = sdl2::mixer::Channel::all().play(
-                                &assets.laser_fire_sound, 0
-                            );
+                            play_sound(&assets.laser_fire_sound);
                         }
                     }
                 }
