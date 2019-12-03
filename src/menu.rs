@@ -7,8 +7,6 @@ use nalgebra as na;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 
-use whoami;
-
 const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::SukaBlyat,
     player::PlaneType::HowdyCowboy,
@@ -35,7 +33,7 @@ pub struct MenuState {
 impl MenuState {
     pub fn new() -> MenuState {
         MenuState {
-            name: String::from(whoami::username()),
+            name: String::new(),
             plane: player::PlaneType::SukaBlyat,
             color: player::Color::Red,
             color_selection: 0,
