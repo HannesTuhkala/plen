@@ -181,16 +181,14 @@ impl GameState {
                 if distance < hit_radius as f32 && projectile.is_armed() {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
-                        let msg: String;
-                        
-                        if projectile.get_id() == player.id {
-                            let msg = String::from(&player.name.clone()) + " killed themselves using a Gun.";
+                        let msg = if projectile.get_id() == player.id {
+                            String::from(&player.name.clone()) + " killed themselves using a Gun."
                         } else {
-                            let msg = killer.clone() + " killed " + 
-                                &player.name + " using a Gun.";
-                        }
+                            killer.clone() + " killed " + 
+                                &player.name + " using a Gun."
+                        };
 
-                        self.killfeed.add_message(&msg);
+                        self.killfeed.add_message(&msg.clone());
                     }
                     bullets_to_remove.push(projectile.get_id());
                     hit_players.push(player.id);
@@ -272,7 +270,7 @@ impl GameState {
                 let distance = (p1.position - p2.position).norm();
                 if p1.id != p2.id && distance < hit_radius as f32 {
                     //&& !collided_players.contains(&p1.id) {
-                        collided_players.push((p1.id, p2.name));
+                        collided_players.push((p1.id, p2.name.clone()));
                 }
             }
         }
