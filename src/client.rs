@@ -262,6 +262,7 @@ pub fn main() -> Result<(), String> {
 
     let mut color_selection = 0;
     let mut plane_selection = 0;
+    let mut name = whoami::username();
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
     
@@ -272,6 +273,7 @@ pub fn main() -> Result<(), String> {
 
         menu_state.color_selection = color_selection;
         menu_state.plane_selection = plane_selection;
+        menu_state.name = name;
 
         'menuloop: loop {
             for event in event_pump.poll_iter() {
@@ -280,8 +282,6 @@ pub fn main() -> Result<(), String> {
                     Event::KeyDown {keycode: Some(kc), ..} => {
                         match kc {
                             Keycode::Return => {
-                                color_selection = menu_state.color_selection;
-                                plane_selection = menu_state.plane_selection;
                                 break 'menuloop;
                             }
                             Keycode::Backspace => {
@@ -306,6 +306,10 @@ pub fn main() -> Result<(), String> {
             menu_state.draw(&mut canvas, &assets).unwrap();
         }
         video_subsystem.text_input().stop();
+
+        color_selection = menu_state.color_selection;
+        plane_selection = menu_state.plane_selection;
+        name = menu_state.name.clone();
 
         send_client_message(
             &ClientMessage::JoinGame { 
