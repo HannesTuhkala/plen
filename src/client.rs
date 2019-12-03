@@ -265,6 +265,8 @@ pub fn main() -> Result<(), String> {
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
     
+    video_subsystem.text_input().start();
+
     'mainloop: loop {
         let menu_state = &mut MenuState::new();
 
@@ -276,14 +278,23 @@ pub fn main() -> Result<(), String> {
                 match event {
                     Event::Quit{..} => break 'mainloop,
                     Event::KeyDown {keycode: Some(kc), ..} => {
-                        if kc == Keycode::Return || kc == Keycode::Space {
-                            color_selection = menu_state.color_selection;
-                            plane_selection = menu_state.plane_selection;
-                            break 'menuloop;
+                        match kc {
+                            Keycode::Return => {
+                                color_selection = menu_state.color_selection;
+                                plane_selection = menu_state.plane_selection;
+                                break 'menuloop;
+                            }
+                            Keycode::Backspace => {
+                                menu_state.name.pop();
+                            }
+                            _ => {}
                         }
-                    },
+                    }
                     Event::MouseButtonDown {x, y, ..} => {
                         menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
+                    }
+                    Event::TextInput {text, ..} => {
+                        menu_state.name += &text;
                     }
                     _ => {}
                 }
@@ -294,6 +305,7 @@ pub fn main() -> Result<(), String> {
 
             menu_state.draw(&mut canvas, &assets).unwrap();
         }
+        video_subsystem.text_input().stop();
 
         send_client_message(
             &ClientMessage::JoinGame { 
