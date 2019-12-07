@@ -12,6 +12,7 @@ use libplen::player::Player;
 use libplen::powerups::PowerUpKind;
 use libplen::gamestate;
 use libplen::constants;
+use libplen::debug;
 use libplen::projectiles::Projectile;
 
 
@@ -53,6 +54,7 @@ struct Server {
     state: gamestate::GameState,
     next_id: u64,
     last_time: Instant,
+    debug_channel: std::sync::mpsc::Receiver<debug::DebugLine>
 }
 
 impl Server {
@@ -69,7 +71,8 @@ impl Server {
             connections: vec!(),
             next_id: 0,
             last_time: Instant::now(),
-            state: gamestate::GameState::new()
+            state: gamestate::GameState::new(),
+            debug_channel: debug::init_debug_channel(),
         }
     }
 
@@ -107,6 +110,8 @@ impl Server {
         self.update_clients(
             delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
         );
+
+        self.state.update_debug_lines(&self.debug_channel);
     }
 
     fn accept_new_connections(&mut self) {

@@ -7,3 +7,4 @@ pub mod gamestate;
 pub mod killfeed;
 pub mod messages;
 pub mod hurricane;
+pub mod debug;
