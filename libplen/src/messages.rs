@@ -93,6 +93,6 @@ pub enum ServerMessage {
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
-    Input { x_input: f32, y_input: f32, shooting: bool, firing_powerup: bool },
+    Input { x_input: f32, y_input: f32, shooting: bool, activating_powerup: bool },
     JoinGame { name: String, plane: player::PlaneType, color: player::Color },
 }

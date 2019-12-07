@@ -37,7 +37,7 @@ pub const LASER_DECAY_TIME: f32 = 0.3;
 // Distance at which the laser is effective
 pub const LASER_RANGE: f32 = 300.;
 // Damage of laser hit
-pub const LASER_DAMAGE: i16 = 200;
+pub const LASER_DAMAGE: i16 = 500;
 pub const LASER_RANGE_EXTRA: u32 = 10;
 
 pub const MISSILE_LOCK_ANGLE: f32 = PI/2.;
@@ -79,7 +79,7 @@ pub const HIT_SHAKE_MAGNITUDE: f32 = 7.;
 
 pub const KILLFEED_DURATION: f32 = 4.;
 
-pub const HURRICANE_PROBABILITY: f32 = 0.05;
+pub const HURRICANE_PROBABILITY: f32 = 0.005;
 pub const HURRICANE_MOVE_SPEED: f32 = 30.;
 pub const HURRICANE_GROW_SPEED: f32 = 0.1;
 pub const HURRICANE_MAX_SIZE: f32 = 2500.;

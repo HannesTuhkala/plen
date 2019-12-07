@@ -81,32 +81,30 @@ impl MainState {
                     self.game_state = state
                 },
                 ServerMessage::PlaySound(sound, pos) => {
+                    fn play_sound(soundeffect: &sdl2::mixer::Chunk) {
+                        if let Err(e) = sdl2::mixer::Channel::all().play(
+                            soundeffect, 0
+                        ) {
+                            println!("SDL mixer error: {}", e);
+                        }
+                    }
+
                     match sound {
                         SoundEffect::Powerup => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.powerup, 0
-                            ).unwrap();
+                            play_sound(&assets.powerup);
                         }
                         SoundEffect::Gun => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.gun, 0
-                            ).unwrap();
+                            play_sound(&assets.gun);
                         }
                         SoundEffect::Explosion => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.explosion, 0
-                            ).unwrap();
+                            play_sound(&assets.explosion);
                             self.map.add_explosion(pos);
                         }
                         SoundEffect::LaserCharge => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.laser_charge_sound, 0
-                            ).unwrap();
+                            play_sound(&assets.laser_charge_sound);
                         }
                         SoundEffect::LaserFire => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.laser_fire_sound, 0
-                            ).unwrap();
+                            play_sound(&assets.laser_fire_sound);
                         }
                     }
                 }
@@ -142,8 +140,8 @@ impl MainState {
         self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
 
         let shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
-        let firing_powerup = keyboard_state.is_scancode_pressed(Scancode::Q);
-        let input_message = ClientMessage::Input{ x_input, y_input, shooting, firing_powerup };
+        let activating_powerup = keyboard_state.is_scancode_pressed(Scancode::E);
+        let input_message = ClientMessage::Input{ x_input, y_input, shooting, activating_powerup };
         send_client_message(&input_message, &mut server_reader.stream);
 
         self.powerup_rotation += constants::POWERUP_SPEED * elapsed.as_secs_f32();
@@ -265,28 +263,39 @@ pub fn main() -> Result<(), String> {
 
     let mut color_selection = 0;
     let mut plane_selection = 0;
+    let mut name = whoami::username();
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
     
+    video_subsystem.text_input().start();
+
     'mainloop: loop {
         let menu_state = &mut MenuState::new();
 
         menu_state.color_selection = color_selection;
         menu_state.plane_selection = plane_selection;
+        menu_state.name = name;
 
         'menuloop: loop {
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit{..} => break 'mainloop,
                     Event::KeyDown {keycode: Some(kc), ..} => {
-                        if kc == Keycode::Return || kc == Keycode::Space {
-                            color_selection = menu_state.color_selection;
-                            plane_selection = menu_state.plane_selection;
-                            break 'menuloop;
+                        match kc {
+                            Keycode::Return => {
+                                break 'menuloop;
+                            }
+                            Keycode::Backspace => {
+                                menu_state.name.pop();
+                            }
+                            _ => {}
                         }
-                    },
+                    }
                     Event::MouseButtonDown {x, y, ..} => {
                         menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
+                    }
+                    Event::TextInput {text, ..} => {
+                        menu_state.name += &text;
                     }
                     _ => {}
                 }
@@ -297,6 +306,11 @@ pub fn main() -> Result<(), String> {
 
             menu_state.draw(&mut canvas, &assets).unwrap();
         }
+        video_subsystem.text_input().stop();
+
+        color_selection = menu_state.color_selection;
+        plane_selection = menu_state.plane_selection;
+        name = menu_state.name.clone();
 
         send_client_message(
             &ClientMessage::JoinGame { 

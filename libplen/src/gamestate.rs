@@ -119,7 +119,7 @@ impl GameState {
                 .filter_map(|powerup| {
                     let hit_radius = PLANE_SIZE + POWERUP_RADIUS;
                     if (powerup.position - player.position).norm() < hit_radius as f32 {
-                        // Apply the powerup
+                        // Add the powerup
                         player.add_powerup(powerup.kind);
                         hit_powerup_positions.push((player.id, player.position));
                         None
@@ -181,9 +181,14 @@ impl GameState {
                 if distance < hit_radius as f32 && projectile.is_armed() {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
-                        let msg = killer.clone() + " killed " + 
-                            &player.name + " using a Gun.";
-                        self.killfeed.add_message(&msg);
+                        let msg = if projectile.get_id() == player.id {
+                            String::from(&player.name.clone()) + " killed themselves using a Gun."
+                        } else {
+                            killer.clone() + " killed " + 
+                                &player.name + " using a Gun."
+                        };
+
+                        self.killfeed.add_message(&msg.clone());
                     }
                     bullets_to_remove.push(projectile.get_id());
                     hit_players.push(player.id);
@@ -257,15 +262,14 @@ impl GameState {
     }
 
     pub fn handle_player_collisions(&mut self, delta: f32) {
-        let mut collided_players = vec!();
+        let mut collided_players: Vec<(u64, String)> = vec!();
         let hit_radius = PLANE_SIZE * 2;
 
         for p1 in &self.players {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
-                if p1.id != p2.id && distance < hit_radius as f32 &&
-                    !collided_players.contains(&p1.id) && !p1.invincibility_is_on() {
-                    collided_players.push(p1.id);
+                if p1.id != p2.id && distance < hit_radius as f32 {
+					collided_players.push((p1.id, p2.name.clone()));
                 }
             }
         }
@@ -273,9 +277,15 @@ impl GameState {
         for player in &mut self.players {
             player.update_collision_timer(delta);
 
-            for id in &collided_players {
+            for (id, attacker) in &collided_players {
                 if player.id == *id && player.time_to_next_collision == 0. {
-                    player.health -= constants::COLLISION_DAMAGE;
+                    player.damage_player(constants::COLLISION_DAMAGE);
+                    
+                    if player.has_died() {
+                        let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name.clone());
+                        self.killfeed.add_message(msg.as_str());
+                    }
+
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
                 }
             }

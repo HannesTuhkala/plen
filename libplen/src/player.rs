@@ -336,12 +336,9 @@ impl Player {
     }
 
     pub fn trigger_powerup_if_available(&mut self) {
-        match self.available_powerup {
-            None => (),
-            Some(powerup) => {
-                self.apply_powerup(powerup);
-                self.available_powerup = None;
-            }
+        if let Some(powerup) = self.available_powerup {
+            self.apply_powerup(powerup);
+            self.available_powerup = None;
         }
     }
 

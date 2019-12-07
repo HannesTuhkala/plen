@@ -486,7 +486,7 @@ impl Map {
                     na::Vector2::new(scale, scale)
                 )?;
 
-                let instruction = assets.font.render("Press Q to activate")
+                let instruction = assets.font.render("Press E to activate")
                     .blended((255, 255, 255, 255))
                     .expect("Could not render text");
 
