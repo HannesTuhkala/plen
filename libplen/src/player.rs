@@ -7,6 +7,7 @@ use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
 use crate::hurricane::Hurricane;
+use crate::weapons::GunType;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
@@ -125,6 +126,7 @@ pub struct Player {
     pub position: na::Point2<f32>,
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
+	pub gun: GunType,
     pub planetype: PlaneType,
     pub color: Color,
     pub name: String,
@@ -150,6 +152,7 @@ impl Player {
             powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
             position: position,
             cooldown: 0.,
+			gun: GunType::Regular,
             planetype: plane_type,
             color: color,
             name: name,

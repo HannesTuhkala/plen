@@ -143,6 +143,10 @@ impl GameState {
         hit_powerup_positions
     }
 
+	/**
+	* Creates a new powerup in the world.
+	* The powerup that spawns depends on its likelihood.
+	*/
     fn create_powerup() -> PowerUpKind {
         let max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
         let mut rand_number = rand::thread_rng().gen_range(1, max_number);
