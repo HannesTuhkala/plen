@@ -119,8 +119,8 @@ impl GameState {
                 .filter_map(|powerup| {
                     let hit_radius = PLANE_SIZE + POWERUP_RADIUS;
                     if (powerup.position - player.position).norm() < hit_radius as f32 {
-                        // Apply the powerup
-                        player.apply_powerup(powerup.kind);
+                        // Add the powerup
+                        player.add_powerup(powerup.kind);
                         hit_powerup_positions.push((player.id, player.position));
                         None
                     }

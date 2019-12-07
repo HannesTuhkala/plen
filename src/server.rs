@@ -175,14 +175,16 @@ impl Server {
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
             let mut player_shooting = false;
+            let mut player_activating_powerup = false;
 
             // TODO: Use a real loop
             while let Some(message) = client.next() {
                 match message {
-                    ClientMessage::Input{ x_input, y_input, shooting } => {
+                    ClientMessage::Input{ x_input, y_input, shooting, activating_powerup } => {
                         player_input_x = x_input;
                         player_input_y = y_input;
-                        player_shooting = shooting
+                        player_shooting = shooting;
+                        player_activating_powerup = activating_powerup;
                     },
                     ClientMessage::JoinGame{ name, plane, color } => {
                         let mut random = rand::thread_rng();
@@ -231,6 +233,10 @@ impl Server {
                         if start_charging_laser {
                             sounds_to_play.push((SoundEffect::LaserCharge, player.position));
                         }
+                    }
+
+                    if player_activating_powerup {
+                        player.trigger_powerup_if_available();
                     }
 
                     if player.health <= 0 {
