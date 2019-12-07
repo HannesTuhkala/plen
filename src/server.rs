@@ -262,14 +262,15 @@ impl Server {
                         remove_player_on_disconnect!(result, *id);
                         sounds_to_play.push((SoundEffect::Explosion, player.position));
                     }
-                    let result = send_server_message(
-                        &ServerMessage::GameState(self.state.clone()),
-                        &mut client.stream
-                    );
-                    remove_player_on_disconnect!(result, *id);
                     break
                 }
             }
+
+            let result = send_server_message(
+                &ServerMessage::GameState(self.state.clone()),
+                &mut client.stream
+            );
+            remove_player_on_disconnect!(result, *id);
 
             if let Some(bullet) = bullet {
                 let pos = bullet.get_position();
