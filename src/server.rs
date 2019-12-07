@@ -15,6 +15,8 @@ use libplen::constants;
 use libplen::debug;
 use libplen::projectiles::Projectile;
 
+use unicode_truncate::UnicodeTruncateStr;
+
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
     let mut start = 0;
@@ -193,6 +195,10 @@ impl Server {
                     },
                     ClientMessage::JoinGame{ name, plane, color } => {
                         let mut random = rand::thread_rng();
+                        let mut n = "Mr Whitespace".into();
+                        if name.trim().len() != 0 {
+                            n = name.trim().unicode_truncate(20).0.to_string()
+                        }
 
                         let player = Player::new(
                             *id,
@@ -202,7 +208,7 @@ impl Server {
                                 ),
                             plane,
                             color,
-                            name.trim()[0..20].to_string()
+                            n
                         );
                         self.state.add_player(player);
                     }
@@ -252,15 +258,14 @@ impl Server {
                         remove_player_on_disconnect!(result, *id);
                         sounds_to_play.push((SoundEffect::Explosion, player.position));
                     }
+                    let result = send_server_message(
+                        &ServerMessage::GameState(self.state.clone()),
+                        &mut client.stream
+                    );
+                    remove_player_on_disconnect!(result, *id);
                     break
                 }
             }
-
-            let result = send_server_message(
-                &ServerMessage::GameState(self.state.clone()),
-                &mut client.stream
-            );
-            remove_player_on_disconnect!(result, *id);
 
             if let Some(bullet) = bullet {
                 let pos = bullet.get_position();
