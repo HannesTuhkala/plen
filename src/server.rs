@@ -202,7 +202,7 @@ impl Server {
                                 ),
                             plane,
                             color,
-                            name
+                            name.trim()[0..20].to_string()
                         );
                         self.state.add_player(player);
                     }

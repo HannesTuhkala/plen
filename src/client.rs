@@ -260,12 +260,11 @@ pub fn main() -> Result<(), String> {
     let mut name = whoami::username();
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
-    
-    video_subsystem.text_input().start();
 
     'mainloop: loop {
         let menu_state = &mut MenuState::new();
 
+        video_subsystem.text_input().start();
         menu_state.color_selection = color_selection;
         menu_state.plane_selection = plane_selection;
         menu_state.name = name;
@@ -289,7 +288,9 @@ pub fn main() -> Result<(), String> {
                         menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
                     }
                     Event::TextInput {text, ..} => {
-                        menu_state.name += &text;
+                        if menu_state.name.len() <= 20 {
+                            menu_state.name += &text;
+                        }
                     }
                     _ => {}
                 }
