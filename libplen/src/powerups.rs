@@ -8,7 +8,7 @@ extern crate strum;
 extern crate strum_macros;
 use strum_macros::EnumIter;
 
-#[derive(Serialize, Deserialize, EnumIter, Clone, Hash, PartialEq, Eq, Rand, Debug)]
+#[derive(Serialize, Deserialize, EnumIter, Copy, Clone, Hash, PartialEq, Eq, Rand, Debug)]
 pub enum PowerUpKind {
     Afterburner,
     Laser,
@@ -53,6 +53,18 @@ impl PowerUpKind {
             PowerUpKind::Gun => false,
             PowerUpKind::SlowTime => false,
             PowerUpKind::Invisible => false,
+        }
+    }
+
+    pub fn is_triggerable(&self) -> bool {
+        match self {
+            PowerUpKind::Laser => false,
+            PowerUpKind::Afterburner => true,
+            PowerUpKind::Health => false,
+            PowerUpKind::Invincibility => true,
+            PowerUpKind::Gun => false,
+            PowerUpKind::SlowTime => true,
+            PowerUpKind::Invisible => true,
         }
     }
 

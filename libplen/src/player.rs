@@ -127,6 +127,7 @@ pub struct Player {
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
 	pub gun: GunType,
+    pub available_powerup: Option<PowerUpKind>,
     pub planetype: PlaneType,
     pub color: Color,
     pub name: String,
@@ -150,6 +151,7 @@ impl Player {
             speed: 0.,
             health: plane_type.health(),
             powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
+            available_powerup: None,
             position: position,
             cooldown: 0.,
 			gun: GunType::Regular,
@@ -325,14 +327,29 @@ impl Player {
         } else {
             self.powerups.retain(|p| p.kind != kind)
         }
-        
+
         if kind == PowerUpKind::Health {
             self.heal_player(constants::POWERUP_HEALTH_BOOST);
         }
 
         if !kind.is_instant() {
             // Remove duplicates, only allow one weapon
-            self.powerups.push(AppliedPowerup::new(kind))
+            self.powerups.push(AppliedPowerup::new(kind));
+        }
+    }
+
+    pub fn trigger_powerup_if_available(&mut self) {
+        if let Some(powerup) = self.available_powerup {
+            self.apply_powerup(powerup);
+            self.available_powerup = None;
+        }
+    }
+
+    pub fn add_powerup(&mut self, kind: PowerUpKind) {
+        if kind.is_triggerable() {
+            self.available_powerup = Some(kind);
+        } else {
+            self.apply_powerup(kind);
         }
     }
 
@@ -349,7 +366,7 @@ impl Player {
             .retain(|p| {
                 p.duration_left
                     .map(|left| left > 0.)
-                    .unwrap_or(true)})
+                    .unwrap_or(true)});
     }
 
     pub fn final_velocity(&mut self) -> na::Vector2<f32> {
