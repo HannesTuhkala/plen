@@ -1,3 +1,5 @@
+use std::sync::mpsc::Receiver;
+
 use serde_derive::{Serialize, Deserialize};
 use rand::prelude::*;
 use nalgebra as na;
@@ -10,6 +12,7 @@ use crate::killfeed::KillFeed;
 use crate::hurricane::Hurricane;
 use crate::math::wrap_around;
 use crate::projectiles::{ProjectileKind, Projectile};
+use crate::debug::DebugLine;
 use rand::Rng;
 
 use strum::IntoEnumIterator;
@@ -22,6 +25,7 @@ pub struct GameState {
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
     pub hurricane: Option<Hurricane>,
+    pub debug_lines: Vec<DebugLine>,
 }
 
 impl GameState {
@@ -33,6 +37,7 @@ impl GameState {
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
             hurricane: None,
+            debug_lines: vec![],
         }
     }
 
@@ -120,8 +125,8 @@ impl GameState {
                 .filter_map(|powerup| {
                     let hit_radius = PLANE_SIZE + POWERUP_RADIUS;
                     if (powerup.position - player.position).norm() < hit_radius as f32 {
-                        // Apply the powerup
-                        player.apply_powerup(powerup.kind);
+                        // Add the powerup
+                        player.add_powerup(powerup.kind);
                         hit_powerup_positions.push((player.id, player.position));
                         None
                     }
@@ -290,6 +295,14 @@ impl GameState {
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
                 }
             }
+        }
+    }
+
+    pub fn update_debug_lines(&mut self, debug_lines: &Receiver<DebugLine>) {
+        self.debug_lines.clear();
+
+        for lines in debug_lines.try_iter() {
+            self.debug_lines.push(lines);
         }
     }
 }

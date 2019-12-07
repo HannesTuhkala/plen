@@ -248,9 +248,11 @@ impl Map {
             Map::draw_mini_map(game_state, canvas, assets, &my_player)?;
         }
 
-        Self::draw_ui(my_id, game_state, canvas, assets)?;
+        Self::draw_ui(my_id, game_state, canvas, assets, powerup_rotation)?;
 
-        Self::draw_killfeed(canvas, assets, game_state)
+        Self::draw_killfeed(canvas, assets, game_state)?;
+
+        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position)
     }
 
     fn draw_hurricanes_wrapped_around(
@@ -457,6 +459,7 @@ impl Map {
         game_state: &GameState,
         canvas: &mut Canvas<Window>,
         assets: &Assets,
+        powerup_rotation: f32,
     ) -> Result<(), String> {
         let mut x_pos = 40.;
         let y_pos = canvas.logical_size().1 as f32 - 20. - constants::POWERUP_RADIUS as f32;
@@ -470,8 +473,36 @@ impl Map {
                 )?;
                 x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
             }
-        }
 
+            if let Some(powerup) = p.available_powerup {
+                let x_pos = canvas.logical_size().0 as f32 - constants::MINI_MAP_SIZE - 40.;
+                let sprite = assets.powerups.get(&powerup)
+                    .expect("Missing powerup graphics");
+                let scale = 1.
+                    + (((powerup_rotation*constants::AVAILABLE_POWERUP_SCALE_SPEED)
+                       .sin() + 1.)/2.)*constants::AVAILABLE_POWERUP_SCALE_AMOUNT;
+                rendering::draw_texture_rotated_and_scaled(
+                    canvas,
+                    &sprite,
+                    na::Point2::new(x_pos, y_pos - constants::POWERUP_RADIUS as f32 / 1.5),
+                    powerup_rotation,
+                    na::Vector2::new(scale, scale)
+                )?;
+
+                let instruction = assets.font.render("Press E to activate")
+                    .blended((255, 255, 255, 255))
+                    .expect("Could not render text");
+
+                let texture_creator = canvas.texture_creator();
+                let instruction_texture =
+                    texture_creator.create_texture_from_surface(instruction).unwrap();
+                rendering::draw_texture_centered(
+                    canvas,
+                    &instruction_texture,
+                    na::Point2::new(x_pos, y_pos + constants::POWERUP_RADIUS as f32),
+                )?;
+            }
+        }
         Ok(())
     }
 
@@ -574,6 +605,30 @@ impl Map {
             }
         }
 
+        Ok(())
+    }
+
+    fn draw_debug_lines(
+        canvas: &mut Canvas<Window>,
+        lines: &[libplen::debug::DebugLine],
+        camera_position: na::Point2<f32>
+    ) -> Result<(), String> {
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
+                for line in lines {
+                    println!("Drawing debug line");
+                    let offset =  na::Vector2::new(*tile_x, *tile_y) * constants::WORLD_SIZE
+                        - camera_position.coords;
+                    let start = line.start + offset;
+                    let end = line.end + offset;
+                    canvas.set_draw_color(line.color);
+                    canvas.draw_line(
+                        sdl2::rect::Point::new(start.x as i32, start.y as i32),
+                        sdl2::rect::Point::new(end.x as i32, end.y as i32),
+                    )?;
+                }
+            }
+        }
         Ok(())
     }
 }

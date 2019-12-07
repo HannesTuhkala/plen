@@ -12,6 +12,7 @@ use libplen::player::Player;
 use libplen::powerups::PowerUpKind;
 use libplen::gamestate;
 use libplen::constants;
+use libplen::debug;
 use libplen::projectiles::Projectile;
 
 
@@ -53,6 +54,7 @@ struct Server {
     state: gamestate::GameState,
     next_id: u64,
     last_time: Instant,
+    debug_channel: std::sync::mpsc::Receiver<debug::DebugLine>
 }
 
 impl Server {
@@ -69,7 +71,8 @@ impl Server {
             connections: vec!(),
             next_id: 0,
             last_time: Instant::now(),
-            state: gamestate::GameState::new()
+            state: gamestate::GameState::new(),
+            debug_channel: debug::init_debug_channel(),
         }
     }
 
@@ -107,6 +110,8 @@ impl Server {
         self.update_clients(
             delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
         );
+
+        self.state.update_debug_lines(&self.debug_channel);
     }
 
     fn accept_new_connections(&mut self) {
@@ -175,14 +180,16 @@ impl Server {
             let mut player_input_x = 0.0;
             let mut player_input_y = 0.0;
             let mut player_shooting = false;
+            let mut player_activating_powerup = false;
 
             // TODO: Use a real loop
             while let Some(message) = client.next() {
                 match message {
-                    ClientMessage::Input{ x_input, y_input, shooting } => {
+                    ClientMessage::Input{ x_input, y_input, shooting, activating_powerup } => {
                         player_input_x = x_input;
                         player_input_y = y_input;
-                        player_shooting = shooting
+                        player_shooting = shooting;
+                        player_activating_powerup = activating_powerup;
                     },
                     ClientMessage::JoinGame{ name, plane, color } => {
                         let mut random = rand::thread_rng();
@@ -231,6 +238,10 @@ impl Server {
                         if start_charging_laser {
                             sounds_to_play.push((SoundEffect::LaserCharge, player.position));
                         }
+                    }
+
+                    if player_activating_powerup {
+                        player.trigger_powerup_if_available();
                     }
 
                     if player.health <= 0 {

@@ -140,7 +140,8 @@ impl MainState {
         self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
 
         let shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
-        let input_message = ClientMessage::Input{ x_input, y_input, shooting };
+        let activating_powerup = keyboard_state.is_scancode_pressed(Scancode::E);
+        let input_message = ClientMessage::Input{ x_input, y_input, shooting, activating_powerup };
         send_client_message(&input_message, &mut server_reader.stream);
 
         self.powerup_rotation += constants::POWERUP_SPEED * elapsed.as_secs_f32();
