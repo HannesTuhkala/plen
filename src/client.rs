@@ -41,6 +41,7 @@ struct MainState {
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
+    dead: bool,
 }
 
 impl MainState {
@@ -53,6 +54,7 @@ impl MainState {
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
+            dead: false,
         }
     }
 
@@ -109,7 +111,7 @@ impl MainState {
                     }
                 }
                 ServerMessage::YouDied => {
-                    return StateResult::GotoNext
+                    self.dead = true;
                 }
                 ServerMessage::PlayerHit(id) => {
                     // TODO handle if it's someone elses id, for example
@@ -135,6 +137,10 @@ impl MainState {
         } 
         if keyboard_state.is_scancode_pressed(Scancode::D) {
             x_input += 1.0;
+        }
+
+        if self.dead && keyboard_state.is_scancode_pressed(Scancode::Return) {
+            return StateResult::GotoNext;
         }
 
         self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
@@ -165,6 +171,15 @@ impl MainState {
             &self.game_state.hurricane
         )?;
 
+        if self.dead {
+            let (width, height) = canvas.logical_size();
+            rendering::draw_texture_centered(
+                canvas,
+                &assets.end_background,
+                na::Point2::new(width as f32 * 0.5, height as f32 * 0.3)
+            ).unwrap();
+        }
+
         Ok(())
     }
     
@@ -184,27 +199,6 @@ impl MainState {
             self.hit_effect_timer -= constants::HIT_SEQUENCE_RATE;
             false
         }
-    }
-}
-
-struct EndState {
-}
-
-impl EndState {
-    fn draw(&self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
-        canvas.set_draw_color(constants::MENU_BACKGROUND_COLOR);
-        canvas.clear();
-
-        let (width, height) = canvas.logical_size();
-        rendering::draw_texture_centered(
-            canvas,
-            &assets.end_background,
-            na::Point2::new(width as f32 * 0.5, height as f32 * 0.5)
-        )?;
-
-        canvas.present();
-
-        Ok(())
     }
 }
 
@@ -343,26 +337,6 @@ pub fn main() -> Result<(), String> {
             if state_result == StateResult::GotoNext {
                 break 'gameloop;
             }
-        }
-
-        let end_state = EndState {};
-        'endloop: loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit{..} => break 'mainloop,
-                    Event::KeyDown {keycode: Some(kc), ..} => {
-                        if kc == Keycode::Return || kc == Keycode::Space {
-                            break 'endloop;
-                        }
-                    },
-                    _ => {}
-                }
-            }
-            rendering::setup_coordinates(&mut canvas)?;
-
-            end_state.draw(&mut canvas, &assets).unwrap();
-
-            canvas.present();
         }
     }
 
