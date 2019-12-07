@@ -1,5 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
 
+use crate::constants;
+
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Message {
     pub message: String,
@@ -10,7 +12,7 @@ impl Message {
     pub fn new(message: String) -> Self {
         Message {
             message,
-            duration_left: Some(3.5),
+            duration_left: Some(constants::KILLFEED_DURATION),
         }
     }
 }

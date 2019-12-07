@@ -11,11 +11,13 @@ use nalgebra as na;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::event::Event;
+use sdl2::render::BlendMode;
 use sdl2::keyboard::{Keycode, Scancode};
 
 use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
 use libplen::gamestate;
 use libplen::constants;
+use libplen::hurricane;
 use assets::Assets;
 use menu::MenuState;
 
@@ -79,33 +81,30 @@ impl MainState {
                     self.game_state = state
                 },
                 ServerMessage::PlaySound(sound, pos) => {
+                    fn play_sound(soundeffect: &sdl2::mixer::Chunk) {
+                        if let Err(e) = sdl2::mixer::Channel::all().play(
+                            soundeffect, 0
+                        ) {
+                            println!("SDL mixer error: {}", e);
+                        }
+                    }
+
                     match sound {
                         SoundEffect::Powerup => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.powerup, 0
-                            ).unwrap();
+                            play_sound(&assets.powerup);
                         }
                         SoundEffect::Gun => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.gun, 0
-                            ).unwrap();
+                            play_sound(&assets.gun);
                         }
                         SoundEffect::Explosion => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.explosion, 0
-                            ).unwrap();
+                            play_sound(&assets.explosion);
                             self.map.add_explosion(pos);
                         }
                         SoundEffect::LaserCharge => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.laser_charge_sound, 0
-                            ).unwrap();
+                            play_sound(&assets.laser_charge_sound);
                         }
                         SoundEffect::LaserFire => {
-                            sdl2::mixer::Channel::all().play(
-                                &assets.laser_fire_sound, 0
-                            ).unwrap();
-                            self.map.add_explosion(pos);
+                            play_sound(&assets.laser_fire_sound);
                         }
                     }
                 }
@@ -162,6 +161,7 @@ impl MainState {
             assets,
             self.powerup_rotation,
             self.hit_effect_timer,
+            &self.game_state.hurricane
         )?;
 
         Ok(())
@@ -191,17 +191,23 @@ struct EndState {
 
 impl EndState {
     fn draw(&self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
-        rendering::draw_texture(
+        canvas.set_draw_color(constants::MENU_BACKGROUND_COLOR);
+        canvas.clear();
+
+        let (width, height) = canvas.logical_size();
+        rendering::draw_texture_centered(
             canvas,
             &assets.end_background,
-            na::Point2::new(0., 0.)
+            na::Point2::new(width as f32 * 0.5, height as f32 * 0.5)
         )?;
+
+        canvas.present();
 
         Ok(())
     }
 }
 
-pub fn main() {
+pub fn main() -> Result<(), String> {
     let host = std::env::var("SERVER")
         .unwrap_or(String::from("localhost:4444"));
     let stream = TcpStream::connect(host).expect("Could not connect to server");
@@ -229,10 +235,12 @@ pub fn main() {
 
     let window = video_subsystem
         .window("plen", constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32)
+        .resizable()
         .build()
         .expect("Could not create window");
 
     let mut canvas = window.into_canvas().build().expect("Could not create canvas");
+    canvas.set_blend_mode(BlendMode::Blend);
     let texture_creator = canvas.texture_creator();
 
     let _audio = sdl.audio().expect("Could not initialize SDL audio");
@@ -245,7 +253,7 @@ pub fn main() {
         sdl2::mixer::InitFlag::OGG
     ).expect("Could not initialize SDL mixer");
 
-    // Allows 16 sounds to play simultaneously
+    // Allows 64 sounds to play simultaneously
     sdl2::mixer::allocate_channels(64);
 
     let ttf_context = sdl2::ttf::init().expect("Could not initialize SDL ttf");
@@ -254,42 +262,54 @@ pub fn main() {
 
     let mut color_selection = 0;
     let mut plane_selection = 0;
+    let mut name = whoami::username();
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
     
+    video_subsystem.text_input().start();
+
     'mainloop: loop {
         let menu_state = &mut MenuState::new();
 
         menu_state.color_selection = color_selection;
         menu_state.plane_selection = plane_selection;
+        menu_state.name = name;
 
         'menuloop: loop {
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Quit{..} => break 'mainloop,
                     Event::KeyDown {keycode: Some(kc), ..} => {
-                        if kc == Keycode::Return || kc == Keycode::Space {
-                            color_selection = menu_state.color_selection;
-                            plane_selection = menu_state.plane_selection;
-                            break 'menuloop;
+                        match kc {
+                            Keycode::Return => {
+                                break 'menuloop;
+                            }
+                            Keycode::Backspace => {
+                                menu_state.name.pop();
+                            }
+                            _ => {}
                         }
-                    },
+                    }
                     Event::MouseButtonDown {x, y, ..} => {
-                        menu_state.mouse_button_down_event(x as f32, y as f32);
+                        menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
+                    }
+                    Event::TextInput {text, ..} => {
+                        menu_state.name += &text;
                     }
                     _ => {}
                 }
             }
+            rendering::setup_coordinates(&mut canvas)?;
 
             menu_state.update();
 
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
-            canvas.clear();
-
             menu_state.draw(&mut canvas, &assets).unwrap();
-
-            canvas.present();
         }
+        video_subsystem.text_input().stop();
+
+        color_selection = menu_state.color_selection;
+        plane_selection = menu_state.plane_selection;
+        name = menu_state.name.clone();
 
         send_client_message(
             &ClientMessage::JoinGame { 
@@ -308,6 +328,7 @@ pub fn main() {
                     _ => {}
                 }
             }
+            rendering::setup_coordinates(&mut canvas)?;
 
             canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
             canvas.clear();
@@ -336,12 +357,13 @@ pub fn main() {
                     _ => {}
                 }
             }
-            canvas.set_draw_color(sdl2::pixels::Color::RGB(25, 25, 25));
-            canvas.clear();
+            rendering::setup_coordinates(&mut canvas)?;
 
             end_state.draw(&mut canvas, &assets).unwrap();
 
             canvas.present();
         }
     }
+
+    Ok(())
 }

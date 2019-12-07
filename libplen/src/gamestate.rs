@@ -7,6 +7,7 @@ use crate::player::Player;
 use crate::projectiles::LaserBeam;
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
+use crate::hurricane::Hurricane;
 use crate::math::wrap_around;
 use crate::projectiles::{ProjectileKind, Projectile};
 use rand::Rng;
@@ -20,6 +21,7 @@ pub struct GameState {
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
+    pub hurricane: Option<Hurricane>,
 }
 
 impl GameState {
@@ -30,6 +32,7 @@ impl GameState {
             powerups: Vec::new(),
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
+            hurricane: None,
         }
     }
 
@@ -44,12 +47,46 @@ impl GameState {
     pub fn update(&mut self, delta: f32)
         -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>)
     {
+        self.maybe_spawn_hurricane(delta);
+        self.update_hurricane(delta);
         let hit_powerup_positions = self.handle_powerups();
         let hit_players = self.handle_bullets(delta);
         let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
         (hit_players, hit_powerup_positions, fired_laser_positions)
+    }
+
+    fn maybe_spawn_hurricane(&mut self, delta: f32) {
+        match self.hurricane {
+            None => {
+                let rand_number = rand::thread_rng().gen_range(0., 1.);
+                if rand_number < constants::HURRICANE_PROBABILITY*delta {
+                    let xv = rand::thread_rng().gen_range(0., 1.)*constants::HURRICANE_MOVE_SPEED;
+                    let yv = rand::thread_rng().gen_range(0., 1.)*constants::HURRICANE_MOVE_SPEED;
+
+                    let xp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
+                    let yp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
+
+                    let vel = na::Vector2::new(xv, yv);
+                    let pos = na::Point2::new(xp, yp);
+
+                    self.hurricane = Some(Hurricane::new(pos, vel));
+                }
+            }
+            _ => ()
+        }
+    }
+
+    pub fn update_hurricane(&mut self, delta: f32) {
+        let mut should_remove_hurricane = false;
+        self.hurricane.as_mut().map(|hurricane| {
+            hurricane.update(delta);
+            should_remove_hurricane = hurricane.is_dead();
+        });
+        if should_remove_hurricane {
+            self.hurricane = None;
+        }
     }
 
     pub fn add_player(&mut self, player: Player) {
@@ -126,7 +163,7 @@ impl GameState {
 
     pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
         for projectile in &mut self.projectiles {
-            projectile.update(&self.players, delta_time);
+            projectile.update(&self.players, delta_time, &self.hurricane);
         }
 
         self.projectiles.retain(
@@ -145,9 +182,14 @@ impl GameState {
                 if distance < hit_radius as f32 && projectile.is_armed() {
                     player.damage_player(projectile.get_damage());
                     if player.has_died() {
-                        let msg = killer.clone() + " killed " + 
-                            &player.name + " using a Gun.";
-                        self.killfeed.add_message(&msg);
+                        let msg = if projectile.get_id() == player.id {
+                            String::from(&player.name.clone()) + " killed themselves using a Gun."
+                        } else {
+                            killer.clone() + " killed " + 
+                                &player.name + " using a Gun."
+                        };
+
+                        self.killfeed.add_message(&msg.clone());
                     }
                     bullets_to_remove.push(projectile.get_id());
                     hit_players.push(player.id);
@@ -221,15 +263,14 @@ impl GameState {
     }
 
     pub fn handle_player_collisions(&mut self, delta: f32) {
-        let mut collided_players = vec!();
+        let mut collided_players: Vec<(u64, String)> = vec!();
         let hit_radius = PLANE_SIZE * 2;
 
         for p1 in &self.players {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
-                if p1.id != p2.id && distance < hit_radius as f32 &&
-                    !collided_players.contains(&p1.id) && !p1.invincibility_is_on() {
-                    collided_players.push(p1.id);
+                if p1.id != p2.id && distance < hit_radius as f32 {
+					collided_players.push((p1.id, p2.name.clone()));
                 }
             }
         }
@@ -237,9 +278,15 @@ impl GameState {
         for player in &mut self.players {
             player.update_collision_timer(delta);
 
-            for id in &collided_players {
+            for (id, attacker) in &collided_players {
                 if player.id == *id && player.time_to_next_collision == 0. {
-                    player.health -= constants::COLLISION_DAMAGE;
+                    player.damage_player(constants::COLLISION_DAMAGE);
+                    
+                    if player.has_died() {
+                        let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name.clone());
+                        self.killfeed.add_message(msg.as_str());
+                    }
+
                     player.time_to_next_collision = constants::COLLISION_GRACE_PERIOD;
                 }
             }

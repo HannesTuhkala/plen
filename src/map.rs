@@ -9,12 +9,8 @@ use libplen::gamestate::GameState;
 use libplen::projectiles::Projectile;
 use crate::assets::Assets;
 
-use crate::rendering::{
-    draw_texture,
-    draw_texture_centered,
-    draw_texture_rotated,
-    draw_texture_rotated_and_scaled
-};
+use crate::rendering;
+use crate::hurricane;
 
 #[derive(Clone)]
 pub struct SmokeParticle {
@@ -152,10 +148,12 @@ impl Map {
         assets: &mut Assets,
         powerup_rotation: f32,
         hit_effect_timer: f32,
+        hurricane: &Option<hurricane::Hurricane>,
     ) -> Result<(), String> {
+        let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
-            constants::WINDOW_SIZE * 0.5,
-            constants::WINDOW_SIZE * 0.5,
+            screen_w as f32 * 0.5,
+            screen_h as f32 * 0.5,
         );
 
         // the offset which causes the camera to shake upon getting hit
@@ -168,6 +166,7 @@ impl Map {
                     * constants::HIT_SHAKE_MAGNITUDE * hit_effect_timer,
             );
         }
+        let camera_position = camera_position - hit_offset;
 
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
@@ -179,8 +178,8 @@ impl Map {
                 let background_position = na::Point2::new(
                     -camera_position.x,
                     -camera_position.y
-                ) + offset;
-                draw_texture(canvas, &assets.background, background_position)?;
+                ) + offset + rendering::calculate_resolution_offset(&canvas);
+                rendering::draw_texture(canvas, &assets.background, background_position)?;
             }
         }
 
@@ -195,7 +194,7 @@ impl Map {
                     canvas,
                     assets,
                     game_state,
-                    camera_position + hit_offset,
+                    camera_position,
                     offset,
                     powerup_rotation,
                     my_id
@@ -206,7 +205,7 @@ impl Map {
                         // don't draw player if invisible
                         continue;
                     }
-                    let offset = na::Vector2::new(
+                    let tile_offset = na::Vector2::new(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
                     );
@@ -214,7 +213,7 @@ impl Map {
                     let position = na::Point2::new(
                         player.position.x - camera_position.x,
                         player.position.y - camera_position.y,
-                    ) + offset + hit_offset + screen_center;
+                    ) + tile_offset + screen_center;
 
                     let health = player.health as f32;
                     let max_health = player.planetype.health() as f32;
@@ -241,6 +240,8 @@ impl Map {
             }
         }
 
+        Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
+
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -252,16 +253,40 @@ impl Map {
         Self::draw_killfeed(canvas, assets, game_state)
     }
 
+    fn draw_hurricanes_wrapped_around(
+        hurricane: &Option<hurricane::Hurricane>,
+        camera_position: na::Point2<f32>,
+        screen_center: na::Vector2<f32>,
+        assets: &Assets,
+        canvas: &mut Canvas<Window>,
+    ) {
+        hurricane.as_ref().map(|h| {
+            for tile_x in &[-1., 0., 1.] {
+                for tile_y in &[-1., 0., 1.] {
+                    let offset = na::Vector2::new(
+                        tile_x * constants::WORLD_SIZE,
+                        tile_y * constants::WORLD_SIZE,
+                    );
+                    let position = na::Point2::new(
+                        h.position.x - camera_position.x,
+                        h.position.y - camera_position.y,
+                    ) + offset + screen_center;
+                    Self::draw_hurricane(h, position, canvas, assets).unwrap();
+                }
+            }
+        });
+    }
+
     fn draw_red_hit_effect(hit_effect_timer: f32, canvas: &mut Canvas<Window>) {
+        let (screen_w, screen_h) = canvas.logical_size();
         if hit_effect_timer > 0. {
             let rect = sdl2::rect::Rect::new(
-                0, 0, constants::WINDOW_SIZE as u32, constants::WINDOW_SIZE as u32,
+                0, 0, screen_w, screen_h,
             );
 
-            canvas.set_draw_color((
-                200, 0, 0, (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
-                    * constants::MAX_RED_ALPHA * 255.) as u8
-            ));
+            let opacity = (hit_effect_timer/constants::HIT_SEQUENCE_AMOUNT
+                    * constants::MAX_RED_ALPHA * 255.) as u8;
+            canvas.set_draw_color((200, 0, 0, opacity));
             canvas.fill_rect(rect).unwrap();
         }
     }
@@ -274,11 +299,12 @@ impl Map {
         camera_position: na::Point2<f32>,
         offset: na::Vector2<f32>,
         powerup_rotation: f32,
-        my_id: u64,
+        my_id: u64
     ) -> Result<(), String> {
+        let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = na::Vector2::new(
-            constants::WINDOW_SIZE * 0.5,
-            constants::WINDOW_SIZE * 0.5,
+            screen_w as f32 * 0.5,
+            screen_h as f32 * 0.5,
         );
 
         for smoke_particle in &self.smoke_particles {
@@ -288,7 +314,7 @@ impl Map {
             ) + offset + screen_center;
             if smoke_particle.alive {
                 assets.smoke.set_alpha_mod((smoke_particle.alpha * 255.) as u8);
-                draw_texture_rotated_and_scaled(
+                rendering::draw_texture_rotated_and_scaled(
                     canvas,
                     &assets.smoke,
                     position,
@@ -306,7 +332,7 @@ impl Map {
             ) + offset + screen_center;
             if explosion_particle.alive {
                 assets.smoke.set_alpha_mod((explosion_particle.alpha * 255.) as u8);
-                draw_texture_centered(canvas, &assets.smoke, position)?;
+                rendering::draw_texture_centered(canvas, &assets.smoke, position)?;
                 assets.smoke.set_alpha_mod(255);
             }
         }
@@ -324,7 +350,7 @@ impl Map {
             let texture = assets.planes.get_mut(&player.planetype).expect("Missing plane asset");
 
             texture.set_alpha_mod(opacity);
-            draw_texture_rotated_and_scaled(
+            rendering::draw_texture_rotated_and_scaled(
                 canvas,
                 texture,
                 position,
@@ -338,7 +364,7 @@ impl Map {
 
             let texture_creator = canvas.texture_creator();
             let nametag_texture = texture_creator.create_texture_from_surface(nametag).unwrap();
-            draw_texture_centered(
+            rendering::draw_texture_centered(
                 canvas,
                 &nametag_texture,
                 na::Point2::new(position.x, position.y + 30.),
@@ -351,7 +377,7 @@ impl Map {
                     -player.rotation.cos() * h_offset
                 );
                 assets.laser_charge.set_alpha_mod((p * 255.) as u8);
-                draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
+                rendering::draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
                 assets.laser_charge.set_alpha_mod(255);
             }
         }
@@ -368,14 +394,14 @@ impl Map {
             );
 
             if laser.is_dealing_damage() {
-                draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
+                rendering::draw_texture_rotated(canvas, &assets.laser_firing, laser_pos, laser.angle)?;
             }
             else {
                 let decay_index =
                     ((laser.decay_progress() * assets.laser_decay.len() as f32) as usize)
                         .min(assets.laser_decay.len()-1)
                     .max(0);
-                draw_texture_rotated(
+                rendering::draw_texture_rotated(
                     canvas, &assets.laser_decay[decay_index], laser_pos, laser.angle
                 )?;
             }
@@ -386,7 +412,7 @@ impl Map {
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
-            draw_texture_centered(canvas, &assets.bullet, position)?;
+            rendering::draw_texture_centered(canvas, &assets.bullet, position)?;
         }
 
         for powerup in game_state.powerups.iter() {
@@ -398,7 +424,7 @@ impl Map {
                 0.,
                 (powerup_rotation*2.).sin() * constants::POWERUP_BOUNCE_HEIGHT
             );
-            draw_texture_rotated(
+            rendering::draw_texture_rotated(
                 canvas,
                 assets.powerups.get(&powerup.kind).unwrap(),
                 position + mini_offset,
@@ -409,6 +435,23 @@ impl Map {
         Ok(())
     }
 
+    fn draw_hurricane(
+        hurricane: &hurricane::Hurricane,
+        position: na::Point2<f32>,
+        canvas: &mut Canvas<Window>,
+        assets: &Assets
+    ) -> Result<(), String> {
+        let scale = hurricane.size()/constants::HURRICANE_SPRITE_SIZE;
+        rendering::draw_texture_rotated_and_scaled(
+            canvas,
+            &assets.hurricane,
+            position,
+            hurricane.rotation,
+            na::Vector2::new(scale, scale)
+        )?;
+        Ok(())
+    }
+
     fn draw_ui(
         my_id: u64,
         game_state: &GameState,
@@ -416,11 +459,11 @@ impl Map {
         assets: &Assets,
     ) -> Result<(), String> {
         let mut x_pos = 40.;
-        let y_pos = constants::WINDOW_SIZE - 20. - constants::POWERUP_RADIUS as f32;
+        let y_pos = canvas.logical_size().1 as f32 - 20. - constants::POWERUP_RADIUS as f32;
 
         if let Some(p) = game_state.get_player_by_id(my_id) {
             for powerup in p.powerups.iter() {
-                draw_texture_centered(
+                rendering::draw_texture_centered(
                     canvas,
                     assets.powerups.get(&powerup.kind).expect("Missing powerup graphics"),
                     na::Point2::new(x_pos, y_pos)
@@ -446,11 +489,11 @@ impl Map {
                 texture_creator.create_texture_from_surface(kill_feed_message).unwrap();
             let width = kill_feed_message_texture.query().width as f32;
             
-            draw_texture(
+            rendering::draw_texture(
                 canvas,
                 &kill_feed_message_texture,
                 na::Point2::new(
-                    constants::WINDOW_SIZE - width,
+                    canvas.logical_size().0 as f32 - width,
                     30. * i as f32
                 ),
             )?;
@@ -465,19 +508,20 @@ impl Map {
         assets: &mut Assets,
         my_player: &player::Player,
     ) -> Result<(), String> {
-        draw_texture(
+        let (screen_w, screen_h) = canvas.logical_size();
+        rendering::draw_texture(
             canvas,
             &assets.minimap_background,
             na::Point2::new(
-                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
-                constants::WINDOW_SIZE - constants::MINI_MAP_SIZE,
+                screen_w as f32 - constants::MINI_MAP_SIZE,
+                screen_h as f32 - constants::MINI_MAP_SIZE,
             )
         )?;
 
         let my_pos = my_player.position;
         let mini_map_center = na::Vector2::new(
-            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5,
-            constants::WINDOW_SIZE - constants::MINI_MAP_SIZE * 0.5
+            screen_w as f32 - constants::MINI_MAP_SIZE * 0.5,
+            screen_h as f32 - constants::MINI_MAP_SIZE * 0.5
         );
 
         for tile_x in &[-1., 0., 1.] {
@@ -502,7 +546,7 @@ impl Map {
                     if dist <= constants::MINI_MAP_SIZE/2. {
                         let (r, g, b, _) = player.color.rgba();
                         assets.miniplane.set_color_mod(r, g, b);
-                        draw_texture_rotated_and_scaled(
+                        rendering::draw_texture_rotated_and_scaled(
                             canvas,
                             &assets.miniplane,
                             position + offset + mini_map_center,
@@ -520,7 +564,7 @@ impl Map {
                                 + (position.y + offset.y).powi(2)).sqrt();
                     if dist <= constants::MINI_MAP_SIZE/2. {
                         let pos = position + offset + mini_map_center;
-                        draw_texture_centered(
+                        rendering::draw_texture_centered(
                             canvas,
                             &assets.minimap_powerup,
                             pos

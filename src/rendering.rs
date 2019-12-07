@@ -1,6 +1,7 @@
 use nalgebra as na;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
+use libplen::constants;
 
 pub fn draw_texture(
     canvas: &mut Canvas<Window>, texture: &Texture, pos: na::Point2<f32>
@@ -59,4 +60,32 @@ pub fn draw_texture_rotated_and_scaled(
     );
     let angle = (angle / std::f32::consts::PI * 180.) as f64;
     canvas.copy_ex(texture, None, Some(dest_rect), angle, None, false, false)
+}
+
+pub fn setup_coordinates(canvas: &mut Canvas<Window>) -> Result<(), String> {
+    let (window_width, window_height) = canvas.window().size();
+    let (w, h) = if window_width < window_height {
+        (
+            constants::WINDOW_SIZE,
+            window_height as f32 / window_width as f32 * constants::WINDOW_SIZE
+        )
+    } else {
+        (
+            window_width as f32 / window_height as f32 * constants::WINDOW_SIZE,
+            constants::WINDOW_SIZE
+        )
+    };
+
+    canvas.set_logical_size(w as u32, h as u32).map_err(|e| e.to_string())
+}
+
+pub fn calculate_resolution_offset(canvas: &Canvas<Window>) -> na::Vector2<f32> {
+    let (w, h) = canvas.logical_size();
+    let (x, y) = if w > h {
+        ((w as f32 - constants::WINDOW_SIZE) * 0.5, 0.)
+    } else {
+        (0., (h as f32 - constants::WINDOW_SIZE) * 0.5)
+    };
+
+    na::Vector2::new(x, y)
 }
