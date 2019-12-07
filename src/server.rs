@@ -193,11 +193,12 @@ impl Server {
                         player_shooting = shooting;
                         player_activating_powerup = activating_powerup;
                     },
-                    ClientMessage::JoinGame{ name, plane, color } => {
+                    ClientMessage::JoinGame{mut name, plane, color } => {
                         let mut random = rand::thread_rng();
-                        let mut n = "Mr Whitespace".into();
                         if name.trim().len() != 0 {
-                            n = name.trim().unicode_truncate(20).0.to_string()
+                            name = name.trim().unicode_truncate(20).0.to_string()
+                        } else {
+                            name = "Mr Whitespace".into();
                         }
 
                         let player = Player::new(
@@ -208,7 +209,7 @@ impl Server {
                                 ),
                             plane,
                             color,
-                            n
+                            name
                         );
                         self.state.add_player(player);
                     }
