@@ -52,7 +52,7 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
 
 struct Server {
     listener: TcpListener,
-    connections: Vec<(u64, MessageReader<ClientMessage>)>,
+    connections: Vec<(u64, MessageReader)>,
     state: gamestate::GameState,
     next_id: u64,
     last_time: Instant,
@@ -132,7 +132,7 @@ impl Server {
                     }
                     self.connections.push((
                         self.next_id,
-                        MessageReader::<ClientMessage>::new(stream)
+                        MessageReader::new(stream)
                     ));
                     self.next_id += 1;
                 }
@@ -184,16 +184,15 @@ impl Server {
             let mut player_shooting = false;
             let mut player_activating_powerup = false;
 
-            // TODO: Use a real loop
-            while let Some(message) = client.next() {
-                match message {
-                    ClientMessage::Input{ x_input, y_input, shooting, activating_powerup } => {
+            for message in client.iter() {
+                match bincode::deserialize(&message) {
+                    Ok(ClientMessage::Input{ x_input, y_input, shooting, activating_powerup }) => {
                         player_input_x = x_input;
                         player_input_y = y_input;
                         player_shooting = shooting;
                         player_activating_powerup = activating_powerup;
                     },
-                    ClientMessage::JoinGame{mut name, plane, color } => {
+                    Ok(ClientMessage::JoinGame{ mut name, plane, color }) => {
                         let mut random = rand::thread_rng();
                         if name.trim().len() != 0 {
                             name = name.trim().unicode_truncate(20).0.to_string()
@@ -212,6 +211,10 @@ impl Server {
                             name
                         );
                         self.state.add_player(player);
+                    },
+                    Err(_) => {
+                        println!("Could not decode message from {}, deleting", id);
+                        clients_to_delete.push(*id);
                     }
                 }
             }

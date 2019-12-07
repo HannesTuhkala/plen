@@ -61,7 +61,7 @@ impl MainState {
     fn update(
         &mut self,
         assets: &Assets,
-        server_reader: &mut MessageReader<ServerMessage>,
+        server_reader: &mut MessageReader,
         keyboard_state: &sdl2::keyboard::KeyboardState
     ) -> StateResult {
         self.update_hit_sequence();
@@ -75,9 +75,9 @@ impl MainState {
         self.last_time = Instant::now();
 
         server_reader.fetch_bytes().unwrap();
-        // TODO: Use a real loop
-        while let Some(message) = server_reader.next() {
-            match message {
+
+        for message in server_reader.iter() {
+            match bincode::deserialize(&message).unwrap() {
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
                     self.game_state = state
@@ -213,8 +213,8 @@ pub fn main() -> Result<(), String> {
 
     let msg = loop {
         reader.fetch_bytes().unwrap();
-        if let Some(msg) = reader.next() {
-            break msg;
+        if let Some(msg) = reader.iter().next() {
+            break bincode::deserialize(&msg).unwrap();
         }
     };
 
