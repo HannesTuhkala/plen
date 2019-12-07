@@ -249,7 +249,9 @@ impl Map {
 
         Self::draw_ui(my_id, game_state, canvas, assets)?;
 
-        Self::draw_killfeed(canvas, assets, game_state)
+        Self::draw_killfeed(canvas, assets, game_state)?;
+
+        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position)
     }
 
     fn draw_hurricanes_wrapped_around(
@@ -573,6 +575,30 @@ impl Map {
             }
         }
 
+        Ok(())
+    }
+
+    fn draw_debug_lines(
+        canvas: &mut Canvas<Window>,
+        lines: &[libplen::debug::DebugLine],
+        camera_position: na::Point2<f32>
+    ) -> Result<(), String> {
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
+                for line in lines {
+                    println!("Drawing debug line");
+                    let offset =  na::Vector2::new(*tile_x, *tile_y) * constants::WORLD_SIZE
+                        - camera_position.coords;
+                    let start = line.start + offset;
+                    let end = line.end + offset;
+                    canvas.set_draw_color(line.color);
+                    canvas.draw_line(
+                        sdl2::rect::Point::new(start.x as i32, start.y as i32),
+                        sdl2::rect::Point::new(end.x as i32, end.y as i32),
+                    )?;
+                }
+            }
+        }
         Ok(())
     }
 }
