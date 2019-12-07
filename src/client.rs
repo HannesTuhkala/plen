@@ -288,7 +288,7 @@ pub fn main() -> Result<(), String> {
                         menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
                     }
                     Event::TextInput {text, ..} => {
-                        if menu_state.name.len() <= 20 {
+                        if menu_state.name.chars().count() < 20 {
                             menu_state.name += &text;
                         }
                     }
