@@ -51,6 +51,9 @@ pub const POWERUP_AMOUNT: u32 = 10;
 pub const POWERUP_HEALTH_BOOST: i16 = 40;
 pub const POWERUP_SLOWTIME_FACTOR: f32 = 3.;
 
+pub const AVAILABLE_POWERUP_SCALE_AMOUNT: f32 = 0.3;
+pub const AVAILABLE_POWERUP_SCALE_SPEED: f32 = 2.;
+
 pub const MINI_MAP_SIZE: f32 = 300.;
 
 pub const PLANE_SELECTION_POS: (f32, f32) = (100., 450.);
