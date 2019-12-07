@@ -2,27 +2,29 @@ use std::io::{self, prelude::*};
 use std::net::TcpStream;
 use std::collections::VecDeque;
 use std::iter::Iterator;
-use std::marker::PhantomData;
 
 use serde_derive::{Serialize, Deserialize};
 use nalgebra as na;
 
 use crate::player;
 
-pub struct MessageReader<T> {
+pub struct MessageReader {
     pub stream: TcpStream,
     byte_queue: VecDeque<u8>,
-    _0: PhantomData<T>,
 }
 
-impl<T> MessageReader<T> {
+pub struct MessageIterator<'a> {
+    message_reader: &'a mut MessageReader
+}
+
+impl MessageReader {
     pub fn new(stream: TcpStream) -> Self {
         Self {
             stream,
             byte_queue: VecDeque::new(),
-            _0: PhantomData
         }
     }
+
     pub fn fetch_bytes(&mut self) -> io::Result<()> {
         let mut buffer = [1; 64];
         loop {
@@ -37,47 +39,40 @@ impl<T> MessageReader<T> {
             self.byte_queue.extend(buffer.iter().take(amount));
         }
     }
-}
 
-macro_rules! impl_message_reader {
-    ($output:ty) => {
-        impl Iterator for MessageReader<$output>
-        {
-            type Item = $output;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                // We need two bytes for the length
-                if self.byte_queue.len() < 2 {
-                    return None;
-                }
-
-                let length = u16::from_be_bytes([
-                    self.byte_queue[0],
-                    self.byte_queue[1],
-                ]) as usize;
-
-                // We will not read a message until a complete message has been
-                // received
-                if self.byte_queue.len() < 2 + length {
-                    return None;
-                }
-
-                self.byte_queue.pop_front().unwrap();
-                self.byte_queue.pop_front().unwrap();
-
-                let msg_bytes: Vec<_> = self.byte_queue.drain(0..length).collect();
-
-                Some(
-                    bincode::deserialize(&msg_bytes)
-                        .expect("Failed to decode message")
-                )
-            }
+    pub fn iter<'a>(&'a mut self) -> MessageIterator<'a> {
+        MessageIterator {
+            message_reader: self
         }
     }
 }
 
-impl_message_reader!(ServerMessage);
-impl_message_reader!(ClientMessage);
+impl Iterator for MessageIterator<'_> {
+    type Item = Vec<u8>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // We need two bytes for the length
+        if self.message_reader.byte_queue.len() < 2 {
+            return None;
+        }
+
+        let length = u16::from_be_bytes([
+            self.message_reader.byte_queue[0],
+            self.message_reader.byte_queue[1],
+        ]) as usize;
+
+        // We will not read a message until a complete message has been
+        // received
+        if self.message_reader.byte_queue.len() < 2 + length {
+            return None;
+        }
+
+        self.message_reader.byte_queue.pop_front().unwrap();
+        self.message_reader.byte_queue.pop_front().unwrap();
+
+        Some(self.message_reader.byte_queue.drain(0..length).collect())
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum SoundEffect { Powerup, Explosion, Gun, LaserCharge, LaserFire }
