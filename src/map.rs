@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use nalgebra as na;
 use rand::prelude::*;
 use sdl2::render::Canvas;
@@ -6,7 +8,7 @@ use sdl2::video::Window;
 use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
-use libplen::projectiles::Projectile;
+use libplen::projectiles::{ProjectileKind, Projectile};
 use crate::assets::Assets;
 
 use crate::rendering;
@@ -76,7 +78,7 @@ impl Map {
                 );
 
                 let mut rng = rand::thread_rng();
-                let angle = rng.gen::<f32>() * std::f32::consts::PI * 2.;
+                let angle = rng.gen::<f32>() * PI * 2.;
 
                 explosion_particle.alive = true;
                 explosion_particle.alpha = 1.0;
@@ -252,7 +254,7 @@ impl Map {
 
         Self::draw_killfeed(canvas, assets, game_state)?;
 
-        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position)
+        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position, screen_center)
     }
 
     fn draw_hurricanes_wrapped_around(
@@ -414,7 +416,12 @@ impl Map {
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
-            rendering::draw_texture_centered(canvas, &assets.bullet, position)?;
+
+            let (asset, angle) = match projectile {
+                ProjectileKind::Bullet(_) => (&assets.bullet, 0.),
+                ProjectileKind::Missile(m) => (&assets.missile, m.angle),
+            };
+            rendering::draw_texture_rotated(canvas, asset, position, angle + PI / 2.)?;
         }
 
         for powerup in game_state.powerups.iter() {
@@ -611,14 +618,15 @@ impl Map {
     fn draw_debug_lines(
         canvas: &mut Canvas<Window>,
         lines: &[libplen::debug::DebugLine],
-        camera_position: na::Point2<f32>
+        camera_position: na::Point2<f32>,
+        screen_center: na::Vector2<f32>,
     ) -> Result<(), String> {
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
                 for line in lines {
                     println!("Drawing debug line");
                     let offset =  na::Vector2::new(*tile_x, *tile_y) * constants::WORLD_SIZE
-                        - camera_position.coords;
+                        - camera_position.coords + screen_center;
                     let start = line.start + offset;
                     let end = line.end + offset;
                     canvas.set_draw_color(line.color);

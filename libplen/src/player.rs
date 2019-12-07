@@ -10,6 +10,8 @@ use crate::hurricane::Hurricane;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
+use crate::debug::{send_line, DebugLine};
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub enum PlaneType {
     SukaBlyat,
@@ -169,6 +171,10 @@ impl Player {
         self.update_velocity_and_position(y_input, hurricane, delta_time);
         self.update_angular_velocity_and_rotation(x_input, delta_time);
         self.manage_powerups(delta_time);
+
+        send_line(
+            DebugLine::new(self.position, self.position + na::Vector2::new(0., 100.)).rgb(255, 0, 0)
+        );
     }
 
     fn update_laser_charge(&mut self, delta_time: f32) {

@@ -15,6 +15,10 @@ use libplen::constants;
 use libplen::debug;
 use libplen::projectiles::Projectile;
 
+use libplen::debug::{send_line, DebugLine};
+
+use nalgebra as na;
+
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
     let mut start = 0;
@@ -111,6 +115,15 @@ impl Server {
             delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
         );
 
+        send_line(
+            DebugLine::from_angle(na::Point2::new(0., 0.), 0., 100.).rgb(255, 0, 0)
+        );
+        send_line(
+            DebugLine::from_angle(na::Point2::new(0., 0.), 3.14 / 2., 100.).rgb(0, 255, 0)
+        );
+        send_line(
+            DebugLine::from_angle(na::Point2::new(100., 0.), 3.14 / 2., 100.).rgb(0, 255, 0)
+        );
         self.state.update_debug_lines(&self.debug_channel);
     }
 

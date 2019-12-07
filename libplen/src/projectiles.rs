@@ -9,6 +9,8 @@ use crate::player::Player;
 
 use enum_dispatch::enum_dispatch;
 
+use crate::debug::{send_line, DebugLine};
+
 
 #[enum_dispatch]
 #[derive(Serialize, Deserialize, Clone)]
@@ -203,6 +205,14 @@ impl Projectile for Missile {
             self.angle
         };
 
+        send_line(
+            DebugLine::from_angle(self.position, self.angle, 50.).rgb(255, 255, 0)
+        );
+
+        send_line(
+            DebugLine::from_angle(self.position, target_angle, 50.).rgb(0, 255, 0)
+        );
+
         self.angular_velocity +=
             constants::MISSILE_KEO_P
             * (target_angle - self.angle)
@@ -214,6 +224,9 @@ impl Projectile for Missile {
                 self.angle.sin(),
             );
         self.position += new_direction * constants::MISSILE_SPEED * delta_time;
+
+        self.position = math::wrap_around(self.position);
+
     }
     fn is_armed(&self) -> bool {true}
     fn is_done(&self) -> bool {

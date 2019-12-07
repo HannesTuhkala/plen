@@ -25,6 +25,7 @@ pub struct Assets<'ttf, 'r> {
     pub yeehaw_1: Texture<'r>,
     pub yeehaw_2: Texture<'r>,
     pub smoke: Texture<'r>,
+    pub missile: Texture<'r>,
     pub laser_charge: Texture<'r>,
     pub laser_firing: Texture<'r>,
     pub laser_decay: [Texture<'r>; 3],
@@ -81,6 +82,7 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
             yeehaw_1: load_tex("resources/yeehaw.png"),
             yeehaw_2: load_tex("resources/yeehawman.png"),
             smoke: load_tex("resources/smoke.png"),
+            missile: load_tex("resources/missile.png"),
             laser_charge: load_tex("resources/lasercharge.png"),
             laser_firing: load_tex("resources/laser.png"),
             laser_decay: [
