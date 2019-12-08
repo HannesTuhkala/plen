@@ -241,7 +241,10 @@ impl Server {
                     }
 
                     if player_activating_powerup {
-                        player.trigger_powerup_if_available();
+                        let bomb_option = player.trigger_powerup_if_available();
+                        if let Some(bomb) = bomb_option {
+                            self.state.bombs.push(bomb);
+                        }
                     }
 
                     if player.health <= 0 {

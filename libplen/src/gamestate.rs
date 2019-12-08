@@ -13,6 +13,7 @@ use crate::hurricane::Hurricane;
 use crate::math::wrap_around;
 use crate::projectiles::{ProjectileKind, Projectile};
 use crate::debug::DebugLine;
+use crate::bomb::{Bomb, BombStatus};
 use rand::Rng;
 
 use strum::IntoEnumIterator;
@@ -24,6 +25,7 @@ pub struct GameState {
     pub powerups: Vec<PowerUp>,
     pub lasers: Vec<LaserBeam>,
     pub killfeed: KillFeed,
+    pub bombs: Vec<Bomb>,
     pub hurricane: Option<Hurricane>,
     pub debug_lines: Vec<DebugLine>,
 }
@@ -36,6 +38,7 @@ impl GameState {
             powerups: Vec::new(),
             lasers: Vec::new(),
             killfeed: KillFeed::new(),
+            bombs: Vec::new(),
             hurricane: None,
             debug_lines: vec![],
         }
@@ -54,12 +57,39 @@ impl GameState {
     {
         self.maybe_spawn_hurricane(delta);
         self.update_hurricane(delta);
+        self.update_bombs(delta);
         let hit_powerup_positions = self.handle_powerups();
         let hit_players = self.handle_bullets(delta);
         let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
         (hit_players, hit_powerup_positions, fired_laser_positions)
+    }
+
+    fn update_bombs(&mut self, delta: f32) {
+        for bomb in &mut self.bombs {
+            bomb.status = match bomb.status {
+                BombStatus::Dropping(time_left) => {
+                    if time_left <= 0. {
+                        BombStatus::Detonating
+                    } else {
+                        BombStatus::Dropping(time_left - delta)
+                    }
+                }
+                BombStatus::Detonating => {
+                    BombStatus::Exploding(constants::BOMB_EXPLOSION_TIME)
+                }
+                BombStatus::Exploding(time_left) => {
+                    if time_left <= 0. {
+                        BombStatus::Dead
+                    } else {
+                        BombStatus::Exploding(time_left - delta)
+                    }
+                }
+                BombStatus::Dead => BombStatus::Dead
+            };
+        }
+        self.bombs.retain(|b| b.status != BombStatus::Dead);
     }
 
     fn maybe_spawn_hurricane(&mut self, delta: f32) {

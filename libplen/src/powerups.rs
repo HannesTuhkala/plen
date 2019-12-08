@@ -17,6 +17,7 @@ pub enum PowerUpKind {
     Gun,
     SlowTime,
     Invisible,
+    Bomb,
 }
 
 impl PowerUpKind {
@@ -29,6 +30,7 @@ impl PowerUpKind {
             PowerUpKind::Gun => None,
             PowerUpKind::SlowTime => Some(1.5),
             PowerUpKind::Invisible => Some(7.),
+            PowerUpKind::Bomb => None,
         }
     }
 
@@ -41,6 +43,7 @@ impl PowerUpKind {
             PowerUpKind::Gun => true,
             PowerUpKind::SlowTime => false,
             PowerUpKind::Invisible => false,
+            PowerUpKind::Bomb => false,
         }
     }
 
@@ -53,6 +56,7 @@ impl PowerUpKind {
             PowerUpKind::Gun => false,
             PowerUpKind::SlowTime => false,
             PowerUpKind::Invisible => false,
+            PowerUpKind::Bomb => false,
         }
     }
 
@@ -65,6 +69,7 @@ impl PowerUpKind {
             PowerUpKind::Gun => false,
             PowerUpKind::SlowTime => true,
             PowerUpKind::Invisible => true,
+            PowerUpKind::Bomb => true,
         }
     }
 
@@ -77,6 +82,7 @@ impl PowerUpKind {
             PowerUpKind::Gun => 70,
             PowerUpKind::SlowTime => 10,
             PowerUpKind::Invisible => 60,
+            PowerUpKind::Bomb => 10,
         }
     }
 }

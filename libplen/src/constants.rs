@@ -90,3 +90,6 @@ pub const HURRICANE_OPACITY: f32 = 0.8;
 pub const HURRICANE_EYE_SIZE: f32 = 100.;
 pub const HURRICANE_WIND_EFFECT_DECAY: f32 = 0.9;
 pub const HURRICANE_ROTATION_SPEED: f32 = 0.5;
+
+pub const BOMB_DROP_TIME: f32 = 3.;
+pub const BOMB_EXPLOSION_TIME: f32 = 3.;

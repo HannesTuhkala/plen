@@ -1,4 +1,5 @@
 pub mod player;
+pub mod bomb;
 pub mod projectiles;
 pub mod constants;
 pub mod math;

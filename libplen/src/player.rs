@@ -7,6 +7,7 @@ use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math;
 use crate::hurricane::Hurricane;
+use crate::bomb::Bomb;
 
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
@@ -335,11 +336,16 @@ impl Player {
         }
     }
 
-    pub fn trigger_powerup_if_available(&mut self) {
+    pub fn trigger_powerup_if_available(&mut self) -> Option<Bomb> {
         if let Some(powerup) = self.available_powerup {
-            self.apply_powerup(powerup);
             self.available_powerup = None;
+            if powerup == PowerUpKind::Bomb {
+                return Some(Bomb::new(self.position));
+            } else {
+                self.apply_powerup(powerup);
+            }
         }
+        None
     }
 
     pub fn add_powerup(&mut self, kind: PowerUpKind) {
