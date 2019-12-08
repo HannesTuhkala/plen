@@ -4,9 +4,9 @@ use std::collections::VecDeque;
 use std::iter::Iterator;
 
 use serde_derive::{Serialize, Deserialize};
-use nalgebra as na;
 
 use crate::player;
+use crate::math::Vec2;
 
 pub struct MessageReader {
     pub stream: TcpStream,
@@ -81,7 +81,7 @@ pub enum SoundEffect { Powerup, Explosion, Gun, LaserCharge, LaserFire }
 pub enum ServerMessage {
     AssignId(u64),
     GameState(crate::gamestate::GameState),
-    PlaySound(SoundEffect, na::Point2<f32>),
+    PlaySound(SoundEffect, Vec2),
     PlayerHit(u64),
     YouDied,
 }

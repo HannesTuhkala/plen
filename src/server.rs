@@ -3,9 +3,10 @@ use std::vec;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
-use nalgebra::Point2;
 use std::time::Instant;
+
 use rand::Rng;
+use unicode_truncate::UnicodeTruncateStr;
 
 use libplen::messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
 use libplen::player::Player;
@@ -14,9 +15,7 @@ use libplen::gamestate;
 use libplen::constants;
 use libplen::debug;
 use libplen::projectiles::Projectile;
-
-use unicode_truncate::UnicodeTruncateStr;
-
+use libplen::math::{Vec2, vec2};
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
     let mut start = 0;
@@ -149,8 +148,8 @@ impl Server {
     fn update_clients(
         &mut self, delta_time: f32,
         hit_players: &[u64],
-        hit_powerup_positions: &[(u64, Point2<f32>)],
-        fired_laser_positions: &[Point2<f32>],
+        hit_powerup_positions: &[(u64, Vec2)],
+        fired_laser_positions: &[Vec2],
     ) {
         // Send data to clients
         let mut clients_to_delete = vec!();
@@ -202,10 +201,10 @@ impl Server {
 
                         let player = Player::new(
                             *id,
-                            Point2::new(
+                            vec2(
                                 random.gen_range(0., constants::WORLD_SIZE),
                                 random.gen_range(0., constants::WORLD_SIZE)
-                                ),
+                            ),
                             plane,
                             color,
                             name

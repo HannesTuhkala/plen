@@ -1,4 +1,3 @@
-use nalgebra as na;
 use rand::prelude::*;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
@@ -7,6 +6,7 @@ use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::Projectile;
+use libplen::math::{Vec2, vec2};
 use crate::assets::Assets;
 use crate::rendering;
 use crate::hurricane;
@@ -15,7 +15,7 @@ use crate::hurricane;
 pub struct SmokeParticle {
     alive: bool,
     alpha: f32,
-    position: na::Point2<f32>,
+    position: Vec2,
 }
 
 impl SmokeParticle {
@@ -23,7 +23,7 @@ impl SmokeParticle {
         Self {
             alive: false,
             alpha: 0.,
-            position: na::Point2::new(0., 0.),
+            position: vec2(0., 0.),
         }
     }
 }
@@ -32,8 +32,8 @@ impl SmokeParticle {
 pub struct ExplosionParticle {
     alive: bool,
     alpha: f32,
-    position: na::Point2<f32>,
-    velocity: na::Vector2<f32>,
+    position: Vec2,
+    velocity: Vec2,
 }
 
 impl ExplosionParticle {
@@ -41,8 +41,8 @@ impl ExplosionParticle {
         Self {
             alive: false,
             alpha: 0.,
-            position: na::Point2::new(0., 0.),
-            velocity: na::Vector2::new(0., 0.),
+            position: vec2(0., 0.),
+            velocity: vec2(0., 0.),
         }
     }
 }
@@ -62,14 +62,14 @@ impl Map {
         }
     }
 
-    pub fn add_explosion(&mut self, pos: na::Point2<f32>) {
+    pub fn add_explosion(&mut self, pos: Vec2) {
         let mut rng = rand::thread_rng();
         self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
 
         let mut spawned_particles = 0;
         for explosion_particle in &mut self.explosion_particles {
             if !explosion_particle.alive {
-                let random_offset = na::Vector2::new(
+                let random_offset = vec2(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
                 );
@@ -80,10 +80,7 @@ impl Map {
                 explosion_particle.alive = true;
                 explosion_particle.alpha = 1.0;
                 explosion_particle.position = pos + random_offset;
-                explosion_particle.velocity = na::Vector2::new(
-                    50. * angle.cos(),
-                    50. * angle.sin()
-                );
+                explosion_particle.velocity = Vec2::from_direction(angle, 50.);
 
                 spawned_particles += 1;
                 if spawned_particles >= 10 {
@@ -103,7 +100,7 @@ impl Map {
                     // don't draw player if invisible
                     continue;
                 }
-                let random_offset = na::Vector2::new(
+                let random_offset = vec2(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
                 );
@@ -142,7 +139,7 @@ impl Map {
         &self,
         my_id: u64,
         canvas: &mut Canvas<Window>,
-        camera_position: na::Point2<f32>,
+        camera_position: Vec2,
         game_state: &GameState,
         assets: &mut Assets,
         powerup_rotation: f32,
@@ -150,15 +147,15 @@ impl Map {
         hurricane: &Option<hurricane::Hurricane>,
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
-        let screen_center = na::Vector2::new(
+        let screen_center = vec2(
             screen_w as f32 * 0.5,
             screen_h as f32 * 0.5,
         );
 
         // the offset which causes the camera to shake upon getting hit
-        let mut hit_offset = na::Vector2::new(0., 0.);
+        let mut hit_offset = vec2(0., 0.);
         if hit_effect_timer > 0. {
-            hit_offset = na::Vector2::new(
+            hit_offset = vec2(
                 (hit_effect_timer*constants::HIT_SHAKE_SPEED*0.9).sin()
                     * constants::HIT_SHAKE_MAGNITUDE * hit_effect_timer,
                 (hit_effect_timer*constants::HIT_SHAKE_SPEED*1.1).sin()
@@ -169,12 +166,12 @@ impl Map {
 
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
-                let offset = na::Vector2::new(
+                let offset = vec2(
                     tile_x * constants::WORLD_SIZE,
                     tile_y * constants::WORLD_SIZE,
                 );
 
-                let background_position = na::Point2::new(
+                let background_position = vec2(
                     -camera_position.x,
                     -camera_position.y
                 ) + offset + rendering::calculate_resolution_offset(&canvas);
@@ -184,7 +181,7 @@ impl Map {
 
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
-                let offset = na::Vector2::new(
+                let offset = vec2(
                     tile_x * constants::WORLD_SIZE,
                     tile_y * constants::WORLD_SIZE,
                 );
@@ -204,12 +201,12 @@ impl Map {
                         // don't draw player if invisible
                         continue;
                     }
-                    let tile_offset = na::Vector2::new(
+                    let tile_offset = vec2(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
                     );
 
-                    let position = na::Point2::new(
+                    let position = vec2(
                         player.position.x - camera_position.x,
                         player.position.y - camera_position.y,
                     ) + tile_offset + screen_center;
@@ -256,19 +253,19 @@ impl Map {
 
     fn draw_hurricanes_wrapped_around(
         hurricane: &Option<hurricane::Hurricane>,
-        camera_position: na::Point2<f32>,
-        screen_center: na::Vector2<f32>,
+        camera_position: Vec2,
+        screen_center: Vec2,
         assets: &Assets,
         canvas: &mut Canvas<Window>,
     ) {
         hurricane.as_ref().map(|h| {
             for tile_x in &[-1., 0., 1.] {
                 for tile_y in &[-1., 0., 1.] {
-                    let offset = na::Vector2::new(
+                    let offset = vec2(
                         tile_x * constants::WORLD_SIZE,
                         tile_y * constants::WORLD_SIZE,
                     );
-                    let position = na::Point2::new(
+                    let position = vec2(
                         h.position.x - camera_position.x,
                         h.position.y - camera_position.y,
                     ) + offset + screen_center;
@@ -297,19 +294,19 @@ impl Map {
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
         game_state: &GameState,
-        camera_position: na::Point2<f32>,
-        offset: na::Vector2<f32>,
+        camera_position: Vec2,
+        offset: Vec2,
         powerup_rotation: f32,
         my_id: u64
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
-        let screen_center = na::Vector2::new(
+        let screen_center = vec2(
             screen_w as f32 * 0.5,
             screen_h as f32 * 0.5,
         );
 
         for smoke_particle in &self.smoke_particles {
-            let position = na::Point2::new(
+            let position = vec2(
                 smoke_particle.position.x - camera_position.x,
                 smoke_particle.position.y - camera_position.y,
             ) + offset + screen_center;
@@ -320,14 +317,14 @@ impl Map {
                     &assets.smoke,
                     position,
                     0.,
-                    na::Vector2::new(0.2, 0.2)
+                    vec2(0.2, 0.2)
                 )?;
                 assets.smoke.set_alpha_mod(255);
             }
         }
 
         for explosion_particle in &self.explosion_particles {
-            let position = na::Point2::new(
+            let position = vec2(
                 explosion_particle.position.x - camera_position.x,
                 explosion_particle.position.y - camera_position.y,
             ) + offset + screen_center;
@@ -344,7 +341,7 @@ impl Map {
                 continue;
             }
             let opacity = if player.is_invisible() {128} else {255};
-            let position = na::Point2::new(
+            let position = vec2(
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
             ) + offset + screen_center;
@@ -356,7 +353,7 @@ impl Map {
                 texture,
                 position,
                 player.rotation,
-                na::Vector2::new(1.0 - player.angular_velocity.abs() / 8., 1.0)
+                vec2(1.0 - player.angular_velocity.abs() / 8., 1.0)
             )?;
 
             let nametag = assets.font.render(&player.name)
@@ -368,12 +365,12 @@ impl Map {
             rendering::draw_texture_centered(
                 canvas,
                 &nametag_texture,
-                na::Point2::new(position.x, position.y + 30.),
+                vec2(position.x, position.y + 30.),
             )?;
 
             if let Some(p) = player.laser_charge_progress() {
                 let h_offset = assets.laser_charge.query().height as f32 * 0.5;
-                let laser_pos = position + na::Vector2::new(
+                let laser_pos = position + vec2(
                     player.rotation.sin() * h_offset,
                     -player.rotation.cos() * h_offset
                 );
@@ -384,12 +381,12 @@ impl Map {
         }
 
         for laser in &game_state.lasers {
-            let position = na::Point2::new(
+            let position = vec2(
                 laser.position.x - camera_position.x,
                 laser.position.y - camera_position.y,
             ) + offset + screen_center;
             let h_offset = assets.laser_charge.query().height as f32 * 0.5;
-            let laser_pos = position + na::Vector2::new(
+            let laser_pos = position + vec2(
                 laser.angle.sin() * h_offset,
                 -laser.angle.cos() * h_offset
             );
@@ -409,7 +406,7 @@ impl Map {
         }
 
         for projectile in &game_state.projectiles {
-            let position = na::Point2::new(
+            let position = vec2(
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
@@ -417,11 +414,11 @@ impl Map {
         }
 
         for powerup in game_state.powerups.iter() {
-            let position = na::Point2::new(
+            let position = vec2(
                 powerup.position.x - camera_position.x,
                 powerup.position.y - camera_position.y,
             ) + offset + screen_center;
-            let mini_offset = na::Vector2::new(
+            let mini_offset = vec2(
                 0.,
                 (powerup_rotation*2.).sin() * constants::POWERUP_BOUNCE_HEIGHT
             );
@@ -438,7 +435,7 @@ impl Map {
 
     fn draw_hurricane(
         hurricane: &hurricane::Hurricane,
-        position: na::Point2<f32>,
+        position: Vec2,
         canvas: &mut Canvas<Window>,
         assets: &Assets
     ) -> Result<(), String> {
@@ -448,7 +445,7 @@ impl Map {
             &assets.hurricane,
             position,
             hurricane.rotation,
-            na::Vector2::new(scale, scale)
+            vec2(scale, scale)
         )?;
         Ok(())
     }
@@ -468,7 +465,7 @@ impl Map {
                 rendering::draw_texture_centered(
                     canvas,
                     assets.powerups.get(&powerup.kind).expect("Missing powerup graphics"),
-                    na::Point2::new(x_pos, y_pos)
+                    vec2(x_pos, y_pos)
                 )?;
                 x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
             }
@@ -483,9 +480,9 @@ impl Map {
                 rendering::draw_texture_rotated_and_scaled(
                     canvas,
                     &sprite,
-                    na::Point2::new(x_pos, y_pos - constants::POWERUP_RADIUS as f32 / 1.5),
+                    vec2(x_pos, y_pos - constants::POWERUP_RADIUS as f32 / 1.5),
                     powerup_rotation,
-                    na::Vector2::new(scale, scale)
+                    vec2(scale, scale)
                 )?;
 
                 let instruction = assets.font.render("Press E to activate")
@@ -498,7 +495,7 @@ impl Map {
                 rendering::draw_texture_centered(
                     canvas,
                     &instruction_texture,
-                    na::Point2::new(x_pos, y_pos + constants::POWERUP_RADIUS as f32),
+                    vec2(x_pos, y_pos + constants::POWERUP_RADIUS as f32),
                 )?;
             }
         }
@@ -522,7 +519,7 @@ impl Map {
             rendering::draw_texture(
                 canvas,
                 &kill_feed_message_texture,
-                na::Point2::new(
+                vec2(
                     canvas.logical_size().0 as f32 - width,
                     30. * i as f32
                 ),
@@ -542,21 +539,21 @@ impl Map {
         rendering::draw_texture(
             canvas,
             &assets.minimap_background,
-            na::Point2::new(
+            vec2(
                 screen_w as f32 - constants::MINI_MAP_SIZE,
                 screen_h as f32 - constants::MINI_MAP_SIZE,
             )
         )?;
 
         let my_pos = my_player.position;
-        let mini_map_center = na::Vector2::new(
+        let mini_map_center = vec2(
             screen_w as f32 - constants::MINI_MAP_SIZE * 0.5,
             screen_h as f32 - constants::MINI_MAP_SIZE * 0.5
         );
 
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
-                let offset = na::Vector2::new(
+                let offset = vec2(
                     tile_x * constants::MINI_MAP_SIZE,
                     tile_y * constants::MINI_MAP_SIZE,
                 );
@@ -567,7 +564,7 @@ impl Map {
                         // don't draw player if invisible
                         continue;
                     }
-                    let position = na::Point2::new(
+                    let position = vec2(
                         (player.position.x - my_pos.x)*scale,
                         (player.position.y - my_pos.y)*scale,
                     );
@@ -581,12 +578,12 @@ impl Map {
                             &assets.miniplane,
                             position + offset + mini_map_center,
                             player.rotation,
-                            na::Vector2::new(0.5, 0.5)
+                            vec2(0.5, 0.5)
                         )?;
                     }
                 }
                 for powerup in &game_state.powerups {
-                    let position = na::Point2::new(
+                    let position = vec2(
                         (powerup.position.x - my_pos.x)*scale,
                         (powerup.position.y - my_pos.y)*scale,
                     );
@@ -610,14 +607,14 @@ impl Map {
     fn draw_debug_lines(
         canvas: &mut Canvas<Window>,
         lines: &[libplen::debug::DebugLine],
-        camera_position: na::Point2<f32>
+        camera_position: Vec2
     ) -> Result<(), String> {
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
                 for line in lines {
                     println!("Drawing debug line");
-                    let offset =  na::Vector2::new(*tile_x, *tile_y) * constants::WORLD_SIZE
-                        - camera_position.coords;
+                    let offset = vec2(*tile_x, *tile_y) * constants::WORLD_SIZE
+                        - camera_position;
                     let start = line.start + offset;
                     let end = line.end + offset;
                     canvas.set_draw_color(line.color);

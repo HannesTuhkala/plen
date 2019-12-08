@@ -1,30 +1,24 @@
-use serde_derive::{Serialize, Deserialize};
-
 use std::sync::mpsc;
-
-
-use nalgebra as na;
+use serde_derive::{Serialize, Deserialize};
+use crate::math::Vec2;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DebugLine {
-    pub start: na::Point2<f32>,
-    pub end: na::Point2<f32>,
+    pub start: Vec2,
+    pub end: Vec2,
     pub color: (u8, u8, u8, u8),
 }
 
 
 impl DebugLine {
-    pub fn new(start: na::Point2<f32>, end: na::Point2<f32>) -> Self {
+    pub fn new(start: Vec2, end: Vec2) -> Self {
         Self {start, end, color: (255, 255, 255, 255)}
     }
 
-    pub fn from_angle(start: na::Point2<f32>, angle: f32, length: f32) -> Self {
+    pub fn from_angle(start: Vec2, angle: f32, length: f32) -> Self {
         Self {
             start,
-            end: start + na::Vector2::new(
-                angle.cos() * length,
-                angle.sin() * length,
-            ),
+            end: start + Vec2::from_direction(angle, length),
             color: (255, 255, 255, 255)
         }
     }

@@ -1,11 +1,11 @@
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+
 use crate::assets::Assets;
 use crate::rendering;
 use libplen::player;
 use libplen::constants;
-
-use nalgebra as na;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use libplen::math::vec2;
 
 const PLANES: [player::PlaneType; 4] = [
     player::PlaneType::SukaBlyat,
@@ -54,7 +54,7 @@ impl MenuState {
 
         let res_offset = rendering::calculate_resolution_offset(canvas);
         rendering::draw_texture(
-            canvas, &text_texture, na::Point2::new(nx + 10., ny + 10.) + res_offset
+            canvas, &text_texture, vec2(nx + 10., ny + 10.) + res_offset
         )
     }
 
@@ -79,19 +79,19 @@ impl MenuState {
             .blended((255, 255, 255))
             .expect("Could not render text");
         let text_texture = texture_creator.create_texture_from_surface(text).unwrap();
-        rendering::draw_texture(canvas, &text_texture, na::Point2::new(px + 10., py + 10.))?;
+        rendering::draw_texture(canvas, &text_texture, vec2(px + 10., py + 10.))?;
 
         let instruction = assets.font.render("click to change plane blyat:")
             .blended((255, 255, 255))
             .expect("Could not render text");
         let instruction_texture = texture_creator.create_texture_from_surface(instruction).unwrap();
 
-        rendering::draw_texture(canvas, &instruction_texture, na::Point2::new(px, py - 20.))?;
+        rendering::draw_texture(canvas, &instruction_texture, vec2(px, py - 20.))?;
 
         rendering::draw_texture(
             canvas,
             &assets.planes[&self.plane],
-            na::Point2::new(
+            vec2(
                 px
                     + constants::PLANE_SELECTION_SIZE/3.
                     - (constants::PLANE_SIZE as f32)*2.,
@@ -117,7 +117,7 @@ impl MenuState {
         rendering::draw_texture(
             canvas,
             &specs_texture,
-            na::Point2::new(
+            vec2(
                 px + constants::PLANE_SELECTION_SIZE/2.4,
                 py + constants::PLANE_SELECTION_SIZE/3.
             )
@@ -147,7 +147,7 @@ impl MenuState {
         rendering::draw_texture(
             canvas,
             &instruction_texture,
-            na::Point2::new(cx, cy - 20.)
+            vec2(cx, cy - 20.)
         )
     }
 
@@ -164,7 +164,7 @@ impl MenuState {
         rendering::draw_texture_centered(
             canvas,
             &assets.menu_background,
-            na::Point2::new(
+            vec2(
                 width as f32 * 0.5,
                 height as f32 * 0.5
             )
