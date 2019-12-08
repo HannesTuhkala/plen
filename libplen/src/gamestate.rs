@@ -58,12 +58,33 @@ impl GameState {
         self.maybe_spawn_hurricane(delta);
         self.update_hurricane(delta);
         self.update_bombs(delta);
+        let mut hit_players = vec!();
         let hit_powerup_positions = self.handle_powerups();
-        let hit_players = self.handle_bullets(delta);
+        let mut bombed_players = self.handle_bullets(delta);
+        let mut shot_players = self.handle_bullets(delta);
+        hit_players.append(&mut bombed_players);
+        hit_players.append(&mut shot_players);
         let fired_laser_positions = self.handle_lasers(delta);
         self.handle_player_collisions(delta);
         self.killfeed.manage_killfeed(delta);
         (hit_players, hit_powerup_positions, fired_laser_positions)
+    }
+
+    fn damage_players_from_detonating_bombs(&mut self) -> Vec<u64> {
+        let mut hit_players = vec!();
+        for bomb in &self.bombs {
+            if bomb.status == BombStatus::Detonating {
+                for player in &mut self.players {
+                    let damage = bomb.get_damage(player.position);
+                    // TODO add to killfeed if this killed someone
+                    if damage > 0. {
+                        hit_players.push(player.id);
+                        player.damage_player(damage as i16);
+                    }
+                }
+            }
+        }
+        hit_players
     }
 
     fn update_bombs(&mut self, delta: f32) {

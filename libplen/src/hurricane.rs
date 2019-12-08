@@ -68,7 +68,8 @@ impl Hurricane {
     }
 
     pub fn get_wind_force_at_position(&self, position: na::Point2<f32>) -> na::Vector2<f32> {
-        let center_to_point = self.find_closest_vector_to_point(position);
+        let center_to_point = math::find_closest_vector_to_point(
+            self.position, position);
         let dist = (center_to_point.x.powi(2) + center_to_point.y.powi(2)).sqrt();
 
         if dist < constants::HURRICANE_EYE_SIZE || dist >= self.size()/2. {
@@ -80,27 +81,6 @@ impl Hurricane {
             unit_vector * constants::HURRICANE_MAX_WINDSPEED *
                 (self.size()/2. - dist)/(constants::HURRICANE_MAX_SIZE/2.)
         }
-    }
-
-    fn find_closest_vector_to_point(&self, position: na::Point2<f32>) -> na::Vector2<f32> {
-        let mut res = position - self.position;
-        let mut shortest = res.x.powi(2) + res.y.powi(2);
-        for tile_x in &[-1., 0., 1.] {
-            for tile_y in &[-1., 0., 1.] {
-                let offset = na::Vector2::new(
-                    constants::WORLD_SIZE*tile_x,
-                    constants::WORLD_SIZE*tile_y,
-                );
-                let pos = position + offset;
-                let center_to_point = pos - self.position;
-                let dist = center_to_point.x.powi(2) + center_to_point.y.powi(2);
-                if dist < shortest {
-                    res = center_to_point;
-                    shortest = dist;
-                }
-            }
-        }
-        res
     }
 
     pub fn is_dead(&self) -> bool {
