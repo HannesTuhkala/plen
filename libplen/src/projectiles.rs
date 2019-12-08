@@ -178,7 +178,10 @@ impl Projectile for Missile {
             // Calculate the angle to the missile
             .map(|p| {
                 let direction_to = (p.position - self.position).normalize();
-                let angle_to = movement_direction.dot(direction_to).acos();
+                let angle_to = math::angle_diff(
+                    movement_direction.angle(),
+                    direction_to.angle()
+                );
                 (direction_to, angle_to)
             })
             .filter(|(_, angle_to)| {

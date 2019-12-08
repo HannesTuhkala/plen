@@ -113,3 +113,9 @@ pub fn wrap_around(pos: Vec2) -> Vec2 {
         modulo(pos.y, constants::WORLD_SIZE),
     )
 }
+
+pub fn angle_diff(source_angle: f32, target_angle: f32) -> f32 {
+    // From https://stackoverflow.com/a/7869457
+    use std::f32::consts::PI;
+    modulo(target_angle - source_angle + PI / 2., PI) + PI / 2.
+}
