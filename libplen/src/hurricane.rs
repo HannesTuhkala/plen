@@ -1,8 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
-use nalgebra as na;
 
 use crate::constants;
-use crate::math;
+use crate::math::{self, Vec2, vec2};
 
 #[derive(Serialize, Deserialize, Clone)]
 enum HurricaneStatus { 
@@ -14,8 +13,8 @@ enum HurricaneStatus {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Hurricane {
-    pub position: na::Point2<f32>,
-    pub velocity: na::Vector2<f32>,
+    pub position: Vec2,
+    pub velocity: Vec2,
     pub rotation: f32,
     size: f32,
     status: HurricaneStatus,
@@ -23,7 +22,7 @@ pub struct Hurricane {
 
 impl Hurricane {
     
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>) -> Self {
+    pub fn new(position: Vec2, velocity: Vec2) -> Self {
         Hurricane {
             position,
             velocity,
@@ -67,14 +66,14 @@ impl Hurricane {
         self.size * constants::HURRICANE_MAX_SIZE
     }
 
-    pub fn get_wind_force_at_position(&self, position: na::Point2<f32>) -> na::Vector2<f32> {
+    pub fn get_wind_force_at_position(&self, position: Vec2) -> Vec2 {
         let center_to_point = self.find_closest_vector_to_point(position);
         let dist = (center_to_point.x.powi(2) + center_to_point.y.powi(2)).sqrt();
 
         if dist < constants::HURRICANE_EYE_SIZE || dist >= self.size()/2. {
-            na::Vector2::new(0., 0.)
+            vec2(0., 0.)
         } else {
-            let normal = na::Vector2::new(-center_to_point.y, center_to_point.x);
+            let normal = vec2(-center_to_point.y, center_to_point.x);
             let unit_vector = normal / dist;
 
             unit_vector * constants::HURRICANE_MAX_WINDSPEED *
@@ -82,12 +81,12 @@ impl Hurricane {
         }
     }
 
-    fn find_closest_vector_to_point(&self, position: na::Point2<f32>) -> na::Vector2<f32> {
+    fn find_closest_vector_to_point(&self, position: Vec2) -> Vec2 {
         let mut res = position - self.position;
         let mut shortest = res.x.powi(2) + res.y.powi(2);
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
-                let offset = na::Vector2::new(
+                let offset = vec2(
                     constants::WORLD_SIZE*tile_x,
                     constants::WORLD_SIZE*tile_y,
                 );

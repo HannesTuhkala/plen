@@ -7,7 +7,6 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::time::Instant;
 
-use nalgebra as na;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::event::Event;
@@ -18,6 +17,7 @@ use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect
 use libplen::gamestate;
 use libplen::constants;
 use libplen::hurricane;
+use libplen::math::{Vec2, vec2};
 use assets::Assets;
 use menu::MenuState;
 
@@ -35,7 +35,7 @@ enum StateResult { Continue, GotoNext }
 
 struct MainState {
     my_id: u64,
-    camera_position: na::Point2<f32>,
+    camera_position: Vec2,
     game_state: gamestate::GameState,
     map: map::Map,
     last_time: Instant,
@@ -48,7 +48,7 @@ impl MainState {
     fn new(my_id: u64) -> MainState {
         MainState {
             my_id,
-            camera_position: na::Point2::new(0., 0.),
+            camera_position: vec2(0., 0.),
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
             last_time: Instant::now(),
@@ -176,7 +176,7 @@ impl MainState {
             rendering::draw_texture_centered(
                 canvas,
                 &assets.end_background,
-                na::Point2::new(width as f32 * 0.5, height as f32 * 0.3)
+                vec2(width as f32 * 0.5, height as f32 * 0.3)
             ).unwrap();
         }
 
