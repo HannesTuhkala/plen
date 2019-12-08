@@ -297,6 +297,11 @@ pub fn main() -> Result<(), String> {
             }
             rendering::setup_coordinates(&mut canvas)?;
 
+            // Ignore all messages so we don't freeze the server
+            reader.fetch_bytes().unwrap();
+            for _ in reader.iter() {
+            }
+
             menu_state.update();
 
             menu_state.draw(&mut canvas, &assets).unwrap();
