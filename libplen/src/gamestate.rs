@@ -1,8 +1,9 @@
 use std::sync::mpsc::Receiver;
 
 use serde_derive::{Serialize, Deserialize};
+use strum::IntoEnumIterator;
 use rand::prelude::*;
-use nalgebra as na;
+use rand::Rng;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
@@ -10,13 +11,10 @@ use crate::projectiles::LaserBeam;
 use crate::powerups::{PowerUpKind, PowerUp};
 use crate::killfeed::KillFeed;
 use crate::hurricane::Hurricane;
-use crate::math::wrap_around;
+use crate::math::{Vec2, vec2, wrap_around};
 use crate::projectiles::{ProjectileKind, Projectile};
 use crate::debug::DebugLine;
 use crate::bomb::{Bomb, BombStatus};
-use rand::Rng;
-
-use strum::IntoEnumIterator;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
@@ -53,7 +51,7 @@ impl GameState {
      *  )
      */
     pub fn update(&mut self, delta: f32)
-        -> (Vec<u64>, Vec<(u64, na::Point2<f32>)>, Vec<na::Point2<f32>>)
+        -> (Vec<u64>, Vec<(u64, Vec2)>, Vec<Vec2>)
     {
         self.maybe_spawn_hurricane(delta);
         self.update_hurricane(delta);
@@ -124,8 +122,8 @@ impl GameState {
                     let xp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
                     let yp = rand::thread_rng().gen_range(0., 1.)*constants::WORLD_SIZE;
 
-                    let vel = na::Vector2::new(xv, yv);
-                    let pos = na::Point2::new(xp, yp);
+                    let vel = vec2(xv, yv);
+                    let pos = vec2(xp, yp);
 
                     self.hurricane = Some(Hurricane::new(pos, vel));
                 }
@@ -168,7 +166,7 @@ impl GameState {
      * Updates the powerups and handles collision detection of them.
      * Returns a vector with (player ids of players who picked up powerups, their positions)
      */
-    pub fn handle_powerups(&mut self) -> Vec<(u64, na::Point2<f32>)> {
+    pub fn handle_powerups(&mut self) -> Vec<(u64, Vec2)> {
         let mut new_powerups = self.powerups.clone();
         let mut hit_powerup_positions = vec!();
         for player in &mut self.players {
@@ -194,7 +192,7 @@ impl GameState {
             let x = random::<f32>() * constants::WORLD_SIZE as f32;
             let y = random::<f32>() * constants::WORLD_SIZE as f32;
             self.powerups.push(
-                PowerUp::new(Self::create_powerup(), na::Point2::new(x, y))
+                PowerUp::new(Self::create_powerup(), vec2(x, y))
             )
         }
         hit_powerup_positions
@@ -261,7 +259,7 @@ impl GameState {
     /**
      * Returns a vec with positions where lasers are fired.
      */
-    pub fn handle_lasers(&mut self, delta: f32) -> Vec<na::Point2<f32>> {
+    pub fn handle_lasers(&mut self, delta: f32) -> Vec<Vec2> {
         let mut new_lasers = vec!();
         let mut fired_laser_positions = vec!();
         for player in &self.players {
@@ -279,9 +277,9 @@ impl GameState {
             let killer = laser.owner_name.clone();
 
             // Check collision
-            let direction = na::Vector2::new(
-                (laser.angle + std::f32::consts::PI / 2.).cos(),
-                (laser.angle + std::f32::consts::PI / 2.).sin()
+            let direction = Vec2::from_direction(
+                laser.angle + std::f32::consts::PI / 2.,
+                1.
             );
 
             let hit_radius = PLANE_SIZE + constants::LASER_RANGE_EXTRA;

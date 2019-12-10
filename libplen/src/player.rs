@@ -1,14 +1,10 @@
-extern crate rand;
-
-use nalgebra as na;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
 use crate::projectiles::{self, LaserBeam, ProjectileKind};
-use crate::math;
+use crate::math::{self, Vec2, vec2};
 use crate::hurricane::Hurricane;
 use crate::bomb::Bomb;
-
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
@@ -120,10 +116,10 @@ pub struct Player {
     pub id: u64,
     pub rotation: f32,
     pub angular_velocity: f32,
-    pub wind_effect_velocity: na::Vector2<f32>,
+    pub wind_effect_velocity: Vec2,
     pub speed: f32,
     pub health: i16,
-    pub position: na::Point2<f32>,
+    pub position: Vec2,
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
     pub available_powerup: Option<PowerUpKind>,
@@ -139,14 +135,14 @@ pub struct Player {
 
 
 impl Player {
-    pub fn new(id: u64, position: na::Point2<f32>,
+    pub fn new(id: u64, position: Vec2,
                plane_type: PlaneType, color: Color,
                name: String) -> Player {
         Player {
             id: id,
             rotation: 0.,
             angular_velocity: 0.,
-            wind_effect_velocity: na::Vector2::new(0., 0.,),
+            wind_effect_velocity: vec2(0., 0.,),
             speed: 0.,
             health: plane_type.health(),
             powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
@@ -200,10 +196,10 @@ impl Player {
 
     fn update_wind_effect_velocity(
         &self, hurricane: &Option<Hurricane>, delta_time: f32
-    ) -> na::Vector2<f32> {
+    ) -> Vec2 {
         let wind_force = match hurricane {
             Some(hurricane) => hurricane.get_wind_force_at_position(self.position),
-            None => na::Vector2::new(0., 0.)
+            None => vec2(0., 0.)
         };
         (self.wind_effect_velocity + wind_force*delta_time/constants::PLANE_MASS)
             * constants::HURRICANE_WIND_EFFECT_DECAY
@@ -285,14 +281,9 @@ impl Player {
                 self.cooldown = constants::PLAYER_COOLDOWN;
                 
                 let new_bullet = projectiles::Bullet::new(
-                    self.position + na::Vector2::new(
-                        dir.cos() * constants::BULLET_START,
-                        dir.sin() * constants::BULLET_START,
-                    ),
-                    self.final_velocity() + na::Vector2::new(
-                        dir.cos() * constants::BULLET_VELOCITY,
-                        dir.sin() * constants::BULLET_VELOCITY,
-                    ),
+                    self.position + Vec2::from_direction(dir, constants::BULLET_START),
+                    self.final_velocity() +
+                        Vec2::from_direction(dir, constants::BULLET_VELOCITY),
                     self.planetype.firepower(),
                     self.id,
                     self.name.clone(),
@@ -372,7 +363,7 @@ impl Player {
                     .unwrap_or(true)});
     }
 
-    pub fn final_velocity(&mut self) -> na::Vector2<f32> {
+    pub fn final_velocity(&mut self) -> Vec2 {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
         let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
@@ -387,7 +378,7 @@ impl Player {
         let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
         let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
         
-        na::Vector2::new(dx, dy) * speed_boost
+        vec2(dx, dy) * speed_boost
     }
 
     pub fn max_health(&self) -> i16 {

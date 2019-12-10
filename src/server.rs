@@ -3,9 +3,10 @@ use std::vec;
 use std::io::prelude::*;
 use std::net::TcpStream;
 use std::net::TcpListener;
-use nalgebra::Point2;
 use std::time::Instant;
+
 use rand::Rng;
+use unicode_truncate::UnicodeTruncateStr;
 
 use libplen::messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
 use libplen::player::Player;
@@ -14,7 +15,7 @@ use libplen::gamestate;
 use libplen::constants;
 use libplen::debug;
 use libplen::projectiles::Projectile;
-
+use libplen::math::{Vec2, vec2};
 
 fn send_bytes(bytes: &[u8], stream: &mut TcpStream) -> io::Result<()> {
     let mut start = 0;
@@ -50,7 +51,7 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
 
 struct Server {
     listener: TcpListener,
-    connections: Vec<(u64, MessageReader<ClientMessage>)>,
+    connections: Vec<(u64, MessageReader)>,
     state: gamestate::GameState,
     next_id: u64,
     last_time: Instant,
@@ -130,7 +131,7 @@ impl Server {
                     }
                     self.connections.push((
                         self.next_id,
-                        MessageReader::<ClientMessage>::new(stream)
+                        MessageReader::new(stream)
                     ));
                     self.next_id += 1;
                 }
@@ -147,8 +148,8 @@ impl Server {
     fn update_clients(
         &mut self, delta_time: f32,
         hit_players: &[u64],
-        hit_powerup_positions: &[(u64, Point2<f32>)],
-        fired_laser_positions: &[Point2<f32>],
+        hit_powerup_positions: &[(u64, Vec2)],
+        fired_laser_positions: &[Vec2],
     ) {
         // Send data to clients
         let mut clients_to_delete = vec!();
@@ -182,29 +183,37 @@ impl Server {
             let mut player_shooting = false;
             let mut player_activating_powerup = false;
 
-            // TODO: Use a real loop
-            while let Some(message) = client.next() {
-                match message {
-                    ClientMessage::Input{ x_input, y_input, shooting, activating_powerup } => {
+            for message in client.iter() {
+                match bincode::deserialize(&message) {
+                    Ok(ClientMessage::Input{ x_input, y_input, shooting, activating_powerup }) => {
                         player_input_x = x_input;
                         player_input_y = y_input;
                         player_shooting = shooting;
                         player_activating_powerup = activating_powerup;
                     },
-                    ClientMessage::JoinGame{ name, plane, color } => {
+                    Ok(ClientMessage::JoinGame{ mut name, plane, color }) => {
                         let mut random = rand::thread_rng();
+                        if name.trim().len() != 0 {
+                            name = name.trim().unicode_truncate(20).0.to_string()
+                        } else {
+                            name = "Mr Whitespace".into();
+                        }
 
                         let player = Player::new(
                             *id,
-                            Point2::new(
+                            vec2(
                                 random.gen_range(0., constants::WORLD_SIZE),
                                 random.gen_range(0., constants::WORLD_SIZE)
-                                ),
+                            ),
                             plane,
                             color,
                             name
                         );
                         self.state.add_player(player);
+                    },
+                    Err(_) => {
+                        println!("Could not decode message from {}, deleting", id);
+                        clients_to_delete.push(*id);
                     }
                 }
             }
@@ -255,14 +264,15 @@ impl Server {
                         remove_player_on_disconnect!(result, *id);
                         sounds_to_play.push((SoundEffect::Explosion, player.position));
                     }
-                    let result = send_server_message(
-                        &ServerMessage::GameState(self.state.clone()),
-                        &mut client.stream
-                    );
-                    remove_player_on_disconnect!(result, *id);
                     break
                 }
             }
+
+            let result = send_server_message(
+                &ServerMessage::GameState(self.state.clone()),
+                &mut client.stream
+            );
+            remove_player_on_disconnect!(result, *id);
 
             if let Some(bullet) = bullet {
                 let pos = bullet.get_position();
