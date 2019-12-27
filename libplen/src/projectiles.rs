@@ -1,15 +1,13 @@
-use nalgebra as na;
+use rand::Rng;
+
+use enum_dispatch::enum_dispatch;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
-use crate::math;
-use crate::hurricane::Hurricane;
-use rand::Rng;
-use crate::player::Player;
-
-use enum_dispatch::enum_dispatch;
-
 use crate::debug::{send_line, DebugLine};
+use crate::math::{self, Vec2};
+use crate::hurricane::Hurricane;
+use crate::player::Player;
 
 
 #[enum_dispatch]
@@ -29,15 +27,15 @@ pub trait Projectile {
     fn get_id(&self) -> u64;
     fn get_shooter(&self) -> u64;
     fn get_shooter_name(&self) -> String;
-    fn get_position(&self) -> na::Point2<f32>;
+    fn get_position(&self) -> Vec2;
     fn get_damage(&self) -> i16;
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Bullet {
     pub id: u64,
-    pub position: na::Point2<f32>,
-    pub velocity: na::Vector2<f32>,
+    pub position: Vec2,
+    pub velocity: Vec2,
     pub traveled_distance: f32,
     pub damage: i16,
     pub lifetime: f32,
@@ -46,7 +44,7 @@ pub struct Bullet {
 }
 
 impl Bullet {
-    pub fn new(position: na::Point2<f32>, velocity: na::Vector2<f32>, damage: i16, owner: u64, owner_name: String)
+    pub fn new(position: Vec2, velocity: Vec2, damage: i16, owner: u64, owner_name: String)
         -> Bullet
     {
         let mut rng = rand::thread_rng();
@@ -85,14 +83,14 @@ impl Projectile for Bullet {
 
     fn get_shooter(&self) -> u64 {self.owner}
     fn get_shooter_name(&self) -> String {self.owner_name.clone()}
-    fn get_position(&self) -> na::Point2<f32> {self.position}
+    fn get_position(&self) -> Vec2 {self.position}
     fn get_damage(&self) -> i16 {self.damage}
     fn get_id(&self) -> u64 {self.id}
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct LaserBeam {
-    pub position: na::Point2<f32>,
+    pub position: Vec2,
     pub angle: f32,
     pub damage: i16,
     pub lifetime: f32,
@@ -102,7 +100,7 @@ pub struct LaserBeam {
 
 impl LaserBeam {
     pub fn new(
-        position: na::Point2<f32>,
+        position: Vec2,
         angle: f32,
         damage: i16,
         owner: u64,
@@ -140,7 +138,7 @@ pub struct Missile {
     pub id: u64,
     pub angular_velocity: f32,
     pub angle: f32,
-    pub position: na::Point2<f32>,
+    pub position: Vec2,
     pub lifetime: f32,
     pub damage: i16,
     pub owner: u64,
@@ -149,7 +147,7 @@ pub struct Missile {
 
 impl Missile {
     pub fn new(
-        position: na::Point2<f32>,
+        position: Vec2,
         angle: f32,
         damage: i16,
         owner: u64,
@@ -173,10 +171,7 @@ impl Projectile for Missile {
     fn update(
         &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
     ) {
-        let movement_direction = na::Vector2::new(
-                self.angle.cos(),
-                self.angle.sin(),
-            );
+        let movement_direction = Vec2::from_direction(self.angle, 1.);
 
         // Check if there are players in the line of sight of the missile
         let to_track = players.iter()
@@ -185,12 +180,10 @@ impl Projectile for Missile {
             // Calculate the angle to the missile
             .map(|p| {
                 let direction_to = (p.position - self.position).normalize();
-
-                let angle_to = na::Rotation2::rotation_between(
-                    &movement_direction,
-                    &direction_to
-                ).angle();
-
+                let angle_to = math::angle_diff(
+                    movement_direction.angle(),
+                    direction_to.angle()
+                );
                 (direction_to, angle_to)
             })
             // .filter(|(_, angle_to)| {
@@ -219,14 +212,9 @@ impl Projectile for Missile {
             * delta_time;
 
         self.angle += self.angular_velocity * delta_time;
-        let new_direction = na::Vector2::new(
-                self.angle.cos(),
-                self.angle.sin(),
-            );
+        let new_direction = Vec2::from_direction(self.angle, 1.);
         self.position += new_direction * constants::MISSILE_SPEED * delta_time;
-
         self.position = math::wrap_around(self.position);
-
     }
     fn is_armed(&self) -> bool {true}
     fn is_done(&self) -> bool {
@@ -234,7 +222,7 @@ impl Projectile for Missile {
     }
     fn get_shooter(&self) -> u64 {self.owner}
     fn get_shooter_name(&self) -> String {self.owner_name.clone()}
-    fn get_position(&self) -> na::Point2<f32> {self.position}
+    fn get_position(&self) -> Vec2 {self.position}
     fn get_damage(&self) -> i16 {self.damage}
     fn get_id(&self) -> u64 {self.id}
 }

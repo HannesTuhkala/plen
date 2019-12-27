@@ -7,7 +7,6 @@ use std::io::prelude::*;
 use std::net::TcpStream;
 use std::time::Instant;
 
-use nalgebra as na;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
 use sdl2::event::Event;
@@ -18,6 +17,7 @@ use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect
 use libplen::gamestate;
 use libplen::constants;
 use libplen::hurricane;
+use libplen::math::{Vec2, vec2};
 use assets::Assets;
 use menu::MenuState;
 
@@ -35,31 +35,33 @@ enum StateResult { Continue, GotoNext }
 
 struct MainState {
     my_id: u64,
-    camera_position: na::Point2<f32>,
+    camera_position: Vec2,
     game_state: gamestate::GameState,
     map: map::Map,
     last_time: Instant,
     powerup_rotation: f32,
     hit_effect_timer: f32,
+    dead: bool,
 }
 
 impl MainState {
     fn new(my_id: u64) -> MainState {
         MainState {
             my_id,
-            camera_position: na::Point2::new(0., 0.),
+            camera_position: vec2(0., 0.),
             game_state: gamestate::GameState::new(),
             map: map::Map::new(),
             last_time: Instant::now(),
             powerup_rotation: 0.,
             hit_effect_timer: 0.,
+            dead: false,
         }
     }
 
     fn update(
         &mut self,
         assets: &Assets,
-        server_reader: &mut MessageReader<ServerMessage>,
+        server_reader: &mut MessageReader,
         keyboard_state: &sdl2::keyboard::KeyboardState
     ) -> StateResult {
         self.update_hit_sequence();
@@ -73,9 +75,9 @@ impl MainState {
         self.last_time = Instant::now();
 
         server_reader.fetch_bytes().unwrap();
-        // TODO: Use a real loop
-        while let Some(message) = server_reader.next() {
-            match message {
+
+        for message in server_reader.iter() {
+            match bincode::deserialize(&message).unwrap() {
                 ServerMessage::AssignId(_) => {panic!("Got new ID after intialisation")}
                 ServerMessage::GameState(state) => {
                     self.game_state = state
@@ -109,7 +111,7 @@ impl MainState {
                     }
                 }
                 ServerMessage::YouDied => {
-                    return StateResult::GotoNext
+                    self.dead = true;
                 }
                 ServerMessage::PlayerHit(id) => {
                     // TODO handle if it's someone elses id, for example
@@ -135,6 +137,10 @@ impl MainState {
         } 
         if keyboard_state.is_scancode_pressed(Scancode::D) {
             x_input += 1.0;
+        }
+
+        if self.dead && keyboard_state.is_scancode_pressed(Scancode::Return) {
+            return StateResult::GotoNext;
         }
 
         self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
@@ -165,6 +171,15 @@ impl MainState {
             &self.game_state.hurricane
         )?;
 
+        if self.dead {
+            let (width, height) = canvas.logical_size();
+            rendering::draw_texture_centered(
+                canvas,
+                &assets.end_background,
+                vec2(width as f32 * 0.5, height as f32 * 0.3)
+            ).unwrap();
+        }
+
         Ok(())
     }
     
@@ -187,27 +202,6 @@ impl MainState {
     }
 }
 
-struct EndState {
-}
-
-impl EndState {
-    fn draw(&self, canvas: &mut Canvas<Window>, assets: &Assets) -> Result<(), String> {
-        canvas.set_draw_color(constants::MENU_BACKGROUND_COLOR);
-        canvas.clear();
-
-        let (width, height) = canvas.logical_size();
-        rendering::draw_texture_centered(
-            canvas,
-            &assets.end_background,
-            na::Point2::new(width as f32 * 0.5, height as f32 * 0.5)
-        )?;
-
-        canvas.present();
-
-        Ok(())
-    }
-}
-
 pub fn main() -> Result<(), String> {
     let host = std::env::var("SERVER")
         .unwrap_or(String::from("localhost:4444"));
@@ -219,8 +213,8 @@ pub fn main() -> Result<(), String> {
 
     let msg = loop {
         reader.fetch_bytes().unwrap();
-        if let Some(msg) = reader.next() {
-            break msg;
+        if let Some(msg) = reader.iter().next() {
+            break bincode::deserialize(&msg).unwrap();
         }
     };
 
@@ -266,12 +260,11 @@ pub fn main() -> Result<(), String> {
     let mut name = whoami::username();
 
     let mut event_pump = sdl.event_pump().expect("Could not get event pump");
-    
-    video_subsystem.text_input().start();
 
     'mainloop: loop {
         let menu_state = &mut MenuState::new();
 
+        video_subsystem.text_input().start();
         menu_state.color_selection = color_selection;
         menu_state.plane_selection = plane_selection;
         menu_state.name = name;
@@ -295,12 +288,19 @@ pub fn main() -> Result<(), String> {
                         menu_state.mouse_button_down_event(x as f32, y as f32, &canvas);
                     }
                     Event::TextInput {text, ..} => {
-                        menu_state.name += &text;
+                        if menu_state.name.chars().count() < 20 {
+                            menu_state.name += &text;
+                        }
                     }
                     _ => {}
                 }
             }
             rendering::setup_coordinates(&mut canvas)?;
+
+            // Ignore all messages so we don't freeze the server
+            reader.fetch_bytes().unwrap();
+            for _ in reader.iter() {
+            }
 
             menu_state.update();
 
@@ -343,26 +343,6 @@ pub fn main() -> Result<(), String> {
             if state_result == StateResult::GotoNext {
                 break 'gameloop;
             }
-        }
-
-        let end_state = EndState {};
-        'endloop: loop {
-            for event in event_pump.poll_iter() {
-                match event {
-                    Event::Quit{..} => break 'mainloop,
-                    Event::KeyDown {keycode: Some(kc), ..} => {
-                        if kc == Keycode::Return || kc == Keycode::Space {
-                            break 'endloop;
-                        }
-                    },
-                    _ => {}
-                }
-            }
-            rendering::setup_coordinates(&mut canvas)?;
-
-            end_state.draw(&mut canvas, &assets).unwrap();
-
-            canvas.present();
         }
     }
 

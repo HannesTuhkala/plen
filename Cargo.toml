@@ -9,12 +9,12 @@ build = "build.rs"
 
 [dependencies]
 bincode = "1.2.0"
-nalgebra = {version = "0.18.1", features = ["serde-serialize"]}
 rand = "0.7.2"
 rand_derive = "0.5.0"
 whoami = "0.6.0"
 sdl2 = {version = "0.32.2", features = ["image", "mixer", "ttf"]}
 libplen = {path="libplen"}
+unicode-truncate="0.1.1"
 
 [[bin]]
 name = "server"

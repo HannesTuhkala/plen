@@ -1,10 +1,10 @@
-use nalgebra as na;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 use libplen::constants;
+use libplen::math::{Vec2, vec2};
 
 pub fn draw_texture(
-    canvas: &mut Canvas<Window>, texture: &Texture, pos: na::Point2<f32>
+    canvas: &mut Canvas<Window>, texture: &Texture, pos: Vec2
 ) -> Result<(), String> {
     let texture_query = texture.query();
     canvas.copy(texture, None, sdl2::rect::Rect::new(
@@ -13,7 +13,7 @@ pub fn draw_texture(
 }
 
 pub fn draw_texture_centered(
-    canvas: &mut Canvas<Window>, texture: &Texture, pos: na::Point2<f32>
+    canvas: &mut Canvas<Window>, texture: &Texture, pos: Vec2
 ) -> Result<(), String> {
     let texture_query = texture.query();
     let w = texture_query.width;
@@ -27,7 +27,7 @@ pub fn draw_texture_centered(
 }
 
 pub fn draw_texture_rotated(
-    canvas: &mut Canvas<Window>, texture: &Texture, pos: na::Point2<f32>, angle: f32
+    canvas: &mut Canvas<Window>, texture: &Texture, pos: Vec2, angle: f32
 ) -> Result<(), String> {
     let texture_query = texture.query();
     let w = texture_query.width as u32;
@@ -45,9 +45,9 @@ pub fn draw_texture_rotated(
 pub fn draw_texture_rotated_and_scaled(
     canvas: &mut Canvas<Window>,
     texture: &Texture,
-    pos: na::Point2<f32>,
+    pos: Vec2,
     angle: f32,
-    scale: na::Vector2<f32>
+    scale: Vec2
 ) -> Result<(), String> {
     let texture_query = texture.query();
     let w = texture_query.width as f32 * scale.x;
@@ -79,7 +79,7 @@ pub fn setup_coordinates(canvas: &mut Canvas<Window>) -> Result<(), String> {
     canvas.set_logical_size(w as u32, h as u32).map_err(|e| e.to_string())
 }
 
-pub fn calculate_resolution_offset(canvas: &Canvas<Window>) -> na::Vector2<f32> {
+pub fn calculate_resolution_offset(canvas: &Canvas<Window>) -> Vec2 {
     let (w, h) = canvas.logical_size();
     let (x, y) = if w > h {
         ((w as f32 - constants::WINDOW_SIZE) * 0.5, 0.)
@@ -87,5 +87,5 @@ pub fn calculate_resolution_offset(canvas: &Canvas<Window>) -> na::Vector2<f32> 
         (0., (h as f32 - constants::WINDOW_SIZE) * 0.5)
     };
 
-    na::Vector2::new(x, y)
+    vec2(x, y)
 }
