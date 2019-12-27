@@ -171,17 +171,15 @@ impl Projectile for Missile {
     fn update(
         &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
     ) {
-        let movement_direction = Vec2::from_direction(self.angle, 1.);
-
         // Check if there are players in the line of sight of the missile
         let to_track = players.iter()
             // Don't track the shooter
             .filter(|p| p.id != self.owner)
             // Calculate the angle to the missile
             .map(|p| {
-                let direction_to = (p.position - self.position).normalize();
+                let direction_to = p.position - self.position;
                 let angle_to = math::angle_diff(
-                    movement_direction.angle(),
+                    self.angle,
                     direction_to.angle()
                 );
                 (direction_to, angle_to)
@@ -191,11 +189,11 @@ impl Projectile for Missile {
             // })
             .min_by_key(|(direction_to, _)| direction_to.norm() as i32);
 
-        let target_angle = if let Some((_, angle)) = to_track {
+        let target_angle_diff = if let Some((_, angle)) = to_track {
             angle
         }
         else {
-            self.angle
+            0.
         };
 
         send_line(
@@ -203,12 +201,12 @@ impl Projectile for Missile {
         );
 
         send_line(
-            DebugLine::from_angle(self.position, target_angle, 50.).rgb(0, 255, 0)
+            DebugLine::from_angle(self.position, self.angle + target_angle_diff, 50.).rgb(0, 255, 0)
         );
 
         self.angular_velocity +=
-            constants::MISSILE_KEO_P
-            * (target_angle - self.angle)
+            constants::MISSILE_KOH_PEY
+            * target_angle_diff
             * delta_time;
 
         self.angle += self.angular_velocity * delta_time;

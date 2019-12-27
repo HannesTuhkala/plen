@@ -621,7 +621,6 @@ impl Map {
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
                 for line in lines {
-                    println!("Drawing debug line");
                     let offset = vec2(*tile_x, *tile_y) * constants::WORLD_SIZE
                         - camera_position + screen_center;
                     let start = line.start + offset;
