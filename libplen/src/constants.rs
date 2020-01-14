@@ -41,9 +41,9 @@ pub const LASER_DAMAGE: i16 = 500;
 pub const LASER_RANGE_EXTRA: u32 = 10;
 
 pub const MISSILE_LOCK_ANGLE: f32 = PI/2.;
-pub const MISSILE_KOH_PEY: f32 = 1.0;
+pub const MISSILE_KOH_PEY: f32 = 5.0;
 pub const MISSILE_SPEED: f32 = 500.;
-pub const MISSILE_LIFE_TIME: f32 = 5.;
+pub const MISSILE_LIFE_TIME: f32 = 3.;
 
 pub const WINDOW_SIZE: f32 = 700.;
 

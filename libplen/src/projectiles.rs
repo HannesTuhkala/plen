@@ -171,6 +171,7 @@ impl Projectile for Missile {
     fn update(
         &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
     ) {
+        self.lifetime += delta_time;
         // Check if there are players in the line of sight of the missile
         let to_track = players.iter()
             // Don't track the shooter
