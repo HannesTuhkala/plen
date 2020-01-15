@@ -4,7 +4,6 @@ use enum_dispatch::enum_dispatch;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
-use crate::debug::{send_line, DebugLine};
 use crate::math::{self, Vec2};
 use crate::hurricane::Hurricane;
 use crate::player::Player;
@@ -185,9 +184,6 @@ impl Projectile for Missile {
                 );
                 (direction_to, angle_to)
             })
-            // .filter(|(_, angle_to)| {
-            //      *angle_to > constants::MISSILE_LOCK_ANGLE
-            // })
             .min_by_key(|(direction_to, _)| direction_to.norm() as i32);
 
         let target_angle_diff = if let Some((_, angle)) = to_track {
@@ -196,14 +192,6 @@ impl Projectile for Missile {
         else {
             0.
         };
-
-        send_line(
-            DebugLine::from_angle(self.position, self.angle, 50.).rgb(255, 255, 0)
-        );
-
-        send_line(
-            DebugLine::from_angle(self.position, self.angle + target_angle_diff, 50.).rgb(0, 255, 0)
-        );
 
         self.angular_velocity +=
             constants::MISSILE_KOH_PEY

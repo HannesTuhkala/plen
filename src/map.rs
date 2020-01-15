@@ -240,7 +240,6 @@ impl Map {
         }
 
         Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
-
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -248,8 +247,8 @@ impl Map {
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets, powerup_rotation)?;
-
         Self::draw_killfeed(canvas, assets, game_state)?;
+        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position, screen_center)?;
 
         Ok(())
     }

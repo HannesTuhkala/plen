@@ -5,7 +5,6 @@ use crate::projectiles::{self, LaserBeam, ProjectileKind};
 use crate::math::{self, Vec2, vec2};
 use crate::hurricane::Hurricane;
 use crate::powerups::{PowerUpKind, AppliedPowerup};
-use crate::debug::{send_line, DebugLine};
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlaneType {
@@ -166,10 +165,6 @@ impl Player {
         self.update_velocity_and_position(y_input, hurricane, delta_time);
         self.update_angular_velocity_and_rotation(x_input, delta_time);
         self.manage_powerups(delta_time);
-
-        send_line(
-            DebugLine::new(self.position, self.position + vec2(0., 100.)).rgb(255, 0, 0)
-        );
     }
 
     fn update_laser_charge(&mut self, delta_time: f32) {
@@ -284,7 +279,7 @@ impl Player {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
 
-                let new_bullet = projectiles::Missile::new(
+                let new_projectile = projectiles::Missile::new(
                     self.position + Vec2::from_direction(
                         dir,
                         constants::BULLET_START,
@@ -294,7 +289,7 @@ impl Player {
                     self.id,
                     self.name.clone(),
                 );
-                return (Some(ProjectileKind::from(new_bullet)), false);
+                return (Some(ProjectileKind::from(new_projectile)), false);
             }
 
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {

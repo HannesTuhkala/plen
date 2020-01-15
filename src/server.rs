@@ -13,7 +13,7 @@ use libplen::player::Player;
 use libplen::powerups::PowerUpKind;
 use libplen::gamestate;
 use libplen::constants;
-use libplen::debug::{self, send_line, DebugLine};
+use libplen::debug;
 use libplen::projectiles::Projectile;
 use libplen::math::{Vec2, vec2};
 
@@ -112,15 +112,6 @@ impl Server {
             delta_time, &hit_players, &hit_powerup_positions, &fired_laser_positions
         );
 
-        send_line(
-            DebugLine::from_angle(vec2(0., 0.), 0., 100.).rgb(255, 0, 0)
-        );
-        send_line(
-            DebugLine::from_angle(vec2(0., 0.), 3.14 / 2., 100.).rgb(0, 255, 0)
-        );
-        send_line(
-            DebugLine::from_angle(vec2(100., 0.), 3.14 / 2., 100.).rgb(0, 255, 0)
-        );
         self.state.update_debug_lines(&self.debug_channel);
     }
 
