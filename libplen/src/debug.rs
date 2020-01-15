@@ -23,11 +23,11 @@ impl DebugLine {
         }
     }
 
-    pub fn rgb(self, color: (u8, u8, u8)) -> Self {
-        self.rgba((color.0, color.1, color.2, 255))
+    pub fn rgb(self, r: u8, g: u8, b: u8) -> Self {
+        self.rgba(r, g, b,  255)
     }
-    pub fn rgba(self, color: (u8, u8, u8, u8)) -> Self {
-        Self {color, .. self}
+    pub fn rgba(self, r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self {color: (r, g, b, a), .. self}
     }
 }
 

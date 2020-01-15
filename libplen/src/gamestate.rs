@@ -4,6 +4,7 @@ use serde_derive::{Serialize, Deserialize};
 use strum::IntoEnumIterator;
 use rand::prelude::*;
 use rand::Rng;
+use rand::distributions::WeightedIndex;
 
 use crate::constants::{self, PLANE_SIZE, POWERUP_RADIUS, BULLET_RADIUS};
 use crate::player::Player;
@@ -148,20 +149,10 @@ impl GameState {
     }
 
     fn create_powerup() -> PowerUpKind {
-        let max_number: i32 = PowerUpKind::iter().map(|e| e.get_likelihood()).sum();
-        let mut rand_number = rand::thread_rng().gen_range(1, max_number);
-        let mut powerup = PowerUpKind::Gun;
-
-        for p in PowerUpKind::iter() {
-            if rand_number <= 0 {
-                return powerup;
-            }
-
-            rand_number -= p.get_likelihood();
-            powerup = p;
-        }
-
-        powerup
+        let dist = WeightedIndex::new(
+            PowerUpKind::iter().map(|p| p.get_likelihood())
+        ).unwrap();
+        PowerUpKind::iter().nth(dist.sample(&mut rand::thread_rng())).unwrap()
     }
 
     pub fn handle_bullets(&mut self, delta_time: f32) -> Vec<u64> {
@@ -170,7 +161,7 @@ impl GameState {
         }
 
         self.projectiles.retain(
-            |projectile| projectile.is_done()
+            |projectile| !projectile.is_done()
         );
 
         let mut hit_players: Vec<u64> = Vec::new();

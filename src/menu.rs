@@ -90,7 +90,7 @@ impl MenuState {
 
         rendering::draw_texture(
             canvas,
-            &assets.planes[&self.plane],
+            &assets.planes(self.plane),
             vec2(
                 px
                     + constants::PLANE_SELECTION_SIZE/3.

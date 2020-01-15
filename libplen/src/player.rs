@@ -6,7 +6,7 @@ use crate::math::{self, Vec2, vec2};
 use crate::hurricane::Hurricane;
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlaneType {
     SukaBlyat,
     HowdyCowboy,
@@ -275,6 +275,23 @@ impl Player {
                 self.laser_charge_time = None;
             }
 
+            if self.weapon_is_wielded(PowerUpKind::Missile) && self.cooldown <= 0. {
+                let dir = self.rotation - std::f32::consts::PI / 2.;
+                self.cooldown = constants::PLAYER_COOLDOWN;
+
+                let new_projectile = projectiles::Missile::new(
+                    self.position + Vec2::from_direction(
+                        dir,
+                        constants::BULLET_START,
+                    ),
+                    dir,
+                    self.planetype.firepower(),
+                    self.id,
+                    self.name.clone(),
+                );
+                return (Some(ProjectileKind::from(new_projectile)), false);
+            }
+
             if self.weapon_is_wielded(PowerUpKind::Gun) && self.cooldown <= 0. {
                 let dir = self.rotation - std::f32::consts::PI / 2.;
                 self.cooldown = constants::PLAYER_COOLDOWN;
@@ -287,13 +304,11 @@ impl Player {
                     self.id,
                     self.name.clone(),
                 );
-                (Some(ProjectileKind::from(new_bullet)), false)
-            } else {
-                (None, false)
+                return (Some(ProjectileKind::from(new_bullet)), false);
             }
-        } else {
-            (None, false)
         }
+
+        return (None, false)
     }
 
     pub fn laser_charge_progress(&self) -> Option<f32> {
