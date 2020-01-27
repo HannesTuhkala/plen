@@ -1,10 +1,11 @@
-use serde_derive::{Serialize, Deserialize};
+use enum_map::Enum;
 use rand_derive::Rand;
+use serde_derive::{Serialize, Deserialize};
 use strum_macros::EnumIter;
 
 use crate::math::Vec2;
 
-#[derive(Serialize, Deserialize, EnumIter, Copy, Clone, Hash, PartialEq, Eq, Rand, Debug)]
+#[derive(Serialize, Deserialize, EnumIter, Copy, Clone, Hash, PartialEq, Eq, Rand, Debug, Enum)]
 pub enum PowerUpKind {
     Afterburner,
     Laser,

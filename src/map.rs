@@ -347,12 +347,12 @@ impl Map {
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
             ) + offset + screen_center;
-            let texture = assets.planes_mut(player.planetype);
+            let texture = &mut assets.planes[player.planetype];
 
             texture.set_alpha_mod(opacity);
             rendering::draw_texture_rotated_and_scaled(
                 canvas,
-                texture,
+                &texture,
                 position,
                 player.rotation,
                 vec2(1.0 - player.angular_velocity.abs() / 8., 1.0)
@@ -431,7 +431,7 @@ impl Map {
             );
             rendering::draw_texture_rotated(
                 canvas,
-                assets.powerups(powerup.kind),
+                &assets.powerups[powerup.kind],
                 position + mini_offset,
                 powerup_rotation,
             )?;
@@ -471,7 +471,7 @@ impl Map {
             for powerup in p.powerups.iter() {
                 rendering::draw_texture_centered(
                     canvas,
-                    assets.powerups(powerup.kind),
+                    &assets.powerups[powerup.kind],
                     vec2(x_pos, y_pos)
                 )?;
                 x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
@@ -479,13 +479,12 @@ impl Map {
 
             if let Some(powerup) = p.available_powerup {
                 let x_pos = canvas.logical_size().0 as f32 - constants::MINI_MAP_SIZE - 40.;
-                let sprite = assets.powerups(powerup);
                 let scale = 1.
                     + (((powerup_rotation*constants::AVAILABLE_POWERUP_SCALE_SPEED)
                        .sin() + 1.)/2.)*constants::AVAILABLE_POWERUP_SCALE_AMOUNT;
                 rendering::draw_texture_rotated_and_scaled(
                     canvas,
-                    &sprite,
+                    &assets.powerups[powerup],
                     vec2(x_pos, y_pos - constants::POWERUP_RADIUS as f32 / 1.5),
                     powerup_rotation,
                     vec2(scale, scale)

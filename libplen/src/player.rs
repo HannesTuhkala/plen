@@ -1,3 +1,4 @@
+use enum_map::Enum;
 use serde_derive::{Serialize, Deserialize};
 
 use crate::constants;
@@ -6,7 +7,7 @@ use crate::math::{self, Vec2, vec2};
 use crate::hurricane::Hurricane;
 use crate::powerups::{PowerUpKind, AppliedPowerup};
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash, Enum)]
 pub enum PlaneType {
     SukaBlyat,
     HowdyCowboy,
