@@ -8,6 +8,7 @@ use crate::math::{self, Vec2};
 use crate::hurricane::Hurricane;
 use crate::player::Player;
 
+
 #[enum_dispatch]
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ProjectileKind {
@@ -61,7 +62,7 @@ impl Bullet {
 
 impl Projectile for Bullet {
     fn update(
-        &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
+        &mut self, _players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
     ) {
         hurricane.as_ref().map(|h| {
             let force = h.get_wind_force_at_position(self.position)*delta_time;
@@ -76,7 +77,7 @@ impl Projectile for Bullet {
         self.lifetime > constants::BULLET_ARM_TIME
     }
     fn is_done(&self) -> bool {
-        self.traveled_distance < constants::BULLET_MAX_TRAVEL
+        self.traveled_distance > constants::BULLET_MAX_TRAVEL
     }
 
     fn get_shooter(&self) -> u64 {self.owner}
@@ -169,42 +170,38 @@ impl Projectile for Missile {
     fn update(
         &mut self, players: &[Player], delta_time: f32, hurricane: &Option<Hurricane>
     ) {
-        let movement_direction = Vec2::from_direction(self.angle, 1.);
-
+        self.lifetime += delta_time;
         // Check if there are players in the line of sight of the missile
         let to_track = players.iter()
             // Don't track the shooter
-            .filter(|p| p.id == self.owner)
+            .filter(|p| p.id != self.owner)
             // Calculate the angle to the missile
             .map(|p| {
-                let direction_to = (p.position - self.position).normalize();
+                let direction_to = p.position - self.position;
                 let angle_to = math::angle_diff(
-                    movement_direction.angle(),
+                    self.angle,
                     direction_to.angle()
                 );
                 (direction_to, angle_to)
             })
-            .filter(|(_, angle_to)| {
-                 *angle_to > constants::MISSILE_LOCK_ANGLE
-            })
             .min_by_key(|(direction_to, _)| direction_to.norm() as i32);
 
-        let target_angle = if let Some((_, angle)) = to_track {
+        let target_angle_diff = if let Some((_, angle)) = to_track {
             angle
         }
         else {
-            self.angle
+            0.
         };
 
         self.angular_velocity +=
-            constants::MISSILE_KEO_P
-            * target_angle
-            * self.angular_velocity
+            constants::MISSILE_KOH_PEY
+            * target_angle_diff
             * delta_time;
 
         self.angle += self.angular_velocity * delta_time;
-        let movement_direction = Vec2::from_direction(self.angle, 1.);
-        self.position += movement_direction * delta_time;
+        let new_direction = Vec2::from_direction(self.angle, 1.);
+        self.position += new_direction * constants::MISSILE_SPEED * delta_time;
+        self.position = math::wrap_around(self.position);
     }
     fn is_armed(&self) -> bool {true}
     fn is_done(&self) -> bool {

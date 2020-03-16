@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use rand::prelude::*;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
@@ -5,8 +7,9 @@ use sdl2::video::Window;
 use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
-use libplen::projectiles::Projectile;
+use libplen::projectiles::{ProjectileKind, Projectile};
 use libplen::math::{Vec2, vec2};
+
 use crate::assets::Assets;
 use crate::rendering;
 use crate::hurricane;
@@ -75,7 +78,7 @@ impl Map {
                 );
 
                 let mut rng = rand::thread_rng();
-                let angle = rng.gen::<f32>() * std::f32::consts::PI * 2.;
+                let angle = rng.gen::<f32>() * PI * 2.;
 
                 explosion_particle.alive = true;
                 explosion_particle.alpha = 1.0;
@@ -237,7 +240,6 @@ impl Map {
         }
 
         Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
-
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -245,10 +247,10 @@ impl Map {
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets, powerup_rotation)?;
-
         Self::draw_killfeed(canvas, assets, game_state)?;
+        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position, screen_center)?;
 
-        Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position)
+        Ok(())
     }
 
     fn draw_hurricanes_wrapped_around(
@@ -345,12 +347,12 @@ impl Map {
                 player.position.x - camera_position.x,
                 player.position.y - camera_position.y,
             ) + offset + screen_center;
-            let texture = assets.planes.get_mut(&player.planetype).expect("Missing plane asset");
+            let texture = &mut assets.planes[player.planetype];
 
             texture.set_alpha_mod(opacity);
             rendering::draw_texture_rotated_and_scaled(
                 canvas,
-                texture,
+                &texture,
                 position,
                 player.rotation,
                 vec2(1.0 - player.angular_velocity.abs() / 8., 1.0)
@@ -410,7 +412,12 @@ impl Map {
                 projectile.get_position().x - camera_position.x,
                 projectile.get_position().y - camera_position.y,
             ) + offset + screen_center;
-            rendering::draw_texture_centered(canvas, &assets.bullet, position)?;
+
+            let (asset, angle) = match projectile {
+                ProjectileKind::Bullet(_) => (&assets.bullet, 0.),
+                ProjectileKind::Missile(m) => (&assets.missile, m.angle),
+            };
+            rendering::draw_texture_rotated(canvas, asset, position, angle + PI / 2.)?;
         }
 
         for powerup in game_state.powerups.iter() {
@@ -424,7 +431,7 @@ impl Map {
             );
             rendering::draw_texture_rotated(
                 canvas,
-                assets.powerups.get(&powerup.kind).unwrap(),
+                &assets.powerups[powerup.kind],
                 position + mini_offset,
                 powerup_rotation,
             )?;
@@ -464,7 +471,7 @@ impl Map {
             for powerup in p.powerups.iter() {
                 rendering::draw_texture_centered(
                     canvas,
-                    assets.powerups.get(&powerup.kind).expect("Missing powerup graphics"),
+                    &assets.powerups[powerup.kind],
                     vec2(x_pos, y_pos)
                 )?;
                 x_pos += constants::POWERUP_RADIUS as f32 * 2.5;
@@ -472,14 +479,12 @@ impl Map {
 
             if let Some(powerup) = p.available_powerup {
                 let x_pos = canvas.logical_size().0 as f32 - constants::MINI_MAP_SIZE - 40.;
-                let sprite = assets.powerups.get(&powerup)
-                    .expect("Missing powerup graphics");
                 let scale = 1.
                     + (((powerup_rotation*constants::AVAILABLE_POWERUP_SCALE_SPEED)
                        .sin() + 1.)/2.)*constants::AVAILABLE_POWERUP_SCALE_AMOUNT;
                 rendering::draw_texture_rotated_and_scaled(
                     canvas,
-                    &sprite,
+                    &assets.powerups[powerup],
                     vec2(x_pos, y_pos - constants::POWERUP_RADIUS as f32 / 1.5),
                     powerup_rotation,
                     vec2(scale, scale)
@@ -607,14 +612,14 @@ impl Map {
     fn draw_debug_lines(
         canvas: &mut Canvas<Window>,
         lines: &[libplen::debug::DebugLine],
-        camera_position: Vec2
+        camera_position: Vec2,
+        screen_center: Vec2,
     ) -> Result<(), String> {
         for tile_x in &[-1., 0., 1.] {
             for tile_y in &[-1., 0., 1.] {
                 for line in lines {
-                    println!("Drawing debug line");
                     let offset = vec2(*tile_x, *tile_y) * constants::WORLD_SIZE
-                        - camera_position;
+                        - camera_position + screen_center;
                     let start = line.start + offset;
                     let end = line.end + offset;
                     canvas.set_draw_color(line.color);
