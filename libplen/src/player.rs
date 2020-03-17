@@ -373,6 +373,10 @@ impl Player {
                     .unwrap_or(true)});
     }
 
+    pub fn has_powerup(&self, kind: PowerUpKind) -> bool {
+        self.powerups.iter().any(|p| p.kind == kind)
+    }
+
     pub fn final_velocity(&mut self) -> Vec2 {
         let has_speed_boost = self.powerups.iter()
             .any(|b| b.kind == PowerUpKind::Afterburner);
@@ -387,7 +391,7 @@ impl Player {
 
         let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
         let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
-        
+
         vec2(dx, dy) * speed_boost
     }
 

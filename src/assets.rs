@@ -76,6 +76,7 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
                 PowerUpKind::Missile => load_tex("resources/powerups/missile.png"),
                 PowerUpKind::SlowTime => load_tex("resources/powerups/slowtime.png"),
                 PowerUpKind::Invisible => load_tex("resources/powerups/invisible.png"),
+                PowerUpKind::Sword => load_tex("resources/powerups/sword.png"),
             },
             hurricane: load_tex("resources/hurricane.png"),
             bullet: load_tex("resources/bullet.png"),

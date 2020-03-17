@@ -8,6 +8,7 @@ use libplen::player;
 use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::{ProjectileKind, Projectile};
+use libplen::powerups::PowerUpKind;
 use libplen::math::{Vec2, vec2};
 
 use crate::assets::Assets;
@@ -235,6 +236,10 @@ impl Map {
 
                     canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 255, 0));
                     canvas.fill_rect(green_rect).unwrap();
+
+                    if player.has_powerup(PowerUpKind::Sword) {
+                        println!("The player has a sword");
+                    }
                 }
             }
         }
