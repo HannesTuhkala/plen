@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+use sdl2::rect::Rect;
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 use libplen::constants;
@@ -7,7 +9,7 @@ pub fn draw_texture(
     canvas: &mut Canvas<Window>, texture: &Texture, pos: Vec2
 ) -> Result<(), String> {
     let texture_query = texture.query();
-    canvas.copy(texture, None, sdl2::rect::Rect::new(
+    canvas.copy(texture, None, Rect::new(
         pos.x as i32, pos.y as i32, texture_query.width as u32, texture_query.height as u32
     ))
 }
@@ -18,12 +20,12 @@ pub fn draw_texture_centered(
     let texture_query = texture.query();
     let w = texture_query.width;
     let h = texture_query.height;
-    canvas.copy(texture, None, Some(sdl2::rect::Rect::new(
+    canvas.copy(texture, None, Rect::new(
         pos.x as i32 - w as i32 / 2,
         pos.y as i32 - h as i32 / 2,
         w,
         h
-    )))
+    ))
 }
 
 pub fn draw_texture_rotated(
@@ -32,14 +34,14 @@ pub fn draw_texture_rotated(
     let texture_query = texture.query();
     let w = texture_query.width as u32;
     let h = texture_query.height as u32;
-    let dest_rect = sdl2::rect::Rect::new(
+    let dest_rect = Rect::new(
         pos.x as i32 - w as i32 / 2,
         pos.y as i32 - h as i32 / 2,
         w,
         h
     );
-    let angle = (angle / std::f32::consts::PI * 180.) as f64;
-    canvas.copy_ex(texture, None, Some(dest_rect), angle, None, false, false)
+    let angle = (angle / PI * 180.) as f64;
+    canvas.copy_ex(texture, None, dest_rect, angle, None, false, false)
 }
 
 pub fn draw_texture_rotated_and_scaled(
@@ -58,8 +60,8 @@ pub fn draw_texture_rotated_and_scaled(
         w as u32,
         h as u32
     );
-    let angle = (angle / std::f32::consts::PI * 180.) as f64;
-    canvas.copy_ex(texture, None, Some(dest_rect), angle, None, false, false)
+    let angle = (angle / PI * 180.) as f64;
+    canvas.copy_ex(texture, None, dest_rect, angle, None, false, false)
 }
 
 pub fn setup_coordinates(canvas: &mut Canvas<Window>) -> Result<(), String> {

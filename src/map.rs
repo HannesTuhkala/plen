@@ -358,6 +358,33 @@ impl Map {
                 vec2(1.0 - player.angular_velocity.abs() / 8., 1.0)
             )?;
 
+            let fire_size = 32;
+            let fire_frame_ms = 100;
+            let fire_frame_count = 4;
+            let fire_offset = 25.;
+            let elapsed_time = Instant::now().duration_since(self.start_time);
+            let fire_frame = (elapsed_time.as_millis() / fire_frame_ms) as i32 % fire_frame_count;
+            let angle = (player.rotation / PI * 180.) as f64;
+            canvas.copy_ex(
+                &assets.fire,
+                sdl2::rect::Rect::new(
+                    0,
+                    fire_size * fire_frame,
+                    fire_size as u32,
+                    fire_size as u32,
+                ),
+                sdl2::rect::Rect::new(
+                    (position.x - player.rotation.sin() * fire_offset) as i32 - fire_size / 2,
+                    (position.y + player.rotation.cos() * fire_offset) as i32 - fire_size / 2,
+                    fire_size as u32,
+                    fire_size as u32,
+                ),
+                angle + 180.,
+                None,
+                false,
+                false,
+            )?;
+
             let nametag = assets.font.render(&player.name)
                 .blended(player.color.rgba())
                 .expect("Could not render text");

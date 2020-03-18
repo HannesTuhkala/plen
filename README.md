@@ -29,3 +29,7 @@ Download both zip files under "Development Libraries", SDL2_xxxxx-devel-2.x.x-VC
 Extract them both according to the same instructions as noted in the SDL2 tutorial.
 
 Plen should now compile and you should be able to run the game under Windows.
+
+## Attribution
+Flame animation by serenajeanne used under CC-BY-SA 3.0
+[opengameart](https://opengameart.org/content/small-flame-pack-0)
