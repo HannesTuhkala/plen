@@ -1,4 +1,5 @@
 use std::f32::consts::PI;
+use std::time::Instant;
 
 use rand::prelude::*;
 use sdl2::render::Canvas;
@@ -16,7 +17,6 @@ use crate::hurricane;
 
 #[derive(Clone)]
 pub struct SmokeParticle {
-    alive: bool,
     alpha: f32,
     position: Vec2,
 }
@@ -24,7 +24,6 @@ pub struct SmokeParticle {
 impl SmokeParticle {
     fn new() -> Self {
         Self {
-            alive: false,
             alpha: 0.,
             position: vec2(0., 0.),
         }
@@ -33,35 +32,25 @@ impl SmokeParticle {
 
 #[derive(Clone)]
 pub struct ExplosionParticle {
-    alive: bool,
     alpha: f32,
     position: Vec2,
     velocity: Vec2,
 }
 
-impl ExplosionParticle {
-    fn new() -> Self {
-        Self {
-            alive: false,
-            alpha: 0.,
-            position: vec2(0., 0.),
-            velocity: vec2(0., 0.),
-        }
-    }
-}
-
 pub struct Map {
-    smoke_particles: Vec<SmokeParticle>,
-    explosion_particles: Vec<ExplosionParticle>,
+    smoke_particles: Vec<Option<SmokeParticle>>,
+    explosion_particles: Vec<Option<ExplosionParticle>>,
     smoke_timer: f32,
+    start_time: Instant,
 }
 
 impl Map {
     pub fn new() -> Map {
         Map {
-            smoke_particles: vec![SmokeParticle::new(); 200],
-            explosion_particles: vec![ExplosionParticle::new(); 200],
-            smoke_timer: 0.
+            smoke_particles: vec![None; 200],
+            explosion_particles: vec![None; 200],
+            smoke_timer: 0.,
+            start_time: Instant::now(),
         }
     }
 
@@ -70,8 +59,8 @@ impl Map {
         self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
 
         let mut spawned_particles = 0;
-        for explosion_particle in &mut self.explosion_particles {
-            if !explosion_particle.alive {
+        for explosion_particle_opt in &mut self.explosion_particles {
+            if explosion_particle_opt.is_none() {
                 let random_offset = vec2(
                     (rng.gen::<f32>() - 0.5) * 5.,
                     (rng.gen::<f32>() - 0.5) * 5.,
@@ -80,10 +69,11 @@ impl Map {
                 let mut rng = rand::thread_rng();
                 let angle = rng.gen::<f32>() * PI * 2.;
 
-                explosion_particle.alive = true;
-                explosion_particle.alpha = 1.0;
-                explosion_particle.position = pos + random_offset;
-                explosion_particle.velocity = Vec2::from_direction(angle, 50.);
+                *explosion_particle_opt = Some(ExplosionParticle {
+                    alpha: 1.0,
+                    position: pos + random_offset,
+                    velocity: Vec2::from_direction(angle, 50.),
+                });
 
                 spawned_particles += 1;
                 if spawned_particles >= 10 {
@@ -108,31 +98,32 @@ impl Map {
                     (rng.gen::<f32>() - 0.5) * 5.,
                 );
                 for smoke_particle in &mut self.smoke_particles {
-                    if !smoke_particle.alive {
-                        smoke_particle.alive = true;
-                        smoke_particle.alpha = 1.0;
-                        smoke_particle.position = player.position + random_offset;
+                    if smoke_particle.is_none() {
+                        *smoke_particle = Some(SmokeParticle {
+                            alpha: 1.0,
+                            position: player.position + random_offset,
+                        });
                         break;
                     }
                 }
             }
         }
 
-        for smoke_particle in &mut self.smoke_particles {
-            if smoke_particle.alive {
+        for smoke_particle_opt in &mut self.smoke_particles {
+            if let Some(smoke_particle) = smoke_particle_opt.as_mut() {
                 smoke_particle.alpha -= delta_time;
                 if smoke_particle.alpha <= 0. {
-                    smoke_particle.alive = false;
+                    *smoke_particle_opt = None;
                 }
             }
         }
 
-        for explosion_particle in &mut self.explosion_particles {
-            if explosion_particle.alive {
+        for explosion_particle_opt in &mut self.explosion_particles {
+            if let Some(explosion_particle) = explosion_particle_opt.as_mut() {
                 explosion_particle.position += explosion_particle.velocity * delta_time;
                 explosion_particle.alpha -= delta_time;
                 if explosion_particle.alpha <= 0. {
-                    explosion_particle.alive = false;
+                    *explosion_particle_opt = None;
                 }
             }
         }
@@ -307,12 +298,12 @@ impl Map {
             screen_h as f32 * 0.5,
         );
 
-        for smoke_particle in &self.smoke_particles {
-            let position = vec2(
-                smoke_particle.position.x - camera_position.x,
-                smoke_particle.position.y - camera_position.y,
-            ) + offset + screen_center;
-            if smoke_particle.alive {
+        for smoke_particle_opt in &self.smoke_particles {
+            if let Some(smoke_particle) = smoke_particle_opt {
+                let position = vec2(
+                    smoke_particle.position.x - camera_position.x,
+                    smoke_particle.position.y - camera_position.y,
+                ) + offset + screen_center;
                 assets.smoke.set_alpha_mod((smoke_particle.alpha * 255.) as u8);
                 rendering::draw_texture_rotated_and_scaled(
                     canvas,
@@ -325,12 +316,12 @@ impl Map {
             }
         }
 
-        for explosion_particle in &self.explosion_particles {
-            let position = vec2(
-                explosion_particle.position.x - camera_position.x,
-                explosion_particle.position.y - camera_position.y,
-            ) + offset + screen_center;
-            if explosion_particle.alive {
+        for explosion_particle_opt in &self.explosion_particles {
+            if let Some(explosion_particle) = explosion_particle_opt {
+                let position = vec2(
+                    explosion_particle.position.x - camera_position.x,
+                    explosion_particle.position.y - camera_position.y,
+                ) + offset + screen_center;
                 assets.smoke.set_alpha_mod((explosion_particle.alpha * 255.) as u8);
                 rendering::draw_texture_centered(canvas, &assets.smoke, position)?;
                 assets.smoke.set_alpha_mod(255);
