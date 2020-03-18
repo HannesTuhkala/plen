@@ -142,6 +142,7 @@ pub struct Missile {
     pub damage: i16,
     pub owner: u64,
     pub owner_name: String,
+    pub speed: f32,
 }
 
 impl Missile {
@@ -150,6 +151,7 @@ impl Missile {
         angle: f32,
         damage: i16,
         owner: u64,
+        speed: f32,
         owner_name: String,
     ) -> Self {
         let mut rng = rand::thread_rng();
@@ -162,6 +164,7 @@ impl Missile {
             lifetime: 0.,
             owner,
             owner_name,
+            speed,
         }
     }
 }
@@ -198,9 +201,11 @@ impl Projectile for Missile {
             * target_angle_diff
             * delta_time;
 
+        self.speed += (self.speed + constants::MISSILE_ACCELERATION * delta_time)
+            .min(constants::MISSILE_MAX_SPEED);
         self.angle += self.angular_velocity * delta_time;
         let new_direction = Vec2::from_direction(self.angle, 1.);
-        self.position += new_direction * constants::MISSILE_SPEED * delta_time;
+        self.position += new_direction * self.speed * delta_time;
         self.position = math::wrap_around(self.position);
     }
     fn is_armed(&self) -> bool {true}
