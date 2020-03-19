@@ -237,9 +237,9 @@ impl Player {
         self.powerups.iter().any(|powerup|powerup.kind == kind)
     }
 
-    pub fn damage_player(&mut self, damage: i16) {
+    pub fn damage_player(&mut self, damage: i16) -> bool {
         if self.invincibility_is_on() {
-            return;
+            return false;
         }
 
         self.health -= (damage as f32 * self.planetype.resilience()) as i16;
@@ -247,6 +247,8 @@ impl Player {
         if self.health <= 0 {
             self.health = 0;
         }
+
+        true
     }
 
     pub fn heal_player(&mut self, hp: i16) {
@@ -290,7 +292,7 @@ impl Player {
                     dir,
                     self.planetype.firepower(),
                     self.id,
-                    self.final_velocity().norm(),
+                    self.velocity.norm(),
                     self.name.clone(),
                 );
                 return (Some(ProjectileKind::from(new_projectile)), false);
