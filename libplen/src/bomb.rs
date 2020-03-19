@@ -13,14 +13,16 @@ pub enum BombStatus {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Bomb {
     pub position: math::Vec2,
+    pub velocity: math::Vec2,
     pub status: BombStatus,
 }
 
 impl Bomb {
-    pub fn new(position: math::Vec2) -> Self {
+    pub fn new(velocity: math::Vec2, position: math::Vec2) -> Self {
         Self {
-            status: BombStatus::Dropping(constants::BOMB_DROP_TIME),
             position,
+            velocity,
+            status: BombStatus::Dropping(constants::BOMB_DROP_TIME),
         }
     }
 

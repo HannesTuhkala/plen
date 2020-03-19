@@ -57,6 +57,7 @@ impl GameState {
         self.maybe_spawn_hurricane(delta);
         self.update_hurricane(delta);
         self.update_bombs(delta);
+        self.damage_players_from_detonating_bombs();
         let mut hit_players = vec!();
         let hit_powerup_positions = self.handle_powerups();
         let mut bombed_players = self.handle_bullets(delta);
@@ -108,6 +109,12 @@ impl GameState {
                 }
                 BombStatus::Dead => BombStatus::Dead
             };
+            match bomb.status {
+                BombStatus::Dropping(_) => {
+                    bomb.position += bomb.velocity*delta;
+                },
+                _ => (),
+            }
         }
         self.bombs.retain(|b| b.status != BombStatus::Dead);
     }

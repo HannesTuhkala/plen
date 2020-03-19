@@ -92,6 +92,8 @@ pub const HURRICANE_WIND_EFFECT_DECAY: f32 = 0.9;
 pub const HURRICANE_ROTATION_SPEED: f32 = 0.5;
 
 pub const BOMB_DROP_TIME: f32 = 3.;
-pub const BOMB_EXPLOSION_TIME: f32 = 3.;
+pub const BOMB_EXPLOSION_TIME: f32 = 0.5;
 pub const BOMB_MAX_DAMAGE: f32 = 400.;
 pub const BOMB_BLAST_RADIUS: f32 = 200.;
+pub const BOMB_SPEED_DIFF: f32 = 0.5;
+pub const BOMB_RING_SPRITE_SIZE: f32 = 500.;

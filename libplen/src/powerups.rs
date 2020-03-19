@@ -85,7 +85,7 @@ impl PowerUpKind {
             PowerUpKind::Missile => 60,
             PowerUpKind::SlowTime => 10,
             PowerUpKind::Invisible => 60,
-            PowerUpKind::Bomb => 10,
+            PowerUpKind::Bomb => 1000,
         }
     }
 }

@@ -216,7 +216,7 @@ impl Player {
         } else if self.angular_velocity < -self.planetype.agility() {
             self.angular_velocity = -self.planetype.agility();
         }
-        
+
         self.rotation = self.rotation + self.angular_velocity * delta_time;
 
     }
@@ -347,7 +347,8 @@ impl Player {
         if let Some(powerup) = self.available_powerup {
             self.available_powerup = None;
             if powerup == PowerUpKind::Bomb {
-                return Some(Bomb::new(self.position));
+                let velocity = self.final_velocity()*constants::BOMB_SPEED_DIFF;
+                return Some(Bomb::new(velocity, self.position));
             } else {
                 self.apply_powerup(powerup);
             }

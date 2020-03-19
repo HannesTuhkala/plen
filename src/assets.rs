@@ -18,6 +18,7 @@ pub struct Assets<'ttf, 'r> {
     pub minimap_background: Texture<'r>,
     pub minimap_powerup: Texture<'r>,
     pub hurricane: Texture<'r>,
+    pub explosion_ring: Texture<'r>,
 
     pub powerups: EnumMap<PowerUpKind, Texture<'r>>,
 
@@ -76,8 +77,10 @@ impl<'ttf, 'r> Assets<'ttf, 'r> {
                 PowerUpKind::Missile => load_tex("resources/powerups/missile.png"),
                 PowerUpKind::SlowTime => load_tex("resources/powerups/slowtime.png"),
                 PowerUpKind::Invisible => load_tex("resources/powerups/invisible.png"),
+                PowerUpKind::Bomb => load_tex("resources/powerups/bomb.png"),
             },
             hurricane: load_tex("resources/hurricane.png"),
+            explosion_ring: load_tex("resources/explosionring.png"),
             bullet: load_tex("resources/bullet.png"),
             menu_background: load_tex("resources/menu_background.png"),
             end_background: load_tex("resources/endscreen.png"),

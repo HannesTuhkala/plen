@@ -168,7 +168,8 @@ impl MainState {
             assets,
             self.powerup_rotation,
             self.hit_effect_timer,
-            &self.game_state.hurricane
+            &self.game_state.hurricane,
+            &self.game_state.bombs,
         )?;
 
         if self.dead {

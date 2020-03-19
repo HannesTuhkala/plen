@@ -9,6 +9,7 @@ use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::{ProjectileKind, Projectile};
 use libplen::math::{Vec2, vec2};
+use libplen::bomb::{Bomb, BombStatus};
 
 use crate::assets::Assets;
 use crate::rendering;
@@ -148,6 +149,7 @@ impl Map {
         powerup_rotation: f32,
         hit_effect_timer: f32,
         hurricane: &Option<hurricane::Hurricane>,
+        bombs: &Vec<Bomb>,
     ) -> Result<(), String> {
         let (screen_w, screen_h) = canvas.logical_size();
         let screen_center = vec2(
@@ -240,6 +242,7 @@ impl Map {
         }
 
         Self::draw_hurricanes_wrapped_around(hurricane, camera_position, screen_center, assets, canvas);
+        Self::draw_bomb_explosions_wrapped_around(bombs, camera_position, screen_center, assets, canvas);
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
@@ -251,6 +254,52 @@ impl Map {
         Self::draw_debug_lines(canvas, &game_state.debug_lines, camera_position, screen_center)?;
 
         Ok(())
+    }
+
+    fn draw_bomb_explosions_wrapped_around(
+        bombs: &Vec<Bomb>,
+        camera_position: Vec2,
+        screen_center: Vec2,
+        assets: &mut Assets,
+        canvas: &mut Canvas<Window>
+    ) {
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
+
+                for bomb in bombs {
+                    let offset = vec2(
+                        tile_x * constants::WORLD_SIZE,
+                        tile_y * constants::WORLD_SIZE,
+                    );
+                    let position = vec2(
+                        bomb.position.x - camera_position.x,
+                        bomb.position.y - camera_position.y,
+                    ) + offset + screen_center;
+
+                    match bomb.status {
+                        BombStatus::Exploding(time) => {
+                            let progress = 1. - time/constants::BOMB_EXPLOSION_TIME;
+                            let ring_opacity = ((1. - progress) * 255.) as u8;
+                            let ring_size = progress * constants::BOMB_BLAST_RADIUS
+                                / constants::BOMB_RING_SPRITE_SIZE;
+                            assets.explosion_ring.set_alpha_mod(ring_opacity);
+                            rendering::draw_texture_rotated_and_scaled(canvas, &assets.explosion_ring, position, 0., vec2(ring_size, ring_size)).unwrap();
+                        }
+                        BombStatus::Dropping(time) => {
+                            let rect = sdl2::rect::Rect::new(
+                                position.x as i32,
+                                position.y as i32,
+                                10,
+                                10
+                            );
+                            canvas.set_draw_color(sdl2::pixels::Color::RGB(255, 0, 0));
+                            canvas.fill_rect(rect).unwrap();
+                        }
+                        _ => { }
+                    }
+                }
+            }
+        }
     }
 
     fn draw_hurricanes_wrapped_around(
