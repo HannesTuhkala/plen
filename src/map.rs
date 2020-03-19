@@ -6,6 +6,7 @@ use sdl2::render::Canvas;
 use sdl2::video::Window;
 
 use libplen::player;
+use libplen::powerups::PowerUpKind;
 use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::{ProjectileKind, Projectile};
@@ -76,10 +77,18 @@ pub struct ExplosionParticle {
     velocity: Vec2,
 }
 
+pub struct SparkParticle {
+    lifetime: f32,
+    position: Vec2,
+    velocity: Vec2,
+}
+
 pub struct Map {
     smoke_particles: ParticleSystem<SmokeParticle>,
     explosion_particles: ParticleSystem<ExplosionParticle>,
+    spark_particles: ParticleSystem<SparkParticle>,
     smoke_timer: f32,
+    spark_timer: f32,
     start_time: Instant,
 }
 
@@ -88,7 +97,9 @@ impl Map {
         Map {
             smoke_particles: ParticleSystem::new(200),
             explosion_particles: ParticleSystem::new(200),
+            spark_particles: ParticleSystem::new(200),
             smoke_timer: 0.,
+            spark_timer: 0.,
             start_time: Instant::now(),
         }
     }
@@ -117,7 +128,7 @@ impl Map {
         self.smoke_timer -= delta_time;
         if self.smoke_timer <= 0. {
             let mut rng = rand::thread_rng();
-            self.smoke_timer = constants::PARTICLE_SPAWN_RATE;
+            self.smoke_timer = constants::SMOKE_SPAWN_RATE;
 
             self.smoke_particles.add_particles(
                 game_state.players.iter().filter_map(|player| {
@@ -137,6 +148,35 @@ impl Map {
             );
         }
 
+        self.spark_timer -= delta_time;
+        if self.spark_timer <= 0. {
+            let mut rng = rand::thread_rng();
+            self.spark_timer = constants::SPARK_SPAWN_RATE;
+
+            self.spark_particles.add_particles(
+                game_state.players.iter().filter_map(|player| {
+                    let has_speed_boost =
+                        player.has_powerup(PowerUpKind::Afterburner);
+
+                    // Only show sparks if player is visible and has afterburner
+                    if player.is_invisible() || !has_speed_boost {
+                        return None;
+                    }
+
+                    let random_offset = vec2(
+                        (rng.gen::<f32>() - 0.5) * 2.,
+                        (rng.gen::<f32>() - 0.5) * 2.,
+                    );
+                    Some(SparkParticle {
+                        lifetime: 0.5,
+                        position: player.position,
+                        velocity: -player.velocity() +
+                            random_offset * constants::SPARK_SPREAD,
+                    })
+                })
+            );
+        }
+
         for smoke_particle in self.smoke_particles.iter_mut() {
             smoke_particle.alpha -= delta_time;
         };
@@ -147,8 +187,14 @@ impl Map {
             explosion_particle.alpha -= delta_time;
         };
         self.explosion_particles.retain(
-            |explosion_particle| explosion_particle.alpha <= 0.
+            |explosion_particle| explosion_particle.alpha > 0.
         );
+
+        for spark in self.spark_particles.iter_mut() {
+            spark.position += spark.velocity * delta_time;
+            spark.lifetime -= delta_time;
+        }
+        self.spark_particles.retain(|spark| spark.lifetime > 0.);
     }
 
     pub fn draw(
@@ -346,6 +392,15 @@ impl Map {
             assets.smoke.set_alpha_mod(255);
         }
 
+        canvas.set_draw_color((255, 255, 100));
+        for spark in self.spark_particles.iter() {
+            let position = vec2(
+                spark.position.x - camera_position.x,
+                spark.position.y - camera_position.y,
+            ) + offset + screen_center;
+            rendering::draw_texture_centered(canvas, &assets.spark, position)?;
+        }
+
         for player in &game_state.players {
             if player.is_invisible() && player.id != my_id {
                 // don't draw player if invisible
@@ -367,32 +422,34 @@ impl Map {
                 vec2(1.0 - player.angular_velocity.abs() / 8., 1.0)
             )?;
 
-            let fire_size = 32;
-            let fire_frame_ms = 100;
-            let fire_frame_count = 4;
-            let fire_offset = 25.;
-            let elapsed_time = Instant::now().duration_since(self.start_time);
-            let fire_frame = (elapsed_time.as_millis() / fire_frame_ms) as i32 % fire_frame_count;
-            let angle = (player.rotation / PI * 180.) as f64;
-            canvas.copy_ex(
-                &assets.fire,
-                sdl2::rect::Rect::new(
-                    0,
-                    fire_size * fire_frame,
-                    fire_size as u32,
-                    fire_size as u32,
-                ),
-                sdl2::rect::Rect::new(
-                    (position.x - player.rotation.sin() * fire_offset) as i32 - fire_size / 2,
-                    (position.y + player.rotation.cos() * fire_offset) as i32 - fire_size / 2,
-                    fire_size as u32,
-                    fire_size as u32,
-                ),
-                angle + 180.,
-                None,
-                false,
-                false,
-            )?;
+            if player.has_powerup(PowerUpKind::Afterburner) {
+                let fire_size = 32;
+                let fire_frame_ms = 100;
+                let fire_frame_count = 4;
+                let fire_offset = 25.;
+                let elapsed_time = Instant::now().duration_since(self.start_time);
+                let fire_frame = (elapsed_time.as_millis() / fire_frame_ms) as i32 % fire_frame_count;
+                let angle = (player.rotation / PI * 180.) as f64;
+                canvas.copy_ex(
+                    &assets.fire,
+                    sdl2::rect::Rect::new(
+                        0,
+                        fire_size * fire_frame,
+                        fire_size as u32,
+                        fire_size as u32,
+                    ),
+                    sdl2::rect::Rect::new(
+                        (position.x - player.rotation.sin() * fire_offset) as i32 - fire_size / 2,
+                        (position.y + player.rotation.cos() * fire_offset) as i32 - fire_size / 2,
+                        fire_size as u32,
+                        fire_size as u32,
+                    ),
+                    angle + 180.,
+                    None,
+                    false,
+                    false,
+                )?;
+            }
 
             let nametag = assets.font.render(&player.name)
                 .blended(player.color.rgba())
