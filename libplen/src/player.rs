@@ -290,7 +290,7 @@ impl Player {
                     dir,
                     self.planetype.firepower(),
                     self.id,
-                    self.final_velocity().norm(),
+                    self.velocity.norm(),
                     self.name.clone(),
                 );
                 return (Some(ProjectileKind::from(new_projectile)), false);

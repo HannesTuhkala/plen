@@ -248,12 +248,20 @@ impl Map {
                     tile_y * constants::WORLD_SIZE,
                 );
 
+                let (screen_w, screen_h) = canvas.logical_size();
+                let screen_center = vec2(
+                    screen_w as f32 * 0.5,
+                    screen_h as f32 * 0.5,
+                );
+
+                let world_to_screen_position =
+                    |pos| pos - camera_position + offset + screen_center;
+
                 self.place_world_at(
                     canvas,
                     assets,
                     game_state,
-                    camera_position,
-                    offset,
+                    world_to_screen_position,
                     powerup_rotation,
                     my_id
                 )?;
@@ -268,10 +276,7 @@ impl Map {
                         tile_y * constants::WORLD_SIZE,
                     );
 
-                    let position = vec2(
-                        player.position.x - camera_position.x,
-                        player.position.y - camera_position.y,
-                    ) + tile_offset + screen_center;
+                    let position = world_to_screen_position(player.position);
 
                     let health = player.health as f32;
                     let max_health = player.planetype.health() as f32;
@@ -355,22 +360,12 @@ impl Map {
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
         game_state: &GameState,
-        camera_position: Vec2,
-        offset: Vec2,
+        world_to_screen_position: impl Fn(Vec2) -> Vec2,
         powerup_rotation: f32,
         my_id: u64
     ) -> Result<(), String> {
-        let (screen_w, screen_h) = canvas.logical_size();
-        let screen_center = vec2(
-            screen_w as f32 * 0.5,
-            screen_h as f32 * 0.5,
-        );
-
         for smoke_particle in self.smoke_particles.iter() {
-            let position = vec2(
-                smoke_particle.position.x - camera_position.x,
-                smoke_particle.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(smoke_particle.position);
             assets.smoke.set_alpha_mod((smoke_particle.alpha * 255.) as u8);
             rendering::draw_texture_rotated_and_scaled(
                 canvas,
@@ -383,10 +378,7 @@ impl Map {
         }
 
         for explosion_particle in self.explosion_particles.iter() {
-            let position = vec2(
-                explosion_particle.position.x - camera_position.x,
-                explosion_particle.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(explosion_particle.position);
             assets.smoke.set_alpha_mod((explosion_particle.alpha * 255.) as u8);
             rendering::draw_texture_centered(canvas, &assets.smoke, position)?;
             assets.smoke.set_alpha_mod(255);
@@ -394,10 +386,7 @@ impl Map {
 
         canvas.set_draw_color((255, 255, 100));
         for spark in self.spark_particles.iter() {
-            let position = vec2(
-                spark.position.x - camera_position.x,
-                spark.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(spark.position);
             rendering::draw_texture_centered(canvas, &assets.spark, position)?;
         }
 
@@ -407,10 +396,7 @@ impl Map {
                 continue;
             }
             let opacity = if player.is_invisible() {128} else {255};
-            let position = vec2(
-                player.position.x - camera_position.x,
-                player.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(player.position);
             let texture = &mut assets.planes[player.planetype];
 
             texture.set_alpha_mod(opacity);
@@ -462,6 +448,10 @@ impl Map {
                 &nametag_texture,
                 vec2(position.x, position.y + 30.),
             )?;
+        }
+
+        for player in &game_state.players {
+            let position = world_to_screen_position(player.position);
 
             if let Some(p) = player.laser_charge_progress() {
                 let h_offset = assets.laser_charge.query().height as f32 * 0.5;
@@ -470,16 +460,15 @@ impl Map {
                     -player.rotation.cos() * h_offset
                 );
                 assets.laser_charge.set_alpha_mod((p * 255.) as u8);
-                rendering::draw_texture_rotated(canvas, &assets.laser_charge, laser_pos, player.rotation)?;
+                rendering::draw_texture_rotated(
+                    canvas, &assets.laser_charge, laser_pos, player.rotation
+                )?;
                 assets.laser_charge.set_alpha_mod(255);
             }
         }
 
         for laser in &game_state.lasers {
-            let position = vec2(
-                laser.position.x - camera_position.x,
-                laser.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(laser.position);
             let h_offset = assets.laser_charge.query().height as f32 * 0.5;
             let laser_pos = position + vec2(
                 laser.angle.sin() * h_offset,
@@ -501,10 +490,7 @@ impl Map {
         }
 
         for projectile in &game_state.projectiles {
-            let position = vec2(
-                projectile.get_position().x - camera_position.x,
-                projectile.get_position().y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(projectile.get_position());
 
             let (asset, angle) = match projectile {
                 ProjectileKind::Bullet(_) => (&assets.bullet, 0.),
@@ -514,10 +500,7 @@ impl Map {
         }
 
         for powerup in game_state.powerups.iter() {
-            let position = vec2(
-                powerup.position.x - camera_position.x,
-                powerup.position.y - camera_position.y,
-            ) + offset + screen_center;
+            let position = world_to_screen_position(powerup.position);
             let mini_offset = vec2(
                 0.,
                 (powerup_rotation*2.).sin() * constants::POWERUP_BOUNCE_HEIGHT
