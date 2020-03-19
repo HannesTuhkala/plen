@@ -54,9 +54,9 @@ impl GameState {
         self.maybe_spawn_hurricane(delta);
         self.update_hurricane(delta);
         let hit_powerup_positions = self.handle_powerups();
-        let hit_players = self.handle_bullets(delta);
+        let mut hit_players = self.handle_bullets(delta);
         let fired_laser_positions = self.handle_lasers(delta);
-        self.handle_player_collisions(delta);
+        hit_players.append(&mut self.handle_player_collisions(delta));
         self.killfeed.manage_killfeed(delta);
         (hit_players, hit_powerup_positions, fired_laser_positions)
     }
@@ -256,7 +256,7 @@ impl GameState {
         fired_laser_positions
     }
 
-    pub fn handle_player_collisions(&mut self, delta: f32) {
+    pub fn handle_player_collisions(&mut self, delta: f32) -> Vec<u64> {
         let mut collided_players: Vec<(u64, String)> = vec!();
         let hit_radius = PLANE_SIZE * 2;
 
@@ -264,17 +264,22 @@ impl GameState {
             for p2 in &self.players {
                 let distance = (p1.position - p2.position).norm();
                 if p1.id != p2.id && distance < hit_radius as f32 {
-					collided_players.push((p1.id, p2.name.clone()));
+		    collided_players.push((p1.id, p2.name.clone()));
                 }
             }
         }
 
+        let mut damaged_players = Vec::new();
         for player in &mut self.players {
             player.update_collision_timer(delta);
 
             for (id, attacker) in &collided_players {
                 if player.id == *id && player.time_to_next_collision == 0. {
-                    player.damage_player(constants::COLLISION_DAMAGE);
+                    let took_damage = player.damage_player(constants::COLLISION_DAMAGE);
+
+                    if took_damage {
+                        damaged_players.push(player.id);
+                    }
                     
                     if player.has_died() {
                         let msg = format!("{} killed {} by collision.", attacker.clone(), &player.name.clone());
@@ -285,6 +290,7 @@ impl GameState {
                 }
             }
         }
+        damaged_players
     }
 
     pub fn update_debug_lines(&mut self, debug_lines: &Receiver<DebugLine>) {
