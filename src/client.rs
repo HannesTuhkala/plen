@@ -67,12 +67,11 @@ impl MainState {
         self.update_hit_sequence();
 
         let elapsed = self.last_time.elapsed();
+        self.last_time = Instant::now();
         let dt_duration = std::time::Duration::from_millis(1000 / 60);
         if elapsed < dt_duration {
             std::thread::sleep(dt_duration - elapsed);
         }
-
-        self.last_time = Instant::now();
 
         server_reader.fetch_bytes().unwrap();
 

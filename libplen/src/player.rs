@@ -120,6 +120,7 @@ pub struct Player {
     pub speed: f32,
     pub health: i16,
     pub position: Vec2,
+    velocity: Vec2,
     pub cooldown: f32,
     pub powerups: Vec<AppliedPowerup>,
     pub available_powerup: Option<PowerUpKind>,
@@ -148,6 +149,7 @@ impl Player {
             powerups: vec!(AppliedPowerup::new(PowerUpKind::Gun)),
             available_powerup: None,
             position: position,
+            velocity: vec2(0., 0.),
             cooldown: 0.,
             planetype: plane_type,
             color: color,
@@ -183,14 +185,14 @@ impl Player {
     fn update_velocity_and_position(
         &mut self, y_input: f32, hurricane: &Option<Hurricane>, delta_time: f32
     ) {
-        let velocity = self.final_velocity();
+        self.set_final_velocity();
 
         self.wind_effect_velocity = self.update_wind_effect_velocity(hurricane, delta_time);
 
         self.speed += y_input * self.planetype.acceleration() * delta_time;
 
         self.position = math::wrap_around(
-            self.position + (velocity + self.wind_effect_velocity) * delta_time
+            self.position + (self.velocity + self.wind_effect_velocity) * delta_time
         );
     }
 
@@ -300,7 +302,7 @@ impl Player {
                 
                 let new_bullet = projectiles::Bullet::new(
                     self.position + Vec2::from_direction(dir, constants::BULLET_START),
-                    self.final_velocity() +
+                    self.velocity +
                         Vec2::from_direction(dir, constants::BULLET_VELOCITY),
                     self.planetype.firepower(),
                     self.id,
@@ -374,10 +376,16 @@ impl Player {
                     .unwrap_or(true)});
     }
 
-    pub fn final_velocity(&mut self) -> Vec2 {
-        let has_speed_boost = self.powerups.iter()
-            .any(|b| b.kind == PowerUpKind::Afterburner);
-        let speed_boost = if has_speed_boost {constants::POWERUP_SPEED_BOOST} else {1.};
+    pub fn has_powerup(&self, kind: PowerUpKind) -> bool {
+        self.powerups.iter().any(|p| p.kind == kind)
+    }
+
+    fn set_final_velocity(&mut self) {
+        let speed_boost = if self.has_powerup(PowerUpKind::Afterburner) {
+            constants::POWERUP_SPEED_BOOST
+        } else {
+            1.
+        };
 
         if self.speed > self.planetype.max_speed() {
             self.speed = self.planetype.max_speed();
@@ -389,7 +397,11 @@ impl Player {
         let dx = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).cos();
         let dy = self.speed * self.planetype.speed() * (self.rotation - std::f32::consts::PI/2.).sin();
         
-        vec2(dx, dy) * speed_boost
+        self.velocity = vec2(dx, dy) * speed_boost;
+    }
+
+    pub fn velocity(&self) -> Vec2 {
+        self.velocity
     }
 
     pub fn max_health(&self) -> i16 {
