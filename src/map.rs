@@ -90,6 +90,7 @@ pub struct Map {
     smoke_timer: f32,
     spark_timer: f32,
     start_time: Instant,
+    radar_angle: f32,
 }
 
 impl Map {
@@ -101,6 +102,7 @@ impl Map {
             smoke_timer: 0.,
             spark_timer: 0.,
             start_time: Instant::now(),
+            radar_angle: 0.,
         }
     }
 
@@ -124,7 +126,12 @@ impl Map {
         }));
     }
 
-    pub fn update_particles(&mut self, delta_time: f32, game_state: &GameState) {
+    pub fn update(&mut self, delta_time: f32, game_state: &GameState) {
+        self.update_particles(delta_time, game_state);
+        self.radar_angle += delta_time * constants::RADAR_SPEED;
+    }
+
+    fn update_particles(&mut self, delta_time: f32, game_state: &GameState) {
         self.smoke_timer -= delta_time;
         if self.smoke_timer <= 0. {
             let mut rng = rand::thread_rng();
@@ -271,10 +278,6 @@ impl Map {
                         // don't draw player if invisible
                         continue;
                     }
-                    let tile_offset = vec2(
-                        tile_x * constants::WORLD_SIZE,
-                        tile_y * constants::WORLD_SIZE,
-                    );
 
                     let position = world_to_screen_position(player.position);
 
@@ -307,7 +310,7 @@ impl Map {
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            Map::draw_mini_map(game_state, canvas, assets, &my_player)?;
+            self.draw_mini_map(game_state, canvas, assets, &my_player)?;
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets, powerup_rotation)?;
@@ -611,6 +614,7 @@ impl Map {
     }
 
     fn draw_mini_map(
+        &self,
         game_state: &GameState,
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
@@ -681,6 +685,15 @@ impl Map {
                 }
             }
         }
+
+        let mini_map_edge = mini_map_center + vec2(
+            self.radar_angle.cos(),
+            self.radar_angle.sin()
+        ) * constants::MINI_MAP_SIZE/2.;
+        canvas.draw_line(
+            (mini_map_center.x as i32, mini_map_center.y as i32),
+            (mini_map_edge.x as i32, mini_map_edge.y as i32)
+        )?;
 
         Ok(())
     }
