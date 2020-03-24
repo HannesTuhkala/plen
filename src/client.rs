@@ -142,7 +142,7 @@ impl MainState {
             return StateResult::GotoNext;
         }
 
-        self.map.update_particles(elapsed.as_secs_f32(), &self.game_state);
+        self.map.update(elapsed.as_secs_f32(), &self.game_state);
 
         let shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
         let activating_powerup = keyboard_state.is_scancode_pressed(Scancode::E);
