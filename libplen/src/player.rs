@@ -108,6 +108,11 @@ impl Color {
             Color::Purple => (255, 0, 255, 255),
         }
     }
+
+    pub fn rgb(&self) -> (u8, u8, u8) {
+        let (r, g, b, _) = self.rgba();
+        (r, g, b)
+    }
 }
 
 
@@ -136,9 +141,13 @@ pub struct Player {
 
 
 impl Player {
-    pub fn new(id: u64, position: Vec2,
-               plane_type: PlaneType, color: Color,
-               name: String) -> Player {
+    pub fn new(
+        id: u64,
+        position: Vec2,
+        plane_type: PlaneType,
+        color: Color,
+        name: String
+    ) -> Player {
         Player {
             id: id,
             rotation: 0.,
