@@ -10,7 +10,7 @@ use libplen::powerups::PowerUpKind;
 use libplen::constants;
 use libplen::gamestate::GameState;
 use libplen::projectiles::{ProjectileKind, Projectile};
-use libplen::math::{Vec2, vec2};
+use libplen::math::{self, Vec2, vec2};
 
 use crate::assets::Assets;
 use crate::rendering;
@@ -83,10 +83,22 @@ pub struct SparkParticle {
     velocity: Vec2,
 }
 
+enum RadarObjectType {
+    Plane { rotation: f32, color: (u8, u8, u8) },
+    PowerUp
+}
+
+pub struct RadarObject {
+    object_type: RadarObjectType,
+    lifetime: f32,
+    position: Vec2,
+}
+
 pub struct Map {
     smoke_particles: ParticleSystem<SmokeParticle>,
     explosion_particles: ParticleSystem<ExplosionParticle>,
     spark_particles: ParticleSystem<SparkParticle>,
+    radar_objects: ParticleSystem<RadarObject>,
     smoke_timer: f32,
     spark_timer: f32,
     start_time: Instant,
@@ -99,6 +111,7 @@ impl Map {
             smoke_particles: ParticleSystem::new(200),
             explosion_particles: ParticleSystem::new(200),
             spark_particles: ParticleSystem::new(200),
+            radar_objects: ParticleSystem::new(200),
             smoke_timer: 0.,
             spark_timer: 0.,
             start_time: Instant::now(),
@@ -126,9 +139,11 @@ impl Map {
         }));
     }
 
-    pub fn update(&mut self, delta_time: f32, game_state: &GameState) {
+    pub fn update(&mut self, delta_time: f32, game_state: &GameState, my_id: u64) {
         self.update_particles(delta_time, game_state);
-        self.radar_angle += delta_time * constants::RADAR_SPEED;
+        if let Some(my_player) = game_state.get_player_by_id(my_id) {
+            self.update_radar(delta_time, game_state, my_player);
+        }
     }
 
     fn update_particles(&mut self, delta_time: f32, game_state: &GameState) {
@@ -202,6 +217,86 @@ impl Map {
             spark.lifetime -= delta_time;
         }
         self.spark_particles.retain(|spark| spark.lifetime > 0.);
+    }
+
+    pub fn update_radar(
+        &mut self,
+        delta_time: f32,
+        game_state: &GameState,
+        my_player: &player::Player
+    ) {
+        let old_radar_angle = self.radar_angle;
+        let radar_angle =
+            (self.radar_angle + delta_time * constants::RADAR_SPEED) % (PI * 2.);
+        self.radar_angle = radar_angle;
+
+        let in_radar_range = |position: Vec2| {
+            let dist_squared = position.x.powi(2) + position.y.powi(2);
+            if dist_squared > (constants::MINI_MAP_SIZE/2.).powi(2) {
+                return false
+            }
+
+            // atan2 gives an angle in the range (-pi, pi]
+            let angle = math::modulo(position.angle(), PI*2.);
+
+            // Angle wraparound creates some special cases
+            if radar_angle >= old_radar_angle {
+                old_radar_angle <= angle && angle <= radar_angle
+            } else {
+                old_radar_angle <= angle || angle <= radar_angle
+            }
+        };
+
+        let my_pos = my_player.position;
+
+        for tile_x in &[-1., 0., 1.] {
+            for tile_y in &[-1., 0., 1.] {
+                let offset = vec2(
+                    tile_x * constants::MINI_MAP_SIZE,
+                    tile_y * constants::MINI_MAP_SIZE,
+                );
+                let scale = constants::MINI_MAP_SIZE / constants::WORLD_SIZE;
+                self.radar_objects.add_particles(
+                    game_state.players.iter().filter_map(|player| {
+                        if player.id == my_player.id || player.is_invisible() {
+                            // don't draw player if invisible
+                            // and my player is always drawn
+                            return None;
+                        }
+                        let position = (player.position - my_pos)*scale + offset;
+                        if in_radar_range(position) {
+                            return Some(RadarObject {
+                                object_type: RadarObjectType::Plane {
+                                    rotation: player.rotation,
+                                    color: player.color.rgb(),
+                                },
+                                position: position,
+                                lifetime: constants::RADAR_FADEOUT_TIME,
+                            });
+                        }
+                        None
+                    })
+                );
+                self.radar_objects.add_particles(
+                    game_state.powerups.iter().filter_map(|powerup| {
+                        let position = (powerup.position - my_pos)*scale + offset;
+                        if in_radar_range(position) {
+                            return Some(RadarObject{
+                                object_type: RadarObjectType::PowerUp,
+                                position: position,
+                                lifetime: constants::RADAR_FADEOUT_TIME,
+                            });
+                        }
+                        None
+                    })
+                );
+            }
+        }
+
+        for obj in self.radar_objects.iter_mut() {
+            obj.lifetime -= delta_time;
+        }
+        self.radar_objects.retain(|obj| obj.lifetime > 0.);
     }
 
     pub fn draw(
@@ -310,7 +405,7 @@ impl Map {
         Self::draw_red_hit_effect(hit_effect_timer, canvas);
 
         if let Some(my_player) = game_state.get_player_by_id(my_id) {
-            self.draw_mini_map(game_state, canvas, assets, &my_player)?;
+            self.draw_mini_map(canvas, assets, my_player)?;
         }
 
         Self::draw_ui(my_id, game_state, canvas, assets, powerup_rotation)?;
@@ -615,7 +710,6 @@ impl Map {
 
     fn draw_mini_map(
         &self,
-        game_state: &GameState,
         canvas: &mut Canvas<Window>,
         assets: &mut Assets,
         my_player: &player::Player,
@@ -630,62 +724,41 @@ impl Map {
             )
         )?;
 
-        let my_pos = my_player.position;
         let mini_map_center = vec2(
             screen_w as f32 - constants::MINI_MAP_SIZE * 0.5,
             screen_h as f32 - constants::MINI_MAP_SIZE * 0.5
         );
 
-        for tile_x in &[-1., 0., 1.] {
-            for tile_y in &[-1., 0., 1.] {
-                let offset = vec2(
-                    tile_x * constants::MINI_MAP_SIZE,
-                    tile_y * constants::MINI_MAP_SIZE,
-                );
-                let scale = constants::MINI_MAP_SIZE
-                    / constants::WORLD_SIZE;
-                for player in &game_state.players {
-                    if player.is_invisible() && my_player.id != player.id {
-                        // don't draw player if invisible
-                        continue;
-                    }
-                    let position = vec2(
-                        (player.position.x - my_pos.x)*scale,
-                        (player.position.y - my_pos.y)*scale,
-                    );
-                    let dist = ((position.x + offset.x).powi(2)
-                                + (position.y + offset.y).powi(2)).sqrt();
-                    if dist <= constants::MINI_MAP_SIZE/2. {
-                        let (r, g, b, _) = player.color.rgba();
-                        assets.miniplane.set_color_mod(r, g, b);
-                        rendering::draw_texture_rotated_and_scaled(
-                            canvas,
-                            &assets.miniplane,
-                            position + offset + mini_map_center,
-                            player.rotation,
-                            vec2(0.5, 0.5)
-                        )?;
-                    }
+        for radar_object in self.radar_objects.iter() {
+            let pos = mini_map_center + radar_object.position;
+            let alpha =
+                (radar_object.lifetime / constants::RADAR_FADEOUT_TIME * 255.) as u8;
+
+            match radar_object.object_type {
+                RadarObjectType::Plane { rotation, color } => {
+                    let (r, g, b) = color;
+                    assets.miniplane.set_color_mod(r, g, b);
+                    assets.miniplane.set_alpha_mod(alpha);
+                    rendering::draw_texture_rotated_and_scaled(
+                        canvas,
+                        &assets.miniplane,
+                        pos,
+                        rotation,
+                        vec2(0.5, 0.5)
+                    )?;
+                    assets.miniplane.set_alpha_mod(255);
                 }
-                for powerup in &game_state.powerups {
-                    let position = vec2(
-                        (powerup.position.x - my_pos.x)*scale,
-                        (powerup.position.y - my_pos.y)*scale,
-                    );
-                    let dist = ((position.x + offset.x).powi(2)
-                                + (position.y + offset.y).powi(2)).sqrt();
-                    if dist <= constants::MINI_MAP_SIZE/2. {
-                        let pos = position + offset + mini_map_center;
-                        rendering::draw_texture_centered(
-                            canvas,
-                            &assets.minimap_powerup,
-                            pos
-                        )?;
-                    }
+                RadarObjectType::PowerUp => {
+                    assets.minimap_powerup.set_alpha_mod(alpha);
+                    rendering::draw_texture_centered(
+                        canvas, &assets.minimap_powerup, pos
+                    )?;
+                    assets.minimap_powerup.set_alpha_mod(255);
                 }
             }
         }
 
+        // Draw radar line
         let mini_map_edge = mini_map_center + vec2(
             self.radar_angle.cos(),
             self.radar_angle.sin()
@@ -693,6 +766,17 @@ impl Map {
         canvas.draw_line(
             (mini_map_center.x as i32, mini_map_center.y as i32),
             (mini_map_edge.x as i32, mini_map_edge.y as i32)
+        )?;
+
+        // Draw my plane
+        let (r, g, b) = my_player.color.rgb();
+        assets.miniplane.set_color_mod(r, g, b);
+        rendering::draw_texture_rotated_and_scaled(
+            canvas,
+            &assets.miniplane,
+            mini_map_center,
+            my_player.rotation,
+            vec2(0.5, 0.5)
         )?;
 
         Ok(())

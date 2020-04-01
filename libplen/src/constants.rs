@@ -94,4 +94,7 @@ pub const HURRICANE_EYE_SIZE: f32 = 100.;
 pub const HURRICANE_WIND_EFFECT_DECAY: f32 = 0.9;
 pub const HURRICANE_ROTATION_SPEED: f32 = 0.5;
 
-pub const RADAR_SPEED: f32 = 1.0; // Speed that radar turns at, in radians/second
+// Speed that radar turns at, in radians/second
+pub const RADAR_SPEED: f32 = 3.0;
+// Time it takes for radar blips to fade out, in seconds
+pub const RADAR_FADEOUT_TIME: f32 = 1.0;
