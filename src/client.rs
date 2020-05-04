@@ -13,7 +13,13 @@ use sdl2::event::Event;
 use sdl2::render::BlendMode;
 use sdl2::keyboard::{Keycode, Scancode};
 
-use libplen::messages::{MessageReader, ClientMessage, ServerMessage, SoundEffect};
+use libplen::messages::{
+    ClientMessage,
+    ClientInput,
+    MessageReader,
+    ServerMessage,
+    SoundEffect
+};
 use libplen::gamestate;
 use libplen::constants;
 use libplen::hurricane;
@@ -122,20 +128,19 @@ impl MainState {
             }
         }
 
-        let mut y_input = 0.0;
+        let mut input = ClientInput::new();
         if keyboard_state.is_scancode_pressed(Scancode::W) {
-            y_input += 1.0;
+            input.y_input += 1.0;
         }
         if keyboard_state.is_scancode_pressed(Scancode::S) {
-            y_input -= 1.0;
+            input.y_input -= 1.0;
         }
 
-        let mut x_input = 0.0;
         if keyboard_state.is_scancode_pressed(Scancode::A) {
-            x_input -= 1.0;
+            input.x_input -= 1.0;
         } 
         if keyboard_state.is_scancode_pressed(Scancode::D) {
-            x_input += 1.0;
+            input.x_input += 1.0;
         }
 
         if self.dead && keyboard_state.is_scancode_pressed(Scancode::Return) {
@@ -144,9 +149,9 @@ impl MainState {
 
         self.map.update(elapsed.as_secs_f32(), &self.game_state, self.my_id);
 
-        let shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
-        let activating_powerup = keyboard_state.is_scancode_pressed(Scancode::E);
-        let input_message = ClientMessage::Input{ x_input, y_input, shooting, activating_powerup };
+        input.shooting = keyboard_state.is_scancode_pressed(Scancode::Space);
+        input.activating_powerup = keyboard_state.is_scancode_pressed(Scancode::E);
+        let input_message = ClientMessage::Input(input);
         send_client_message(&input_message, &mut server_reader.stream);
 
         self.powerup_rotation += constants::POWERUP_SPEED * elapsed.as_secs_f32();
