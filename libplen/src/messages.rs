@@ -87,7 +87,26 @@ pub enum ServerMessage {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct ClientInput {
+    pub x_input: f32,
+    pub y_input: f32,
+    pub shooting: bool,
+    pub activating_powerup: bool,
+}
+
+impl ClientInput {
+    pub fn new() -> Self {
+        ClientInput {
+            x_input: 0.,
+            y_input: 0.,
+            shooting: false,
+            activating_powerup: false,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
 pub enum ClientMessage {
-    Input { x_input: f32, y_input: f32, shooting: bool, activating_powerup: bool },
+    Input(ClientInput),
     JoinGame { name: String, plane: player::PlaneType, color: player::Color },
 }

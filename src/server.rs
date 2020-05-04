@@ -8,7 +8,13 @@ use std::time::Instant;
 use rand::Rng;
 use unicode_truncate::UnicodeTruncateStr;
 
-use libplen::messages::{ClientMessage, ServerMessage, MessageReader, SoundEffect};
+use libplen::messages::{
+    ClientMessage,
+    ClientInput,
+    MessageReader,
+    ServerMessage,
+    SoundEffect
+};
 use libplen::player::Player;
 use libplen::powerups::PowerUpKind;
 use libplen::gamestate;
@@ -49,9 +55,15 @@ fn send_server_message(msg: &ServerMessage, stream: &mut TcpStream)
     send_bytes(&data, stream)
 }
 
+struct Client {
+    id: u64,
+    message_reader: MessageReader,
+    input: ClientInput,
+}
+
 struct Server {
     listener: TcpListener,
-    connections: Vec<(u64, MessageReader)>,
+    connections: Vec<Client>,
     state: gamestate::GameState,
     next_id: u64,
     last_time: Instant,
@@ -129,10 +141,11 @@ impl Server {
                         println!("Could not send assign id message");
                         continue;
                     }
-                    self.connections.push((
-                        self.next_id,
-                        MessageReader::new(stream)
-                    ));
+                    self.connections.push(Client {
+                        id: self.next_id,
+                        message_reader: MessageReader::new(stream),
+                        input: ClientInput::new(),
+                    });
                     self.next_id += 1;
                 }
                 Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
@@ -175,21 +188,13 @@ impl Server {
             }
         }
 
-        for (id, ref mut client) in self.connections.iter_mut() {
-            remove_player_on_disconnect!(client.fetch_bytes(), *id);
+        for ref mut client in self.connections.iter_mut() {
+            remove_player_on_disconnect!(client.message_reader.fetch_bytes(), client.id);
 
-            let mut player_input_x = 0.0;
-            let mut player_input_y = 0.0;
-            let mut player_shooting = false;
-            let mut player_activating_powerup = false;
-
-            for message in client.iter() {
+            for message in client.message_reader.iter() {
                 match bincode::deserialize(&message) {
-                    Ok(ClientMessage::Input{ x_input, y_input, shooting, activating_powerup }) => {
-                        player_input_x = x_input;
-                        player_input_y = y_input;
-                        player_shooting = shooting;
-                        player_activating_powerup = activating_powerup;
+                    Ok(ClientMessage::Input(input)) => {
+                        client.input = input;
                     },
                     Ok(ClientMessage::JoinGame{ mut name, plane, color }) => {
                         let mut random = rand::thread_rng();
@@ -200,7 +205,7 @@ impl Server {
                         }
 
                         let player = Player::new(
-                            *id,
+                            client.id,
                             vec2(
                                 random.gen_range(0., constants::WORLD_SIZE),
                                 random.gen_range(0., constants::WORLD_SIZE)
@@ -212,8 +217,8 @@ impl Server {
                         self.state.add_player(player);
                     },
                     Err(_) => {
-                        println!("Could not decode message from {}, deleting", id);
-                        clients_to_delete.push(*id);
+                        println!("Could not decode message from {}, deleting", client.id);
+                        clients_to_delete.push(client.id);
                     }
                 }
             }
@@ -226,22 +231,22 @@ impl Server {
             for hit_id in hit_players {
                 let result = send_server_message(
                     &ServerMessage::PlayerHit(*hit_id),
-                    &mut client.stream
+                    &mut client.message_reader.stream
                 );
-                remove_player_on_disconnect!(result, *id);
+                remove_player_on_disconnect!(result, client.id);
             }
 
             let mut bullet = None;
             for player in &mut self.state.players {
-                if player.id == *id {
+                if player.id == client.id {
                     player.update(
-                        player_input_x,
-                        player_input_y,
+                        client.input.x_input,
+                        client.input.y_input,
                         &self.state.hurricane,
                         delta_time,
                     );
 
-                    if player_shooting {
+                    if client.input.shooting {
                         let (b, start_charging_laser) = player.shoot();
                         bullet = b;
                         if start_charging_laser {
@@ -249,16 +254,16 @@ impl Server {
                         }
                     }
 
-                    if player_activating_powerup {
+                    if client.input.activating_powerup {
                         player.trigger_powerup_if_available();
                     }
 
                     if player.health <= 0 {
                         let result = send_server_message(
                             &ServerMessage::YouDied,
-                            &mut client.stream
+                            &mut client.message_reader.stream
                         );
-                        remove_player_on_disconnect!(result, *id);
+                        remove_player_on_disconnect!(result, client.id);
                         sounds_to_play.push((SoundEffect::Explosion, player.position));
                     }
                     break
@@ -267,9 +272,9 @@ impl Server {
 
             let result = send_server_message(
                 &ServerMessage::GameState(self.state.clone()),
-                &mut client.stream
+                &mut client.message_reader.stream
             );
-            remove_player_on_disconnect!(result, *id);
+            remove_player_on_disconnect!(result, client.id);
 
             if let Some(bullet) = bullet {
                 let pos = bullet.get_position();
@@ -279,23 +284,23 @@ impl Server {
 
             // play powerup sound effects
             for (player_id, position) in hit_powerup_positions {
-                if player_id == id {
+                if *player_id == client.id {
                     let result = send_server_message(
                         &ServerMessage::PlaySound(SoundEffect::Powerup, *position),
-                        &mut client.stream
+                        &mut client.message_reader.stream
                     );
-                    remove_player_on_disconnect!(result, *id);
+                    remove_player_on_disconnect!(result, client.id);
                 }
             }
         }
 
         for (sound, pos) in &sounds_to_play {
-            for (id, ref mut client) in self.connections.iter_mut() {
+            for client in self.connections.iter_mut() {
                 let result = send_server_message(
                     &ServerMessage::PlaySound(*sound, *pos),
-                    &mut client.stream
+                    &mut client.message_reader.stream
                 );
-                remove_player_on_disconnect!(result, *id);
+                remove_player_on_disconnect!(result, client.id);
             }
         }
 
@@ -308,7 +313,7 @@ impl Server {
                 !dead_players.contains(&player.id)
         );
         self.connections.retain(
-            |(id, _)| !clients_to_delete.contains(id)
+            |client| !clients_to_delete.contains(&client.id)
         );
     }
 }
