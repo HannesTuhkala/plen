@@ -188,7 +188,7 @@ impl Server {
             }
         }
 
-        for ref mut client in self.connections.iter_mut() {
+        for client in self.connections.iter_mut() {
             remove_player_on_disconnect!(client.message_reader.fetch_bytes(), client.id);
 
             for message in client.message_reader.iter() {
