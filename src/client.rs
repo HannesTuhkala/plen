@@ -208,7 +208,7 @@ impl MainState {
 
 pub fn main() -> Result<(), String> {
     let host = std::env::var("SERVER")
-        .unwrap_or(String::from("localhost:4444"));
+        .unwrap_or(String::from("skarman.space:4444"));
     let stream = TcpStream::connect(host).expect("Could not connect to server");
     println!("Connected to server");
 
