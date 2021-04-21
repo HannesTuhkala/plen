@@ -137,6 +137,8 @@ pub struct Player {
     pub laser_charge_time: Option<f32>,
     pub lasering_this_frame: bool,
     pub time_to_next_collision: f32,
+	pub kills: u32,
+	pub deaths: u32,
 }
 
 
@@ -167,6 +169,8 @@ impl Player {
             laser_charge_time: None,
             lasering_this_frame: false,
             time_to_next_collision: constants::COLLISION_GRACE_PERIOD,
+			kills: 0,
+			deaths: 0,
         }
     }
 
