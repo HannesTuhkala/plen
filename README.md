@@ -4,6 +4,8 @@ Fly the plen blyat
 
 A multiplayer shoot at each other with planes game
 
+![Plen_Gameplay](https://user-images.githubusercontent.com/595580/127048627-8127876d-09f8-4ec1-b93d-46a1c06b9c02.gif)
+
 ## Usage instructions
 
 The game client is very slow in debug mode, so it should be run in release mode
